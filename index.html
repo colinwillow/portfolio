@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colin Willow Portfolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: #333;
+            background-color: #111;
+            overflow-x: hidden;
+        }
+
+        /* ── HEADER ── */
+        header {
+            background: #111;
+            border-bottom: 1px solid #222;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .social-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            color: #aaa;
+            text-decoration: none;
+            font-size: 13px;
+            transition: color 0.2s;
+        }
+        .social-icon:hover { color: #fff; }
+
+        /* ── HERO VIDEO ── */
+        .hero-video-wrap {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            overflow: hidden;
+            position: relative;
+        }
+        .hero-video-wrap video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* ── SECTION LABELS ── */
+        .section-label {
+            padding: 24px 0 16px;
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: #555;
+            font-weight: 500;
+        }
+
+        /* ─────────────────────────────
+           MOTION SECTION  (16:9 grid)
+        ───────────────────────────── */
+        .motion-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+        }
+        @media (max-width: 768px) {
+            .motion-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .motion-grid { grid-template-columns: 1fr; }
+        }
+        .motion-cell {
+            aspect-ratio: 16/9;
+            background: #000;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+        .motion-cell video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s ease, opacity 0.3s ease;
+        }
+        .motion-cell:hover video {
+            transform: scale(1.03);
+            opacity: 0.85;
+        }
+
+        /* ─────────────────────────────
+           ILLUSTRATIONS  (2:3 grid)
+        ───────────────────────────── */
+        .illustration-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+        }
+        @media (max-width: 1024px) {
+            .illustration-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .illustration-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .illustration-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .illustration-cell {
+            aspect-ratio: 2/3;
+            background: #1a1a1a;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+        .illustration-cell img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s ease, opacity 0.3s ease;
+        }
+        .illustration-cell:hover img {
+            transform: scale(1.04);
+            opacity: 0.85;
+        }
+
+        /* ─────────────────────────────
+           LOGOS  (1:1 grid)
+        ───────────────────────────── */
+        .logo-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 2px;
+        }
+        @media (max-width: 1024px) {
+            .logo-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .logo-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .logo-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .logo-cell {
+            aspect-ratio: 1/1;
+            background: #1a1a1a;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+        .logo-cell img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            padding: 12%;
+            transition: transform 0.4s ease, opacity 0.3s ease;
+        }
+        .logo-cell:hover img {
+            transform: scale(1.08);
+            opacity: 0.85;
+        }
+
+        /* ── EXPERTISE TOGGLE ── */
+        #expertise-toggle {
+            border-top: 1px solid #2a2a2a;
+            border-bottom: 1px solid #2a2a2a;
+            color: #ccc;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #expertise-toggle:hover { background: #1a1a1a; }
+        #expertise-content { color: #888; }
+
+        /* ── CONTACT / FOOTER ── */
+        .contact-section { border-top: 1px solid #222; }
+        footer { border-top: 1px solid #222; background: #0d0d0d; }
+
+        /* ── PROFILE SPIN ── */
+        @keyframes spin-fast  { to { transform: rotate(360deg);  } }
+        @keyframes spin-medium{ to { transform: rotate(-360deg); } }
+        @keyframes spin-slow  { to { transform: rotate(360deg);  } }
+
+        #profile-outline-svg circle {
+            transform-origin: 50% 50%;
+            transform: rotate(0deg);
+            transition: transform 0.3s ease-out;
+        }
+        #profile-pic-container:hover #arc-red    { animation: spin-fast   1.5s linear infinite; }
+        #profile-pic-container:hover #arc-blue   { animation: spin-medium 3s   linear infinite; }
+        #profile-pic-container:hover #arc-green  { animation: spin-slow   4s   linear infinite; }
+        #profile-pic-container:hover #arc-yellow { animation: spin-fast   2s   linear infinite reverse; }
+
+        /* ── UTILS ── */
+        .text-muted { color: #666; }
+        input, textarea {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            color: #ccc;
+        }
+        input::placeholder, textarea::placeholder { color: #555; }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #555;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+<!-- ══════════════════════════════════
+     HEADER
+══════════════════════════════════ -->
+<header>
+    <div class="container mx-auto px-4 py-5 flex flex-col md:flex-row justify-between items-center">
+        <div class="flex items-center space-x-3 mb-4 md:mb-0">
+            <!-- Profile pic -->
+            <div id="profile-pic-container" class="relative w-14 h-14 flex-shrink-0 cursor-pointer">
+                <div class="w-full h-full rounded-full bg-cover ring-2 ring-gray-700"
+                     style="background-image: url('https://raw.githubusercontent.com/colinwillow/SVGs/main/Colin_Profile_CG_03.png'); background-position: 50% 30%;">
+                </div>
+                <svg id="profile-outline-svg" class="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+                    <circle id="arc-red"    cx="50" cy="50" r="46" fill="none" stroke="#EA4335" stroke-width="5" stroke-dasharray="8 290"  stroke-linecap="round"/>
+                    <circle id="arc-blue"   cx="50" cy="50" r="46" fill="none" stroke="#4285F4" stroke-width="5" stroke-dasharray="18 290" stroke-linecap="round"/>
+                    <circle id="arc-green"  cx="50" cy="50" r="46" fill="none" stroke="#34A853" stroke-width="5" stroke-dasharray="30 290" stroke-linecap="round"/>
+                    <circle id="arc-yellow" cx="50" cy="50" r="46" fill="none" stroke="#FBBC05" stroke-width="5" stroke-dasharray="50 290" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <!-- Logo -->
+            <a href="#" class="block">
+                <span id="logo-text-fallback" class="font-semibold text-white text-2xl">Colin Willow.</span>
+                <div id="logo-svg-wrapper" class="hidden w-48 h-8 md:w-72 md:h-10"></div>
+            </a>
+        </div>
+
+        <nav class="flex space-x-6 mb-4 md:mb-0">
+            <a href="#motion"        class="text-gray-400 hover:text-white transition-colors text-sm">Motion</a>
+            <a href="#illustrations" class="text-gray-400 hover:text-white transition-colors text-sm">Illustrations</a>
+            <a href="#logos"         class="text-gray-400 hover:text-white transition-colors text-sm">Logos</a>
+            <a href="#contact"       class="text-gray-400 hover:text-white transition-colors text-sm">Contact</a>
+        </nav>
+
+        <div class="flex space-x-4">
+            <a href="#" class="social-icon" aria-label="Vimeo">V</a>
+            <a href="#" class="social-icon" aria-label="Behance">Be</a>
+            <a href="#" class="social-icon" aria-label="LinkedIn">in</a>
+            <a href="#" class="social-icon" aria-label="YouTube">▶</a>
+        </div>
+    </div>
+</header>
+
+<!-- ══════════════════════════════════
+     HERO BIO
+══════════════════════════════════ -->
+<section style="background:#111; padding: 64px 0 32px;">
+    <div class="container mx-auto px-4">
+        <p class="text-lg leading-relaxed text-gray-400 max-w-2xl">
+            Blending technical mastery with visual storytelling — high-end 3D, CGI, and character creation for visionary brands.
+        </p>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════
+     HERO VIDEO  (16:9)
+══════════════════════════════════ -->
+<div class="hero-video-wrap">
+    <video id="hero-video-player" muted playsinline preload="auto"
+           poster="https://raw.githubusercontent.com/colinwillow/videos_02/main/Hero_Poster.jpg">
+    </video>
+</div>
+
+<!-- ══════════════════════════════════
+     CG EXPERTISE TOGGLE
+══════════════════════════════════ -->
+<section style="background:#111; padding: 0 0 48px;">
+    <div class="container mx-auto px-4">
+        <div id="expertise-toggle" class="py-4 px-0 flex justify-between items-center">
+            <h2 class="text-xl font-light">CG Expertise & Creative Services</h2>
+            <span id="toggle-icon" class="text-2xl" style="color:#666;">+</span>
+        </div>
+        <div id="expertise-content" class="pt-6 max-w-4xl hidden">
+            <div class="grid md:grid-cols-2 gap-10">
+                <div>
+                    <p class="text-base leading-relaxed mb-4">
+                        I specialize in comprehensive character design and creation, handling the entire pipeline from concept through to final game or animation-ready topology. My technical skills cover sculpting, clean modeling, texturing, character rigging, and retopology.
+                    </p>
+                    <p class="text-base leading-relaxed">
+                        Beyond character work, I love product design and creating striking product demonstrations — funky, attractive visuals with professional product placement.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-medium text-gray-200 mb-3">Software & Tech</h3>
+                    <p class="text-base leading-relaxed mb-4">
+                        Cinema 4D, ZBrush, Octane, Redshift, Unreal Engine.
+                    </p>
+                    <p class="text-base leading-relaxed">
+                        3D scanning, photogrammetry, and AI-assisted workflows to bring ambitious ideas to life efficiently.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════
+     MOTION  (16:9 — edge to edge)
+══════════════════════════════════ -->
+<section id="motion" style="background:#0d0d0d;">
+    <div class="container mx-auto px-4">
+        <p class="section-label">Motion</p>
+    </div>
+    <div class="motion-grid">
+        <!-- All 23 motion files from colinwillow/portfolio -->
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_alien_dj.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_alien_drinking.mp4"  type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_alien_id.mp4"        type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_alien_waving.mp4"    type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_brain_vat.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_color_orb.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_cow.mp4"             type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_crush_goo.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_cwd_logo.mp4"        type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_delorean_rs.mp4"     type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_donut_spin.mp4"      type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_looping_calls.mp4"   type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_man_chair.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_monster_forest.mp4"  type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_nike_logo.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_nike_shoe.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_pepsi_snow.mp4"      type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_robot_world.mp4"     type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_splash_ball.mp4"     type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_swirl_soda.mp4"      type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_sylk.mp4"            type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_xbox.mp4"            type="video/mp4"></video></div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════
+     ILLUSTRATIONS  (2:3)
+══════════════════════════════════ -->
+<section id="illustrations" style="background:#111;">
+    <div class="container mx-auto px-4">
+        <p class="section-label">Illustrations</p>
+    </div>
+    <div class="illustration-grid">
+        <!-- Note: filenames have double extensions as-is in the repo -->
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illlustration_faith.jpg.JPG"         alt="Faith"            loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illlustration_megan.jpg.jpg"         alt="Megan"            loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_bobcat.jpg.jpg"         alt="Bobcat"           loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_brooke.jpg.jpg"         alt="Brooke"           loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_buck.jpg.jpg"           alt="Buck"             loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_colin_graffiti.jpg.jpg" alt="Colin Graffiti"   loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_colin_hat_jpg.jpg"      alt="Colin Hat"        loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_colin_headphones.jpg.jpg" alt="Colin Headphones" loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_faith_dress.jpg.jpg"   alt="Faith Dress"      loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_faith_robe.jpg.jpg"     alt="Faith Robe"       loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_owl.jpg.jpg"            alt="Owl"              loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_sari.jpg"               alt="Sari"             loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_winky.jpg.jpg"          alt="Winky"            loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_zoe.jpg.JPG"            alt="Zoe"              loading="lazy"></div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════
+     LOGOS  (1:1)
+══════════════════════════════════ -->
+<section id="logos" style="background:#0d0d0d;">
+    <div class="container mx-auto px-4">
+        <p class="section-label">Logos & Branding</p>
+    </div>
+    <div class="logo-grid">
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_colin_willow_512px.jpg.jpg"          alt="Colin Willow"         loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_colin_willow_design_512px.jpg.jpg"   alt="Colin Willow Design"  loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_entheos_512px_02.jpg.JPG"            alt="Entheos 02"           loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_entheos__512px_02.jpg.JPG"           alt="Entheos"              loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_guy_512px.jpg.png"                   alt="Guy"                  loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_01_512px.jpg.jpg"        alt="Higher Level 01"      loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_02_512px.jpg.JPG"        alt="Higher Level 02"      loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_03_512px.jpg.JPG"        alt="Higher Level 03"      loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_04_512px.jpg.JPG"        alt="Higher Level 04"      loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_05_512px.jpg.JPG"        alt="Higher Level 05"      loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_majia__512px.jpg.JPG"                alt="Majia"                loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_osiris_01_512px.jpg.jpg"             alt="Osiris 01"            loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_osiris_black_512px.jpg.jpg"          alt="Osiris Black"         loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_osiris_white_512px.jpg.jpg"          alt="Osiris White"         loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_unauthorized_512px.jpg.JPG"          alt="Unauthorized"         loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_unknown_512px.jpg.JPG"               alt="Unknown"              loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_vvolt_512px.jpg.png"                 alt="Vvolt"                loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/thatswassupps_logo_512px.jpg.jpg"         alt="Thatswassupps"        loading="lazy"></div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════
+     CONTACT
+══════════════════════════════════ -->
+<section id="contact" class="contact-section" style="background:#111; padding: 80px 0;">
+    <div class="container mx-auto px-4">
+        <h2 class="text-4xl font-light text-white mb-4">Let's build something great.</h2>
+        <p class="text-gray-500 max-w-xl mb-12">Have a project idea, a commercial brief, or just want to discuss the future of CGI?</p>
+
+        <div class="grid md:grid-cols-2 gap-12">
+            <div>
+                <p class="text-sm text-gray-500 mb-1">Email</p>
+                <a href="mailto:hello@colinwillow.com" class="text-white hover:text-gray-300 transition-colors">hello@colinwillow.com</a>
+            </div>
+            <div>
+                <form action="#" method="POST" class="space-y-4">
+                    <input type="text"  placeholder="Your Name"    class="w-full px-4 py-3 rounded text-sm">
+                    <input type="email" placeholder="Your Email"   class="w-full px-4 py-3 rounded text-sm">
+                    <textarea           placeholder="Your Message" rows="4" class="w-full px-4 py-3 rounded text-sm resize-none"></textarea>
+                    <button type="button" style="background:#fff; color:#111;"
+                            class="w-full py-3 px-6 font-medium text-sm hover:opacity-80 transition-opacity rounded">
+                        Send Message
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════
+     FOOTER
+══════════════════════════════════ -->
+<footer style="padding: 40px 0;">
+    <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+        <span class="text-gray-600 text-sm mb-4 md:mb-0">All rights reserved © Colin Willow 2025</span>
+        <div class="flex space-x-4">
+            <a href="#" class="social-icon" aria-label="Vimeo">V</a>
+            <a href="#" class="social-icon" aria-label="Behance">Be</a>
+            <a href="#" class="social-icon" aria-label="LinkedIn">in</a>
+            <a href="#" class="social-icon" aria-label="YouTube">▶</a>
+        </div>
+    </div>
+</footer>
+
+<script>
+// ── SVG Logo ──
+async function loadSVGLogo(url) {
+    try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error();
+        const svg = await r.text();
+        const wrapper = document.getElementById('logo-svg-wrapper');
+        const fallback = document.getElementById('logo-text-fallback');
+        wrapper.innerHTML = svg;
+        // Invert the SVG so it shows white on dark bg
+        wrapper.style.filter = 'invert(1)';
+        wrapper.classList.remove('hidden');
+        fallback.classList.add('hidden');
+    } catch(e) { /* show text fallback */ }
+}
+
+// ── Hero video sequence ──
+const heroSources = [
+    "https://raw.githubusercontent.com/colinwillow/videos_02/main/Hero_Video_01.mp4",
+    "https://raw.githubusercontent.com/colinwillow/videos_02/main/brain.mp4",
+    "https://raw.githubusercontent.com/colinwillow/videos_02/main/dj_alien.mp4",
+    "https://raw.githubusercontent.com/colinwillow/videos_02/main/main_chair.mp4",
+    "https://raw.githubusercontent.com/colinwillow/videos_02/main/pepsi.mp4",
+    "https://raw.githubusercontent.com/colinwillow/videos_02/main/xbox.mp4",
+    "https://raw.githubusercontent.com/colinwillow/videos_02/main/nike_shoe.mp4"
+];
+let heroIdx = 0;
+const heroPlayer = document.getElementById('hero-video-player');
+
+function playHero(idx) {
+    heroPlayer.src = heroSources[idx % heroSources.length];
+    heroPlayer.load();
+    heroPlayer.play().catch(() => {});
+    heroIdx = idx % heroSources.length;
+}
+
+heroPlayer.addEventListener('ended', () => playHero(heroIdx + 1));
+playHero(0);
+
+// ── Expertise toggle ──
+document.getElementById('expertise-toggle').addEventListener('click', () => {
+    const c = document.getElementById('expertise-content');
+    const i = document.getElementById('toggle-icon');
+    c.classList.toggle('hidden');
+    i.textContent = c.classList.contains('hidden') ? '+' : '–';
+});
+
+// ── Lazy-load videos via IntersectionObserver ──
+const videoObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        const vid = entry.target.querySelector('video');
+        if (!vid) return;
+        if (entry.isIntersecting) {
+            vid.play().catch(() => {});
+        } else {
+            vid.pause();
+        }
+    });
+}, { rootMargin: '200px' });
+
+document.querySelectorAll('.motion-cell').forEach(cell => videoObserver.observe(cell));
+
+// ── Logo SVG ──
+document.addEventListener('DOMContentLoaded', () => {
+    loadSVGLogo("https://raw.githubusercontent.com/colinwillow/SVGs/main/Colin_Willow.svg");
+});
+</script>
+</body>
+</html>
