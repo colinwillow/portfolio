@@ -6,8 +6,134 @@
     <title>Colin Willow Portfolio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        /* ── LANDING LAYER ── */
+        #landing {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        #landing-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%; height: 100%;
+        }
+        #landing-scanlines {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg, transparent, transparent 2px,
+                rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+            );
+            z-index: 1;
+        }
+        #landing-ui {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+        }
+        #landing-name {
+            font-family: 'Space Mono', monospace;
+            font-size: clamp(32px, 6vw, 76px);
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            color: #fff;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 1.2s ease, transform 1.2s ease;
+            text-align: center;
+        }
+        #landing-name span { color: #c4a882; }
+        #landing-tagline {
+            margin-top: 14px;
+            font-size: clamp(10px, 1.2vw, 13px);
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: #555;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 1s ease 0.4s, transform 1s ease 0.4s;
+        }
+        #landing-enter {
+            margin-top: 60px;
+            padding: 14px 48px;
+            background: transparent;
+            border: 1px solid #333;
+            color: #888;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            cursor: pointer;
+            pointer-events: all;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.8s ease 0.8s, transform 0.8s ease 0.8s,
+                        border-color 0.3s, color 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        #landing-enter:hover { border-color: #c4a882; color: #c4a882; }
+        #landing-enter::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(196,168,130,0.07), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+        #landing-enter:hover::before { transform: translateX(100%); }
+
+        .landing-corner {
+            position: absolute;
+            width: 36px; height: 36px;
+            opacity: 0;
+            transition: opacity 1.5s ease 0.5s;
+            z-index: 2;
+        }
+        .landing-corner svg { width: 100%; height: 100%; }
+        .landing-corner.tl { top: 24px; left: 24px; }
+        .landing-corner.tr { top: 24px; right: 24px; transform: scaleX(-1); }
+        .landing-corner.bl { bottom: 24px; left: 24px; transform: scaleY(-1); }
+        .landing-corner.br { bottom: 24px; right: 24px; transform: scale(-1); }
+
+        #landing-loader {
+            position: absolute;
+            bottom: 0; left: 0;
+            height: 1px;
+            background: linear-gradient(90deg, #8B6340, #c4a882, #e8dfc8);
+            width: 0%;
+            z-index: 3;
+            transition: width 0.05s linear;
+        }
+
+        /* visible state */
+        #landing.loaded #landing-name    { opacity: 1; transform: translateY(0); }
+        #landing.loaded #landing-tagline { opacity: 1; transform: translateY(0); }
+        #landing.loaded #landing-enter   { opacity: 1; transform: translateY(0); }
+        #landing.loaded .landing-corner  { opacity: 0.4; }
+
+        /* exit */
+        #landing.exiting {
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            pointer-events: none;
+        }
+        #landing.gone { display: none; }
 
         body {
             font-family: 'Poppins', sans-serif;
@@ -16,8 +142,12 @@
             overflow-x: hidden;
         }
 
-        /* ── HEADER ── */
-        header {
+        #logo-svg-wrapper svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+        }
             background: #111;
             border-bottom: 1px solid #222;
             position: sticky;
@@ -40,17 +170,23 @@
 
         /* ── HERO VIDEO ── */
         .hero-video-wrap {
-            width: 100%;
             aspect-ratio: 16/9;
             background: #000;
             overflow: hidden;
             position: relative;
+            margin: 0 24px;
+            border-radius: 4px;
         }
         .hero-video-wrap video {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
+        }
+
+        /* ── OUTER GRID WRAPPER — adds border spacing around all grids ── */
+        .grid-outer {
+            padding: 0 24px;
         }
 
         /* ── SECTION LABELS ── */
@@ -70,12 +206,6 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 2px;
-        }
-        @media (max-width: 768px) {
-            .motion-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media (max-width: 480px) {
-            .motion-grid { grid-template-columns: 1fr; }
         }
         .motion-cell {
             aspect-ratio: 16/9;
@@ -101,17 +231,8 @@
         ───────────────────────────── */
         .illustration-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 2px;
-        }
-        @media (max-width: 1024px) {
-            .illustration-grid { grid-template-columns: repeat(4, 1fr); }
-        }
-        @media (max-width: 768px) {
-            .illustration-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        @media (max-width: 480px) {
-            .illustration-grid { grid-template-columns: repeat(2, 1fr); }
         }
         .illustration-cell {
             aspect-ratio: 2/3;
@@ -139,15 +260,6 @@
             display: grid;
             grid-template-columns: repeat(6, 1fr);
             gap: 2px;
-        }
-        @media (max-width: 1024px) {
-            .logo-grid { grid-template-columns: repeat(4, 1fr); }
-        }
-        @media (max-width: 768px) {
-            .logo-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        @media (max-width: 480px) {
-            .logo-grid { grid-template-columns: repeat(2, 1fr); }
         }
         .logo-cell {
             aspect-ratio: 1/1;
@@ -185,19 +297,12 @@
         footer { border-top: 1px solid #222; background: #0d0d0d; }
 
         /* ── PROFILE SPIN ── */
-        @keyframes spin-fast  { to { transform: rotate(360deg);  } }
-        @keyframes spin-medium{ to { transform: rotate(-360deg); } }
-        @keyframes spin-slow  { to { transform: rotate(360deg);  } }
+        @keyframes spin-cw  { from { transform: rotate(0deg); } to { transform: rotate(360deg);  } }
+        @keyframes spin-ccw { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
 
         #profile-outline-svg circle {
-            transform-origin: 50% 50%;
-            transform: rotate(0deg);
-            transition: transform 0.3s ease-out;
+            transform-origin: 30px 30px;
         }
-        #profile-pic-container:hover #arc-red    { animation: spin-fast   1.5s linear infinite; }
-        #profile-pic-container:hover #arc-blue   { animation: spin-medium 3s   linear infinite; }
-        #profile-pic-container:hover #arc-green  { animation: spin-slow   4s   linear infinite; }
-        #profile-pic-container:hover #arc-yellow { animation: spin-fast   2s   linear infinite reverse; }
 
         /* ── UTILS ── */
         .text-muted { color: #666; }
@@ -216,27 +321,55 @@
 <body class="antialiased">
 
 <!-- ══════════════════════════════════
+     LANDING LAYER
+══════════════════════════════════ -->
+<div id="landing">
+    <canvas id="landing-canvas"></canvas>
+    <div id="landing-scanlines"></div>
+
+    <div class="landing-corner tl"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
+    <div class="landing-corner tr"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
+    <div class="landing-corner bl"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
+    <div class="landing-corner br"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
+
+    <div id="landing-ui">
+        <div id="landing-name">COLIN<span>.</span>WILLOW</div>
+        <div id="landing-tagline">3D · Motion · Design · Code</div>
+        <button id="landing-enter">Enter</button>
+    </div>
+
+    <div id="landing-loader"></div>
+</div>
+
+<!-- ══════════════════════════════════
      HEADER
 ══════════════════════════════════ -->
 <header>
     <div class="container mx-auto px-4 py-5 flex flex-col md:flex-row justify-between items-center">
         <div class="flex items-center space-x-3 mb-4 md:mb-0">
             <!-- Profile pic -->
-            <div id="profile-pic-container" class="relative w-14 h-14 flex-shrink-0 cursor-pointer">
-                <div class="w-full h-full rounded-full bg-cover ring-2 ring-gray-700"
-                     style="background-image: url('https://raw.githubusercontent.com/colinwillow/SVGs/main/Colin_Profile_CG_03.png'); background-position: 50% 30%;">
+            <div id="profile-pic-container" class="relative flex-shrink-0 cursor-pointer" style="width: 60px; height: 60px;">
+                <!-- Profile image slightly inset so arcs have room outside -->
+                <div class="rounded-full bg-cover absolute"
+                     style="width: 48px; height: 48px; top: 6px; left: 6px;
+                            background-image: url('https://raw.githubusercontent.com/colinwillow/SVGs/main/Colin_Profile_CG_03.png');
+                            background-position: 50% 30%;
+                            box-shadow: 0 0 0 2px #333;">
                 </div>
-                <svg id="profile-outline-svg" class="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-                    <circle id="arc-red"    cx="50" cy="50" r="46" fill="none" stroke="#EA4335" stroke-width="5" stroke-dasharray="8 290"  stroke-linecap="round"/>
-                    <circle id="arc-blue"   cx="50" cy="50" r="46" fill="none" stroke="#4285F4" stroke-width="5" stroke-dasharray="18 290" stroke-linecap="round"/>
-                    <circle id="arc-green"  cx="50" cy="50" r="46" fill="none" stroke="#34A853" stroke-width="5" stroke-dasharray="30 290" stroke-linecap="round"/>
-                    <circle id="arc-yellow" cx="50" cy="50" r="46" fill="none" stroke="#FBBC05" stroke-width="5" stroke-dasharray="50 290" stroke-linecap="round"/>
+                <!-- Arcs sit outside the image in the 60x60 space -->
+                <!-- circ ≈ 169.6 | red=50 gap=3 blue=50 gap=3 green=50 gap=3 yellow=24 gap≈7 -->
+                <!-- dashoffset shifts start: red@0, blue@-(50+3)=-53, green@-(106), yellow@-(159) -->
+                <svg id="profile-outline-svg" class="absolute inset-0 w-full h-full" viewBox="0 0 60 60">
+                    <circle id="arc-red"    cx="30" cy="30" r="27" fill="none" stroke="#e8dfc8" stroke-width="3.5" stroke-dasharray="50 119.6" stroke-dashoffset="0"    stroke-linecap="round"/>
+                    <circle id="arc-blue"   cx="30" cy="30" r="27" fill="none" stroke="#8B6340" stroke-width="3.5" stroke-dasharray="50 119.6" stroke-dashoffset="-53"  stroke-linecap="round"/>
+                    <circle id="arc-green"  cx="30" cy="30" r="27" fill="none" stroke="#c4a882" stroke-width="3.5" stroke-dasharray="50 119.6" stroke-dashoffset="-106" stroke-linecap="round"/>
+                    <circle id="arc-yellow" cx="30" cy="30" r="27" fill="none" stroke="#666560" stroke-width="3.5" stroke-dasharray="24 145.6" stroke-dashoffset="-159" stroke-linecap="round"/>
                 </svg>
             </div>
             <!-- Logo -->
-            <a href="#" class="block">
-                <span id="logo-text-fallback" class="font-semibold text-white text-2xl">Colin Willow.</span>
-                <div id="logo-svg-wrapper" class="hidden w-48 h-8 md:w-72 md:h-10"></div>
+            <a href="#" class="block" style="height: 44px; width: auto;">
+                <span id="logo-text-fallback" class="font-semibold text-white text-xl leading-8">Colin Willow.</span>
+                <div id="logo-svg-wrapper" class="hidden" style="height: 44px; width: 220px;"></div>
             </a>
         </div>
 
@@ -257,8 +390,9 @@
 </header>
 
 <!-- ══════════════════════════════════
-     HERO BIO
+     HERO BIO — commented out for now
 ══════════════════════════════════ -->
+<!--
 <section style="background:#111; padding: 64px 0 32px;">
     <div class="container mx-auto px-4">
         <p class="text-lg leading-relaxed text-gray-400 max-w-2xl">
@@ -266,6 +400,7 @@
         </p>
     </div>
 </section>
+-->
 
 <!-- ══════════════════════════════════
      HERO VIDEO  (16:9)
@@ -316,30 +451,31 @@
     <div class="container mx-auto px-4">
         <p class="section-label">Motion</p>
     </div>
+    <div class="grid-outer">
     <div class="motion-grid">
-        <!-- All 23 motion files from colinwillow/portfolio -->
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_alien_dj.mp4"       type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_alien_drinking.mp4"  type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_alien_id.mp4"        type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_alien_waving.mp4"    type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_brain_vat.mp4"       type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_color_orb.mp4"       type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_cow.mp4"             type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_crush_goo.mp4"       type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_cwd_logo.mp4"        type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_delorean_rs.mp4"     type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_donut_spin.mp4"      type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_looping_calls.mp4"   type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_man_chair.mp4"       type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_monster_forest.mp4"  type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_nike_logo.mp4"       type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_nike_shoe.mp4"       type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_pepsi_snow.mp4"      type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_robot_world.mp4"     type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_splash_ball.mp4"     type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_swirl_soda.mp4"      type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_sylk.mp4"            type="video/mp4"></video></div>
-        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/motion_xbox.mp4"            type="video/mp4"></video></div>
+        <!-- Motion files in your chosen order (numbered filenames) -->
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/1_motion_man_chair.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/2_motion_alien_dj.mp4"        type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/3_motion_brain_vat.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/4_motion_nike_shoe.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/5_motion_pepsi_snow.mp4"      type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/6_motion_nike_logo.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/7_motion_crush_goo.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/8_motion_cwd_logo.mp4"        type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/9_motion_color_orb.mp4"       type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/10_motion_swirl_soda.mp4"     type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/11_motion_looping_balls.mp4"  type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/12_motion_donut_spin.mp4"     type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/13_motion_alien_waving.mp4"   type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/14_motion_cow.mp4"            type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/15_motion_alien_drinking.mp4" type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/16_motion_delorean_rs.mp4"    type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/17_motion_robot_world.mp4"    type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/18_motion_sylk.mp4"           type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/19_motion_splash_ball.mp4"    type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/20_motion_monster_forest.mp4" type="video/mp4"></video></div>
+        <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/20_motion_xbox.mp4"            type="video/mp4"></video></div>
+    </div>
     </div>
 </section>
 
@@ -350,22 +486,21 @@
     <div class="container mx-auto px-4">
         <p class="section-label">Illustrations</p>
     </div>
+    <div class="grid-outer">
     <div class="illustration-grid">
-        <!-- Note: filenames have double extensions as-is in the repo -->
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illlustration_faith.jpg.JPG"         alt="Faith"            loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illlustration_megan.jpg.jpg"         alt="Megan"            loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_bobcat.jpg.jpg"         alt="Bobcat"           loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_brooke.jpg.jpg"         alt="Brooke"           loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_buck.jpg.jpg"           alt="Buck"             loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_colin_graffiti.jpg.jpg" alt="Colin Graffiti"   loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_colin_hat_jpg.jpg"      alt="Colin Hat"        loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_colin_headphones.jpg.jpg" alt="Colin Headphones" loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_faith_dress.jpg.jpg"   alt="Faith Dress"      loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_faith_robe.jpg.jpg"     alt="Faith Robe"       loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_owl.jpg.jpg"            alt="Owl"              loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_sari.jpg"               alt="Sari"             loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_winky.jpg.jpg"          alt="Winky"            loading="lazy"></div>
-        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/illustration_zoe.jpg.JPG"            alt="Zoe"              loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/1_illlustration_faith.JPG"            alt="Faith"            loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/2_illlustration_megan.jpg"            alt="Megan"            loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/3_illustration_colin_graffiti.jpg"    alt="Colin Graffiti"   loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/4_illustration_buck.jpg"              alt="Buck"             loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/6_illustration_bobcat.jpg"            alt="Bobcat"           loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/9_illustration_owl.jpg"               alt="Owl"              loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/10_illustration_faith_dress.jpg"      alt="Faith Dress"      loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/11_illustration_brooke.jpg"           alt="Brooke"           loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/12_illustration_sari.jpg"             alt="Sari"             loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/14_illustration_faith_robe.jpg"       alt="Faith Robe"       loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/15_illustration_colin_headphones.jpg" alt="Colin Headphones" loading="lazy"></div>
+        <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/16_illustration_winky.jpg"            alt="Winky"            loading="lazy"></div>
+    </div>
     </div>
 </section>
 
@@ -376,6 +511,7 @@
     <div class="container mx-auto px-4">
         <p class="section-label">Logos & Branding</p>
     </div>
+    <div class="grid-outer">
     <div class="logo-grid">
         <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_colin_willow_512px.jpg.jpg"          alt="Colin Willow"         loading="lazy"></div>
         <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_colin_willow_design_512px.jpg.jpg"   alt="Colin Willow Design"  loading="lazy"></div>
@@ -395,6 +531,7 @@
         <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_unknown_512px.jpg.JPG"               alt="Unknown"              loading="lazy"></div>
         <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_vvolt_512px.jpg.png"                 alt="Vvolt"                loading="lazy"></div>
         <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/thatswassupps_logo_512px.jpg.jpg"         alt="Thatswassupps"        loading="lazy"></div>
+    </div>
     </div>
 </section>
 
@@ -508,6 +645,255 @@ document.querySelectorAll('.motion-cell').forEach(cell => videoObserver.observe(
 document.addEventListener('DOMContentLoaded', () => {
     loadSVGLogo("https://raw.githubusercontent.com/colinwillow/SVGs/main/Colin_Willow.svg");
 });
+
+// ── Profile arc spin with smooth lerp return ──
+(function() {
+    const container = document.getElementById('profile-pic-container');
+    const arcs = [
+        { el: document.getElementById('arc-red'),    speed:  0.8  },
+        { el: document.getElementById('arc-blue'),   speed: -0.55 },
+        { el: document.getElementById('arc-green'),  speed:  0.45 },
+        { el: document.getElementById('arc-yellow'), speed: -0.7  },
+    ];
+
+    const angles = [0, 0, 0, 0];
+    let spinning = false;
+    let returning = false;
+    let rafId = null;
+
+    function spin() {
+        returning = false;
+        spinning = true;
+        cancelAnimationFrame(rafId);
+        function frame() {
+            if (!spinning) return;
+            arcs.forEach((arc, i) => {
+                angles[i] += arc.speed;
+                arc.el.style.transform = `rotate(${angles[i]}deg)`;
+            });
+            rafId = requestAnimationFrame(frame);
+        }
+        frame();
+    }
+
+    function returnToRest() {
+        spinning = false;
+        returning = true;
+        cancelAnimationFrame(rafId);
+        function frame() {
+            if (!returning) return;
+            let allDone = true;
+            arcs.forEach((arc, i) => {
+                // find nearest multiple of 360
+                const target = Math.round(angles[i] / 360) * 360;
+                const diff = target - angles[i];
+                if (Math.abs(diff) < 0.1) {
+                    angles[i] = 0;
+                    arc.el.style.transform = `rotate(0deg)`;
+                } else {
+                    angles[i] += diff * 0.08;
+                    arc.el.style.transform = `rotate(${angles[i]}deg)`;
+                    allDone = false;
+                }
+            });
+            if (!allDone) rafId = requestAnimationFrame(frame);
+            else returning = false;
+        }
+        frame();
+    }
+
+    container.addEventListener('mouseenter', spin);
+    container.addEventListener('mouseleave', returnToRest);
+})();
+
+// ══════════════════════════════════════════════
+//  LANDING PAGE PARTICLE SYSTEM
+// ══════════════════════════════════════════════
+(function() {
+    const landing = document.getElementById('landing');
+    const canvas  = document.getElementById('landing-canvas');
+    const ctx     = canvas.getContext('2d');
+    const loader  = document.getElementById('landing-loader');
+
+    let W = canvas.width  = window.innerWidth;
+    let H = canvas.height = window.innerHeight;
+
+    const mouse = { x: W/2, y: H/2 };
+    let lastMX = W/2, lastMY = H/2;
+
+    window.addEventListener('mousemove', e => {
+        lastMX = mouse.x = e.clientX;
+        lastMY = mouse.y = e.clientY;
+    });
+
+    const COLORS = [
+        'rgba(196,168,130,',
+        'rgba(232,223,200,',
+        'rgba(139,99,64,',
+        'rgba(102,101,96,',
+        'rgba(255,255,255,',
+    ];
+
+    class Particle {
+        constructor() { this.reset(true); }
+        reset(init = false) {
+            this.x = this.baseX = init ? Math.random() * W : (Math.random() < 0.5 ? -10 : W + 10);
+            this.y = this.baseY = init ? Math.random() * H : Math.random() * H;
+            this.size   = Math.random() * 1.8 + 0.3;
+            this.speedX = (Math.random() - 0.5) * 0.3;
+            this.speedY = (Math.random() - 0.5) * 0.3;
+            this.color  = COLORS[Math.floor(Math.random() * COLORS.length)];
+            this.alpha  = Math.random() * 0.5 + 0.1;
+            this.life   = 0;
+            this.maxLife = Math.random() * 400 + 200;
+            this.drift  = Math.random() < 0.3;
+            this.driftAngle  = Math.random() * Math.PI * 2;
+            this.driftSpeed  = (Math.random() * 0.004 + 0.001) * (Math.random() < 0.5 ? 1 : -1);
+            this.connectable = Math.random() < 0.4;
+            this.currentAlpha = 0;
+        }
+        update() {
+            this.life++;
+            if (this.drift) {
+                this.driftAngle += this.driftSpeed;
+                this.x = this.baseX + Math.cos(this.driftAngle) * 18;
+                this.y = this.baseY + Math.sin(this.driftAngle) * 18;
+            }
+            this.baseX += this.speedX;
+            this.baseY += this.speedY;
+            if (!this.drift) { this.x = this.baseX; this.y = this.baseY; }
+
+            const dx = this.x - mouse.x, dy = this.y - mouse.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < 120) {
+                const f = (120 - dist) / 120;
+                this.baseX += (dx / dist) * f * 3.5;
+                this.baseY += (dy / dist) * f * 3.5;
+            }
+
+            const p = this.life / this.maxLife;
+            const fade = p < 0.1 ? p/0.1 : p > 0.8 ? 1-(p-0.8)/0.2 : 1;
+            this.currentAlpha = this.alpha * fade;
+
+            if (this.life > this.maxLife || this.baseX < -50 || this.baseX > W+50 || this.baseY < -50 || this.baseY > H+50)
+                this.reset();
+        }
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+            ctx.fillStyle = this.color + this.currentAlpha + ')';
+            ctx.fill();
+        }
+    }
+
+    class Streak {
+        constructor() { this.reset(); }
+        reset() {
+            this.x = Math.random() * W; this.y = Math.random() * H * 0.6;
+            this.len = Math.random() * 80 + 40;
+            this.speed = Math.random() * 4 + 2;
+            this.angle = Math.PI * 0.15 + (Math.random() - 0.5) * 0.3;
+            this.alpha = 0; this.maxAlpha = Math.random() * 0.12 + 0.04;
+            this.life = 0; this.maxLife = Math.floor(this.len / this.speed) + 20;
+            this.color = COLORS[Math.floor(Math.random() * 3)];
+            this.delay = Math.floor(Math.random() * 300);
+        }
+        update() {
+            if (this.delay > 0) { this.delay--; return; }
+            this.life++;
+            this.x += Math.cos(this.angle) * this.speed;
+            this.y += Math.sin(this.angle) * this.speed;
+            const p = this.life / this.maxLife;
+            this.alpha = p < 0.3 ? (p/0.3)*this.maxAlpha : p > 0.7 ? (1-(p-0.7)/0.3)*this.maxAlpha : this.maxAlpha;
+            if (this.life > this.maxLife) this.reset();
+        }
+        draw() {
+            const tx = this.x - Math.cos(this.angle)*this.len;
+            const ty = this.y - Math.sin(this.angle)*this.len;
+            const g = ctx.createLinearGradient(tx, ty, this.x, this.y);
+            g.addColorStop(0, this.color+'0)');
+            g.addColorStop(1, this.color+this.alpha+')');
+            ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(this.x, this.y);
+            ctx.strokeStyle = g; ctx.lineWidth = 0.8; ctx.stroke();
+        }
+    }
+
+    const COUNT = Math.min(Math.floor((W * H) / 6000), 220);
+    const particles = Array.from({ length: COUNT }, () => new Particle());
+    const streaks   = Array.from({ length: 8 },   () => new Streak());
+    const trail = [];
+
+    window.addEventListener('mousemove', e => {
+        trail.push({ x: e.clientX, y: e.clientY, t: Date.now() });
+        if (trail.length > 24) trail.shift();
+    });
+
+    let active = true;
+    function loop() {
+        if (!active) return;
+        ctx.fillStyle = 'rgba(10,10,10,0.18)';
+        ctx.fillRect(0, 0, W, H);
+
+        // connections
+        const conn = particles.filter(p => p.connectable);
+        for (let i = 0; i < conn.length; i++) {
+            for (let j = i+1; j < conn.length; j++) {
+                const dx = conn[i].x-conn[j].x, dy = conn[i].y-conn[j].y;
+                const d = Math.sqrt(dx*dx+dy*dy);
+                if (d < 90) {
+                    ctx.beginPath(); ctx.moveTo(conn[i].x, conn[i].y); ctx.lineTo(conn[j].x, conn[j].y);
+                    ctx.strokeStyle = `rgba(196,168,130,${(1-d/90)*0.1})`; ctx.lineWidth = 0.5; ctx.stroke();
+                }
+            }
+        }
+
+        // trail
+        for (let i = 1; i < trail.length; i++) {
+            const age = (Date.now()-trail[i].t)/400;
+            if (age > 1) continue;
+            ctx.beginPath(); ctx.arc(trail[i].x, trail[i].y, (1-age)*2, 0, Math.PI*2);
+            ctx.fillStyle = `rgba(196,168,130,${(1-age)*0.12})`; ctx.fill();
+        }
+
+        particles.forEach(p => { p.update(); p.draw(); });
+        streaks.forEach(s => { s.update(); s.draw(); });
+        requestAnimationFrame(loop);
+    }
+    loop();
+
+    // Loading bar
+    let progress = 0;
+    const loadInterval = setInterval(() => {
+        progress += Math.random() * 4 + 1;
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(loadInterval);
+            loader.style.width = '100%';
+            setTimeout(() => {
+                loader.style.transition = 'opacity 0.5s';
+                loader.style.opacity = '0';
+                landing.classList.add('loaded');
+            }, 300);
+        }
+        loader.style.width = progress + '%';
+    }, 40);
+
+    // Enter button
+    document.getElementById('landing-enter').addEventListener('click', () => {
+        landing.classList.add('exiting');
+        setTimeout(() => {
+            active = false;
+            landing.classList.add('gone');
+        }, 850);
+    });
+
+    // Touch support
+    canvas.addEventListener('touchmove', e => {
+        e.preventDefault();
+        mouse.x = e.touches[0].clientX;
+        mouse.y = e.touches[0].clientY;
+    }, { passive: false });
+})();
 </script>
 </body>
 </html>
