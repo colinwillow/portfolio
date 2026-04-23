@@ -40,6 +40,14 @@
 
         /* ══ HEADER ══ */
         header { background:#111;border-bottom:1px solid #222;position:sticky;top:0;z-index:100; }
+        #main-nav { display:flex; align-items:center; gap:4px; flex-wrap:nowrap; overflow:hidden; }
+        #main-nav a {
+            font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.12em;
+            text-transform:uppercase; color:#444; text-decoration:none;
+            padding:6px 8px; white-space:nowrap; transition:color 0.2s;
+            border:1px solid transparent; border-radius:2px;
+        }
+        #main-nav a:hover { color:#fff; border-color:#2a2a2a; }
         .social-icon { display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;color:#aaa;text-decoration:none;font-size:13px;transition:color 0.2s; }
         .social-icon:hover { color:#fff; }
 
@@ -349,11 +357,12 @@
 
 <!-- HEADER -->
 <header>
-    <div class="container mx-auto px-4 py-5 flex flex-col md:flex-row justify-between items-center">
-        <div class="flex items-center space-x-3 mb-4 md:mb-0">
-            <a href="#about" style="display:block;">
-            <div id="profile-pic-container" class="relative flex-shrink-0 cursor-pointer" style="width:60px;height:60px;">
-                <div class="rounded-full bg-cover absolute" style="width:48px;height:48px;top:6px;left:6px;background-image:url('https://raw.githubusercontent.com/colinwillow/SVGs/main/Colin_Profile_CG_03.png');background-position:50% 30%;box-shadow:0 0 0 2px #2a2a2a;"></div>
+    <div style="padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:nowrap; overflow:hidden;">
+        <!-- Left: avatar + logo -->
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+            <a href="#about" style="display:block;flex-shrink:0;">
+            <div id="profile-pic-container" class="relative flex-shrink-0 cursor-pointer" style="width:44px;height:44px;">
+                <div class="rounded-full bg-cover absolute" style="width:36px;height:36px;top:4px;left:4px;background-image:url('https://raw.githubusercontent.com/colinwillow/SVGs/main/Colin_Profile_CG_03.png');background-position:50% 30%;box-shadow:0 0 0 2px #2a2a2a;"></div>
                 <svg id="profile-outline-svg" class="absolute inset-0 w-full h-full" viewBox="0 0 60 60">
                     <circle id="arc-red"    cx="30" cy="30" r="27" fill="none" stroke="#e8dfc8" stroke-width="3.5" stroke-dasharray="50 119.6" stroke-dashoffset="0"    stroke-linecap="round"/>
                     <circle id="arc-blue"   cx="30" cy="30" r="27" fill="none" stroke="#8B6340" stroke-width="3.5" stroke-dasharray="50 119.6" stroke-dashoffset="-53"  stroke-linecap="round"/>
@@ -362,20 +371,24 @@
                 </svg>
             </div>
             </a>
-            <a href="#" class="block" style="height:44px;width:auto;">
-                <span id="logo-text-fallback" class="font-semibold text-white text-xl" style="line-height:44px;">Colin Willow.</span>
-                <div id="logo-svg-wrapper" class="hidden" style="height:44px;width:220px;"></div>
+            <a href="#" style="display:block;height:32px;width:auto;flex-shrink:0;">
+                <span id="logo-text-fallback" style="font-family:'Space Mono',monospace;font-weight:700;color:#fff;font-size:14px;line-height:32px;white-space:nowrap;">CW</span>
+                <div id="logo-svg-wrapper" class="hidden" style="height:32px;width:160px;"></div>
             </a>
         </div>
-        <nav class="flex space-x-6 mb-4 md:mb-0">
-            <a href="#motion"        class="text-gray-500 hover:text-white transition-colors text-sm">Motion</a>
-            <a href="#illustrations" class="text-gray-500 hover:text-white transition-colors text-sm">Illustrations</a>
-            <a href="#logos"         class="text-gray-500 hover:text-white transition-colors text-sm">Logos</a>
-            <a href="#interactive"   class="text-gray-500 hover:text-white transition-colors text-sm">Interactive</a>
-            <a href="#about"         class="text-gray-500 hover:text-white transition-colors text-sm">Human</a>
-            <a href="#contact"       class="text-gray-500 hover:text-white transition-colors text-sm">Contact</a>
+
+        <!-- Center: nav -->
+        <nav id="main-nav">
+            <a href="#motion">Motion</a>
+            <a href="#illustrations">Illus</a>
+            <a href="#logos">Logos</a>
+            <a href="#interactive">Interactive</a>
+            <a href="#about">Human</a>
+            <a href="#contact">Contact</a>
         </nav>
-        <div class="flex space-x-4">
+
+        <!-- Right: social -->
+        <div style="display:flex;gap:12px;flex-shrink:0;">
             <a href="#" class="social-icon" aria-label="Vimeo">V</a>
             <a href="#" class="social-icon" aria-label="Behance">Be</a>
             <a href="#" class="social-icon" aria-label="LinkedIn">in</a>
@@ -524,7 +537,7 @@
             </div>
             <!-- Text -->
             <div class="about-text">
-                <h2>colin willow<span>.</span></h2>
+                <h2>Colin Willow<span>.</span></h2>
                 <p>3D artist, motion designer, and general chaos agent based wherever the wifi works. i make characters, creatures, and things that glow — usually for brands that want to look like they're living in 2047.</p>
                 <p>full pipeline from concept sketch to game-ready asset. obsessed with the moment something rendered finally looks alive. currently also just trying to figure out what the AI stuff means for all of us.</p>
                 <div class="about-tags">
@@ -605,7 +618,7 @@
 <!-- CONTACT -->
 <section id="contact" style="background:#111;padding:80px 24px;">
     <p style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#3a3a3a;margin-bottom:16px;font-family:'Space Mono',monospace;">get in touch</p>
-    <h2 style="font-family:'Space Mono',monospace;font-size:clamp(30px,5vw,60px);color:#fff;font-weight:700;line-height:1.05;margin-bottom:36px;">Make stuff?</h2>
+    <h2 style="font-family:'Space Mono',monospace;font-size:clamp(30px,5vw,60px);color:#fff;font-weight:700;line-height:1.05;margin-bottom:36px;">Make <span style="color:#c4a882;">stuff?</span></h2>
     <button id="open-captcha" style="background:transparent;border:1px solid #242424;color:#555;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;padding:15px 40px;cursor:pointer;transition:border-color 0.3s,color 0.3s;"
         onmouseover="this.style.borderColor='#c4a882';this.style.color='#c4a882'"
         onmouseout="this.style.borderColor='#242424';this.style.color='#555'">
@@ -923,6 +936,8 @@ document.querySelectorAll('.wave-word').forEach(word => {
 
             const a1=p.map(vizBlend,0,1,1,0);
             const a2=p.map(vizBlend,0,1,0,1);
+            // Thinner strokes on small screens
+            window._vizStrokeScale = Math.min(1, p.width / 800);
             if(a1>0.01){ p.push(); drawV1(p,a1); p.pop(); }
             if(a2>0.01){ p.push(); drawV2(p,a2); p.pop(); }
         };
@@ -1007,15 +1022,6 @@ document.querySelectorAll('.wave-word').forEach(word => {
 
     unmuteBtn.addEventListener('click',e=>{ e.stopPropagation(); vizMuted?unmute():mute(); });
 
-    // Unlock AudioContext on first user gesture anywhere on page
-    function unlockAudio(){
-        if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-        document.removeEventListener('click', unlockAudio);
-        document.removeEventListener('keydown', unlockAudio);
-    }
-    document.addEventListener('click', unlockAudio);
-    document.addEventListener('keydown', unlockAudio);
-
     // ── IntersectionObserver ──
     const section=document.getElementById('interactive');
     if(section && 'IntersectionObserver' in window){
@@ -1061,7 +1067,7 @@ document.querySelectorAll('.wave-word').forEach(word => {
         for(let j=1;j<10;j++){
             p.push(); b3[j]=Math.abs(p.lerp(b3[j],b3[j-1],0.5));
             let[cr,cg,cb]=vc(b0[j]); p.noFill();
-            p.stroke(cr,cg,cb,255*al); p.strokeWeight(5); p.ellipse(0,0,b3[j]/3,b3[j]/3); p.pop();
+            p.stroke(cr,cg,cb,255*al); p.strokeWeight(5*(window._vizStrokeScale||1)); p.ellipse(0,0,b3[j]/3,b3[j]/3); p.pop();
         }
     }
     function v1b4(p,sp,js,al){
@@ -1071,7 +1077,7 @@ document.querySelectorAll('.wave-word').forEach(word => {
             let dx=b4[j]*(j/40)*j,dy=(b4[j]*b4[40-j]*(j/2))/1000;
             b4[j]=Math.abs(p.lerp(b4[j],b4[j-1],0.0175));
             p.rotate((360/12)*i); p.rotate(-dy/20); p.translate(dy*16,dx);
-            p.strokeWeight(3); p.stroke(cb-50,cr,cg,255*al); p.rotate(dy/2);
+            p.strokeWeight(3*(window._vizStrokeScale||1)); p.stroke(cb-50,cr,cg,255*al); p.rotate(dy/2);
             p.rect(0,0,(b4[j]/2+4)*0.8,(b4[j]/24+1)*12); p.pop();
         }
     }
@@ -1098,7 +1104,7 @@ document.querySelectorAll('.wave-word').forEach(word => {
     function spk(p,rs,rev,al){
         p.push(); p.rotateZ(rs);
         for(let u=0;u<NS;u++){
-            p.push(); p.rotateZ(30*u+90); p.noFill(); p.strokeWeight(2);
+            p.push(); p.rotateZ(30*u+90); p.noFill(); p.strokeWeight(2*(window._vizStrokeScale||1));
             p.translate(BT,0);
             for(let i=0;i<NR;i++){
                 p.push();
