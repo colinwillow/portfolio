@@ -40,7 +40,7 @@
 
         /* ══ HEADER ══ */
         header { background:#111;border-bottom:1px solid #222;position:sticky;top:0;z-index:100; }
-        #main-nav { display:flex; align-items:center; gap:4px; flex-wrap:nowrap; overflow:hidden; }
+        #main-nav { display:flex; align-items:center; gap:4px; flex-wrap:nowrap; }
         #main-nav a {
             font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.12em;
             text-transform:uppercase; color:#444; text-decoration:none;
@@ -917,7 +917,7 @@ document.querySelectorAll('.wave-word').forEach(word => {
         p.draw = function(){
             p.background(0);
             if(!vizStarted) return;
-            vizBlend = p.lerp(vizBlend, vizMode, 0.06);
+            vizBlend = p.lerp(vizBlend, vizMode, 0.12);
 
             if(analyser){
                 analyser.getByteFrequencyData(fftData);
@@ -966,44 +966,54 @@ document.querySelectorAll('.wave-word').forEach(word => {
         };
     });
 
-    // ── Fetch audio (no gesture needed) ──
+    // ── Create AudioContext immediately (before any gesture restriction kicks in) ──
+    // Then fetch and decode audio separately
     function preloadAudio(){
+        try {
+            audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+            // Attempt resume immediately — works on page load before user interaction on most browsers
+            audioCtx.resume().catch(()=>{});
+        } catch(e){ console.warn('AudioContext failed:', e); return; }
+
         fetch('https://raw.githubusercontent.com/colinwillow/portfolio/main/audio/Yoga_Pants.mp3')
             .then(r=>r.arrayBuffer())
-            .then(buf=>{
-                audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-                return audioCtx.decodeAudioData(buf);
-            })
+            .then(buf=> audioCtx.decodeAudioData(buf))
             .then(decoded=>{ audioBuffer=decoded; console.log('viz audio ready'); })
             .catch(e=>console.warn('viz fetch:',e));
     }
 
     // ── Start muted — called by IntersectionObserver ──
     function startMuted(){
-        if(vizStarted){ return; }
-        if(!audioBuffer){ setTimeout(startMuted,300); return; }
+        if(vizStarted) return;
+        if(!audioBuffer || !audioCtx){ setTimeout(startMuted, 300); return; }
 
-        if(audioCtx.state==='suspended') audioCtx.resume();
+        const go = () => {
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 1024;
+            fftData = new Uint8Array(analyser.frequencyBinCount);
+            gainNode = audioCtx.createGain();
+            gainNode.gain.value = 0;
+            srcNode = audioCtx.createBufferSource();
+            srcNode.buffer = audioBuffer;
+            srcNode.loop = true;
+            srcNode.connect(analyser);
+            analyser.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            srcNode.start(0);
+            vizStarted=true; vizMuted=true;
+            prompt.classList.add('hidden');
+            unmuteBtn.classList.add('visible');
+            unmuteBtn.textContent='🔇 unmute';
+        };
 
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 1024;
-        fftData = new Uint8Array(analyser.frequencyBinCount);
-
-        gainNode = audioCtx.createGain();
-        gainNode.gain.value = 0; // muted
-
-        srcNode = audioCtx.createBufferSource();
-        srcNode.buffer = audioBuffer;
-        srcNode.loop = true;
-        srcNode.connect(analyser);
-        analyser.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        srcNode.start(0);
-
-        vizStarted=true; vizMuted=true;
-        prompt.classList.add('hidden');
-        unmuteBtn.classList.add('visible');
-        unmuteBtn.textContent='🔇 unmute';
+        if(audioCtx.state === 'suspended'){
+            audioCtx.resume().then(go).catch(()=>{
+                // Still suspended — will start on first user click via unmute
+                go(); // set up graph anyway, audio just won't play until resumed
+            });
+        } else {
+            go();
+        }
     }
 
     function unmute(){
