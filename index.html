@@ -692,20 +692,57 @@ playHero(0);
 const vObs = new IntersectionObserver(entries=>entries.forEach(e=>{const v=e.target.querySelector('video');if(!v)return;e.isIntersecting?v.play().catch(()=>{}):v.pause();}),{rootMargin:'200px'});
 document.querySelectorAll('.motion-cell').forEach(c=>vObs.observe(c));
 
-// ── PROFILE ARCS ──
+// ── PROFILE ARCS — scroll driven + hover spin ──
 (function(){
     const cont = document.getElementById('profile-pic-container');
     const arcs = [
-        {el:document.getElementById('arc-red'),    speed: 0.8 },
-        {el:document.getElementById('arc-blue'),   speed:-0.55},
-        {el:document.getElementById('arc-green'),  speed: 0.45},
-        {el:document.getElementById('arc-yellow'), speed:-0.7 },
+        {el:document.getElementById('arc-red'),    scrollSpeed: 0.12,  hoverSpeed:  0.8 },
+        {el:document.getElementById('arc-blue'),   scrollSpeed:-0.07,  hoverSpeed: -0.55},
+        {el:document.getElementById('arc-green'),  scrollSpeed: 0.05,  hoverSpeed:  0.45},
+        {el:document.getElementById('arc-yellow'), scrollSpeed:-0.09,  hoverSpeed: -0.7 },
     ];
-    const ang=[0,0,0,0]; let spinning=false,returning=false,rafId=null;
-    function spin(){returning=false;spinning=true;cancelAnimationFrame(rafId);(function f(){if(!spinning)return;arcs.forEach((a,i)=>{ang[i]+=a.speed;a.el.style.transform=`rotate(${ang[i]}deg)`;});rafId=requestAnimationFrame(f);})();}
-    function rest(){spinning=false;returning=true;cancelAnimationFrame(rafId);(function f(){if(!returning)return;let done=true;arcs.forEach((a,i)=>{const t=Math.round(ang[i]/360)*360,d=t-ang[i];if(Math.abs(d)<0.1){ang[i]=0;a.el.style.transform='rotate(0deg)';}else{ang[i]+=d*0.08;a.el.style.transform=`rotate(${ang[i]}deg)`;done=false;}});if(!done)rafId=requestAnimationFrame(f);else returning=false;})();}
-    cont.addEventListener('mouseenter',spin);
-    cont.addEventListener('mouseleave',rest);
+    const ang=[0,0,0,0];
+    let hovering=false, returning=false, rafId=null;
+    let lastScroll=0;
+
+    // Scroll drives rotation passively
+    window.addEventListener('scroll', ()=>{
+        if(hovering) return; // hover takes over
+        const delta = window.scrollY - lastScroll;
+        lastScroll = window.scrollY;
+        arcs.forEach((a,i)=>{
+            ang[i] += delta * a.scrollSpeed;
+            a.el.style.transform = `rotate(${ang[i]}deg)`;
+        });
+    }, {passive:true});
+
+    // Hover spins faster
+    function spin(){
+        hovering=true; returning=false; cancelAnimationFrame(rafId);
+        (function f(){
+            if(!hovering) return;
+            arcs.forEach((a,i)=>{ ang[i]+=a.hoverSpeed; a.el.style.transform=`rotate(${ang[i]}deg)`; });
+            rafId=requestAnimationFrame(f);
+        })();
+    }
+
+    // Mouse leave — lerp back to nearest clean angle
+    function rest(){
+        hovering=false; returning=true; cancelAnimationFrame(rafId);
+        (function f(){
+            if(!returning) return;
+            let done=true;
+            arcs.forEach((a,i)=>{
+                const t=Math.round(ang[i]/360)*360, d=t-ang[i];
+                if(Math.abs(d)<0.1){ ang[i]=t; a.el.style.transform=`rotate(${t}deg)`; }
+                else{ ang[i]+=d*0.08; a.el.style.transform=`rotate(${ang[i]}deg)`; done=false; }
+            });
+            if(!done) rafId=requestAnimationFrame(f); else returning=false;
+        })();
+    }
+
+    cont.addEventListener('mouseenter', spin);
+    cont.addEventListener('mouseleave', rest);
 })();
 
 // ── BRAIN TRUST TOGGLE ──
@@ -896,7 +933,16 @@ document.querySelectorAll('.wave-word').forEach(word => {
             const mx = p.winMouseX, my = p.winMouseY;
             if(mx < rect.left || mx > rect.right || my < rect.top || my > rect.bottom) return;
             if(!vizStarted) return;
-            vizMuted ? unmute() : mute();
+            // Click canvas = pause/resume (visual stops), not mute
+            if(srcNode && audioCtx){
+                if(audioCtx.state === 'running'){
+                    audioCtx.suspend();
+                    unmuteBtn.textContent = vizMuted ? '🔇 paused' : '⏸ paused';
+                } else {
+                    audioCtx.resume();
+                    unmuteBtn.textContent = vizMuted ? '🔇 unmute' : '🔊 mute';
+                }
+            }
         };
 
         p.windowResized = function(){
@@ -946,19 +992,29 @@ document.querySelectorAll('.wave-word').forEach(word => {
     }
 
     function unmute(){
-        if(!gainNode) return;
+        if(!gainNode || !audioCtx) return;
         vizMuted=false;
+        if(audioCtx.state === 'suspended') audioCtx.resume();
         gainNode.gain.setTargetAtTime(0.8, audioCtx.currentTime, 0.3);
         unmuteBtn.textContent='🔊 mute';
     }
     function mute(){
-        if(!gainNode) return;
+        if(!gainNode || !audioCtx) return;
         vizMuted=true;
         gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
         unmuteBtn.textContent='🔇 unmute';
     }
 
     unmuteBtn.addEventListener('click',e=>{ e.stopPropagation(); vizMuted?unmute():mute(); });
+
+    // Unlock AudioContext on first user gesture anywhere on page
+    function unlockAudio(){
+        if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        document.removeEventListener('click', unlockAudio);
+        document.removeEventListener('keydown', unlockAudio);
+    }
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
 
     // ── IntersectionObserver ──
     const section=document.getElementById('interactive');
