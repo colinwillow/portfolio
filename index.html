@@ -3,362 +3,357 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Colin Willow Portfolio</title>
+    <title>Colin Willow</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/addons/p5.sound.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
         html { scroll-behavior: smooth; }
 
-        /* ── LANDING LAYER ── */
-        #landing {
-            position: fixed;
-            inset: 0;
-            z-index: 200;
-            background: #0a0a0a;
+        /* ══ LANDING ══ */
+        #landing { position:fixed;inset:0;z-index:200;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden; }
+        #landing-canvas { position:absolute;inset:0;width:100%;height:100%; }
+        #landing-scanlines { position:absolute;inset:0;pointer-events:none;z-index:1;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px); }
+        #landing-ui { position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;pointer-events:none; }
+        #landing-name { font-family:'Space Mono',monospace;font-size:clamp(32px,6vw,76px);font-weight:700;letter-spacing:0.12em;color:#fff;opacity:0;transform:translateY(20px);text-align:center;transition:opacity 1.2s ease,transform 1.2s ease; }
+        #landing-name span { color:#c4a882; }
+        #landing-tagline { margin-top:14px;font-size:clamp(10px,1.2vw,13px);letter-spacing:0.35em;text-transform:uppercase;color:#555;opacity:0;transform:translateY(10px);transition:opacity 1s ease 0.4s,transform 1s ease 0.4s; }
+        #landing-enter { margin-top:60px;padding:14px 48px;background:transparent;border:1px solid #333;color:#888;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;cursor:pointer;pointer-events:all;opacity:0;transform:translateY(10px);transition:opacity 0.8s ease 0.8s,transform 0.8s ease 0.8s,border-color 0.3s,color 0.3s;position:relative;overflow:hidden; }
+        #landing-enter:hover { border-color:#c4a882;color:#c4a882; }
+        #landing-enter::before { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(196,168,130,0.07),transparent);transform:translateX(-100%);transition:transform 0.6s ease; }
+        #landing-enter:hover::before { transform:translateX(100%); }
+        .landing-corner { position:absolute;width:36px;height:36px;opacity:0;transition:opacity 1.5s ease 0.5s;z-index:2; }
+        .landing-corner svg { width:100%;height:100%; }
+        .landing-corner.tl{top:24px;left:24px} .landing-corner.tr{top:24px;right:24px;transform:scaleX(-1)} .landing-corner.bl{bottom:24px;left:24px;transform:scaleY(-1)} .landing-corner.br{bottom:24px;right:24px;transform:scale(-1)}
+        #landing-loader { position:absolute;bottom:0;left:0;height:1px;background:linear-gradient(90deg,#8B6340,#c4a882,#e8dfc8);width:0%;z-index:3;transition:width 0.05s linear; }
+        #landing.loaded #landing-name{opacity:1;transform:translateY(0)} #landing.loaded #landing-name img{opacity:1!important} #landing.loaded #landing-tagline{opacity:1;transform:translateY(0)} #landing.loaded #landing-enter{opacity:1;transform:translateY(0)} #landing.loaded .landing-corner{opacity:0.4}
+        #landing.exiting{opacity:0;transition:opacity 0.8s ease;pointer-events:none} #landing.gone{display:none}
+
+        /* ══ SITE ══ */
+        body { font-family:'Poppins',sans-serif;color:#333;background:#111;overflow-x:hidden; }
+        #logo-svg-wrapper svg { width:100%;height:100%;display:block; }
+
+        /* ══ BORDER CANVAS ══ */
+        #border-canvas { position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99; }
+
+        /* ══ HEADER ══ */
+        header { background:#111;border-bottom:1px solid #222;position:sticky;top:0;z-index:100; }
+        .social-icon { display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;color:#aaa;text-decoration:none;font-size:13px;transition:color 0.2s; }
+        .social-icon:hover { color:#fff; }
+
+        /* ══ HERO STATEMENT ══ */
+        .hero-statement { padding:48px 24px 36px;background:#111; }
+        .hero-statement h1 {
+            font-family:'Space Mono',monospace;
+            font-size:clamp(28px,5.5vw,72px);
+            font-weight:700;
+            color:#fff;
+            line-height:1;
+            letter-spacing:0.08em;
+            text-transform:uppercase;
+        }
+        .hero-statement h1 .dim { color:#3a3a3a; }
+
+        /* ══ HERO VIDEO ══ */
+        .hero-video-wrap { aspect-ratio:16/9;background:#000;overflow:hidden;position:relative;margin:0 24px;border-radius:4px; }
+        .hero-video-wrap video { width:100%;height:100%;object-fit:cover;display:block; }
+
+        /* ══ GRIDS ══ */
+        .grid-outer { padding:0 24px; }
+
+        /* ── SECTION HEADER (label + ticker) ── */
+        .section-header {
+            padding: 32px 0 20px;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            gap: 24px;
             overflow: hidden;
         }
-        #landing-canvas {
-            position: absolute;
-            inset: 0;
-            width: 100%; height: 100%;
-        }
-        #landing-scanlines {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background: repeating-linear-gradient(
-                0deg, transparent, transparent 2px,
-                rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
-            );
-            z-index: 1;
-        }
-        #landing-ui {
-            position: relative;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            pointer-events: none;
-        }
-        #landing-name {
-            font-family: 'Space Mono', monospace;
-            font-size: clamp(32px, 6vw, 76px);
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            color: #fff;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 1.2s ease, transform 1.2s ease;
-            text-align: center;
-        }
-        #landing-name span { color: #c4a882; }
-        #landing-tagline {
-            margin-top: 14px;
-            font-size: clamp(10px, 1.2vw, 13px);
-            letter-spacing: 0.35em;
-            text-transform: uppercase;
-            color: #555;
-            opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 1s ease 0.4s, transform 1s ease 0.4s;
-        }
-        #landing-enter {
-            margin-top: 60px;
-            padding: 14px 48px;
-            background: transparent;
-            border: 1px solid #333;
-            color: #888;
-            font-family: 'Space Mono', monospace;
-            font-size: 11px;
-            letter-spacing: 0.3em;
-            text-transform: uppercase;
-            cursor: pointer;
-            pointer-events: all;
-            opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 0.8s ease 0.8s, transform 0.8s ease 0.8s,
-                        border-color 0.3s, color 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
-        #landing-enter:hover { border-color: #c4a882; color: #c4a882; }
-        #landing-enter::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(196,168,130,0.07), transparent);
-            transform: translateX(-100%);
-            transition: transform 0.6s ease;
-        }
-        #landing-enter:hover::before { transform: translateX(100%); }
 
-        .landing-corner {
-            position: absolute;
-            width: 36px; height: 36px;
-            opacity: 0;
-            transition: opacity 1.5s ease 0.5s;
-            z-index: 2;
-        }
-        .landing-corner svg { width: 100%; height: 100%; }
-        .landing-corner.tl { top: 24px; left: 24px; }
-        .landing-corner.tr { top: 24px; right: 24px; transform: scaleX(-1); }
-        .landing-corner.bl { bottom: 24px; left: 24px; transform: scaleY(-1); }
-        .landing-corner.br { bottom: 24px; right: 24px; transform: scale(-1); }
-
-        #landing-loader {
-            position: absolute;
-            bottom: 0; left: 0;
-            height: 1px;
-            background: linear-gradient(90deg, #8B6340, #c4a882, #e8dfc8);
-            width: 0%;
-            z-index: 3;
-            transition: width 0.05s linear;
-        }
-
-        /* visible state */
-        #landing.loaded #landing-name    { opacity: 1; transform: translateY(0); }
-        #landing.loaded #landing-tagline { opacity: 1; transform: translateY(0); }
-        #landing.loaded #landing-enter   { opacity: 1; transform: translateY(0); }
-        #landing.loaded .landing-corner  { opacity: 0.4; }
-
-        /* exit */
-        #landing.exiting {
-            opacity: 0;
-            transition: opacity 0.8s ease;
-            pointer-events: none;
-        }
-        #landing.gone { display: none; }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            color: #333;
-            background-color: #111;
-            overflow-x: hidden;
-        }
-
-        #logo-svg-wrapper svg {
-            width: 100%;
-            height: 100%;
-            display: block;
-            object-fit: contain;
-        }
-            background: #111;
-            border-bottom: 1px solid #222;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .social-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 24px;
-            height: 24px;
-            color: #aaa;
-            text-decoration: none;
-            font-size: 13px;
-            transition: color 0.2s;
-        }
-        .social-icon:hover { color: #fff; }
-
-        /* ── HERO VIDEO ── */
-        .hero-video-wrap {
-            aspect-ratio: 16/9;
-            background: #000;
-            overflow: hidden;
-            position: relative;
-            margin: 0 24px;
-            border-radius: 4px;
-        }
-        .hero-video-wrap video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        /* ── OUTER GRID WRAPPER — adds border spacing around all grids ── */
-        .grid-outer {
-            padding: 0 24px;
-        }
-
-        /* ── SECTION LABELS ── */
+        /* ── SECTION LABEL with wave hover ── */
         .section-label {
-            padding: 24px 0 16px;
-            font-size: 11px;
-            letter-spacing: 0.2em;
+            display: block;
+            cursor: default;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .section-label .wave-word {
+            display: inline-flex;
+            gap: 0;
+        }
+        .section-label .wave-letter {
+            display: inline-block;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
             text-transform: uppercase;
-            color: #555;
-            font-weight: 500;
-        }
-
-        /* ─────────────────────────────
-           MOTION SECTION  (16:9 grid)
-        ───────────────────────────── */
-        .motion-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2px;
-        }
-        .motion-cell {
-            aspect-ratio: 16/9;
-            background: #000;
+            color: #888;
             overflow: hidden;
             position: relative;
-            cursor: pointer;
+            height: 1.4em;
+            line-height: 1.4em;
+            transition: color 0.3s;
         }
-        .motion-cell video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            transition: transform 0.4s ease, opacity 0.3s ease;
+        .section-label .wave-letter span { display: block; }
+        .section-label .wave-letter .clone {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            color: #c4a882;
         }
-        .motion-cell:hover video {
-            transform: scale(1.03);
-            opacity: 0.85;
-        }
+        .section-label:hover .wave-letter span { transform: translateY(-100%); }
 
-        /* ─────────────────────────────
-           ILLUSTRATIONS  (2:3 grid)
-        ───────────────────────────── */
-        .illustration-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2px;
-        }
-        .illustration-cell {
-            aspect-ratio: 2/3;
-            background: #1a1a1a;
+        /* ── TICKER ── */
+        .ticker-wrap {
+            flex: 1;
             overflow: hidden;
             position: relative;
-            cursor: pointer;
+            height: 1.4em;
+            /* fade edges */
+            -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
         }
-        .illustration-cell img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            transition: transform 0.4s ease, opacity 0.3s ease;
+        .ticker-track {
+            display: flex;
+            white-space: nowrap;
+            animation: ticker-scroll 18s linear infinite;
+            width: max-content;
         }
-        .illustration-cell:hover img {
-            transform: scale(1.04);
-            opacity: 0.85;
+        .ticker-track:hover { animation-play-state: paused; }
+        .ticker-item {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: #666;
+            padding-right: 48px;
+        }
+        .ticker-item .dot {
+            color: #c4a882;
+            margin-right: 48px;
+        }
+        @keyframes ticker-scroll {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
 
-        /* ─────────────────────────────
-           LOGOS  (1:1 grid)
-        ───────────────────────────── */
-        .logo-grid {
+        /* ══ ABOUT SECTION ══ */
+        #about { background:#111; padding: 80px 24px; }
+        .about-inner {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 2px;
+            grid-template-columns: auto 1fr;
+            gap: 56px;
+            align-items: center;
+            max-width: 900px;
         }
-        .logo-cell {
-            aspect-ratio: 1/1;
-            background: #1a1a1a;
-            overflow: hidden;
+        @media(max-width:640px){ .about-inner{ grid-template-columns:1fr; } }
+        .about-avatar-wrap {
             position: relative;
-            cursor: pointer;
+            width: 200px;
+            height: 200px;
+            flex-shrink: 0;
         }
-        .logo-cell img {
+        .about-avatar-img {
+            width: 168px;
+            height: 168px;
+            border-radius: 50%;
+            background-image: url('https://raw.githubusercontent.com/colinwillow/SVGs/main/Colin_Profile_CG_03.png');
+            background-size: cover;
+            background-position: 50% 30%;
+            position: absolute;
+            top: 16px; left: 16px;
+        }
+        .about-avatar-svg {
+            position: absolute;
+            inset: 0;
             width: 100%;
             height: 100%;
-            object-fit: contain;
-            display: block;
-            padding: 12%;
-            transition: transform 0.4s ease, opacity 0.3s ease;
         }
-        .logo-cell:hover img {
-            transform: scale(1.08);
-            opacity: 0.85;
+        .about-text h2 {
+            font-family: 'Space Mono', monospace;
+            font-size: clamp(22px, 3vw, 36px);
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 16px;
+            line-height: 1.1;
         }
+        .about-text h2 span { color: #c4a882; }
+        .about-text p {
+            font-size: 14px;
+            line-height: 1.9;
+            color: #666;
+            max-width: 480px;
+        }
+        .about-text p + p { margin-top: 12px; }
+        .about-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        .about-tag {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #444;
+            border: 1px solid #242424;
+            padding: 5px 10px;
+        }
+        .motion-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:2px; }
+        .motion-cell { aspect-ratio:16/9;background:#000;overflow:hidden;position:relative;cursor:pointer; }
+        .motion-cell video { width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.4s ease,opacity 0.3s ease; }
+        .motion-cell:hover video { transform:scale(1.03);opacity:0.85; }
+        .illustration-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:2px; }
+        .illustration-cell { aspect-ratio:2/3;background:#1a1a1a;overflow:hidden;position:relative;cursor:pointer; }
+        .illustration-cell img { width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.4s ease,opacity 0.3s ease; }
+        .illustration-cell:hover img { transform:scale(1.04);opacity:0.85; }
+        .logo-grid { display:grid;grid-template-columns:repeat(6,1fr);gap:2px; }
+        .logo-cell { aspect-ratio:1/1;background:#1a1a1a;overflow:hidden;position:relative;cursor:pointer; }
+        .logo-cell img { width:100%;height:100%;object-fit:contain;display:block;padding:12%;transition:transform 0.4s ease,opacity 0.3s ease; }
+        .logo-cell:hover img { transform:scale(1.08);opacity:0.85; }
 
-        /* ── EXPERTISE TOGGLE ── */
-        #expertise-toggle {
-            border-top: 1px solid #2a2a2a;
-            border-bottom: 1px solid #2a2a2a;
-            color: #ccc;
-            cursor: pointer;
-            transition: background 0.2s;
+        /* ══ VISUALIZER SECTION ══ */
+        #viz-section { background:#0a0a0a; position:relative; }
+        #viz-canvas-wrap {
+            width:100%; aspect-ratio:16/9; position:relative; cursor:pointer; overflow:hidden;
+            margin:0 24px; width:calc(100% - 48px);
         }
-        #expertise-toggle:hover { background: #1a1a1a; }
-        #expertise-content { color: #888; }
-
-        /* ── CONTACT / FOOTER ── */
-        .contact-section { border-top: 1px solid #222; }
-        footer { border-top: 1px solid #222; background: #0d0d0d; }
-
-        /* ── PROFILE SPIN ── */
-        @keyframes spin-cw  { from { transform: rotate(0deg); } to { transform: rotate(360deg);  } }
-        @keyframes spin-ccw { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
-
-        #profile-outline-svg circle {
-            transform-origin: 30px 30px;
+        #viz-canvas-wrap canvas { position:absolute!important; inset:0; width:100%!important; height:100%!important; }
+        #viz-click-prompt {
+            position:absolute; inset:0; display:flex; flex-direction:column;
+            align-items:center; justify-content:center; gap:12px;
+            pointer-events:none; transition:opacity 0.6s ease;
         }
+        #viz-click-prompt .prompt-ring {
+            width:64px; height:64px; border-radius:50%;
+            border:1px solid #333; display:flex; align-items:center; justify-content:center;
+            animation: prompt-pulse 2s ease-in-out infinite;
+        }
+        #viz-click-prompt .prompt-ring svg { width:20px; height:20px; fill:#444; }
+        #viz-click-prompt p {
+            font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.22em;
+            text-transform:uppercase; color:#333;
+        }
+        @keyframes prompt-pulse { 0%,100%{border-color:#222;} 50%{border-color:#555;} }
+        #viz-click-prompt.hidden { opacity:0; }
 
-        /* ── UTILS ── */
-        .text-muted { color: #666; }
-        input, textarea {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            color: #ccc;
+        /* mute button */
+        #viz-unmute {
+            position:absolute; bottom:16px; right:16px;
+            background:rgba(10,10,10,0.7); border:1px solid #2a2a2a;
+            color:#555; font-family:'Space Mono',monospace; font-size:9px;
+            letter-spacing:0.18em; text-transform:uppercase;
+            padding:8px 14px; cursor:pointer; display:none;
+            transition:border-color 0.3s, color 0.3s;
+            z-index:10;
         }
-        input::placeholder, textarea::placeholder { color: #555; }
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: #555;
+        #viz-unmute:hover { border-color:#c4a882; color:#c4a882; }
+        #viz-unmute.visible { display:block; }
+            display:flex; padding:0 24px; border-top:1px solid #111;
         }
+        .viz-mode-btn {
+            flex:1; padding:18px 0; display:flex; align-items:center; justify-content:center;
+            gap:10px; cursor:pointer; border:none; background:transparent;
+            border-right:1px solid #111; transition:background 0.2s;
+        }
+        .viz-mode-btn:last-child { border-right:none; }
+        .viz-mode-btn:hover, .viz-mode-btn.active { background:#111; }
+        .viz-mode-dot {
+            width:5px; height:5px; border-radius:50%; transition:transform 0.3s;
+        }
+        .viz-mode-btn:hover .viz-mode-dot, .viz-mode-btn.active .viz-mode-dot { transform:scale(1.8); }
+        .viz-mode-label {
+            font-family:'Space Mono',monospace; font-size:9px;
+            letter-spacing:0.2em; text-transform:uppercase; color:#2a2a2a; transition:color 0.2s;
+        }
+        .viz-mode-btn:hover .viz-mode-label, .viz-mode-btn.active .viz-mode-label { color:#666; }
+
+        /* ══ BRAIN TRUST ══ */
+        #brain-trust { background:#0d0d0d;border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a; }
+        #brain-trust-toggle { padding:28px 24px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background 0.2s; }
+        #brain-trust-toggle:hover { background:#141414; }
+        #brain-trust-toggle h2 { font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#3a3a3a;font-weight:400; }
+        #brain-trust-content { padding:0 24px 36px;display:none;gap:32px;color:#555; }
+        #brain-trust-content.open { display:grid;grid-template-columns:1fr 1fr; }
+        #brain-trust-content p { font-size:13px;line-height:1.9; }
+        #brain-trust-content h3 { font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#555;margin-bottom:10px; }
+
+        /* ══ PROFILE ARCS ══ */
+        #profile-outline-svg circle { transform-origin:30px 30px; }
+
+        /* ══ CONTACT ══ */
+        footer { border-top:1px solid #1a1a1a;background:#0d0d0d; }
+
+        /* ══ CAPTCHA MODAL ══ */
+        #captcha-modal { display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.88);align-items:center;justify-content:center;backdrop-filter:blur(4px); }
+        #captcha-modal.open { display:flex; }
+        #captcha-box { background:#161616;border:1px solid #242424;width:420px;max-width:95vw;border-radius:3px;overflow:hidden;font-family:'Space Mono',monospace; }
+        #captcha-header { background:#111;padding:11px 16px;border-bottom:1px solid #1e1e1e;display:flex;justify-content:space-between;align-items:center; }
+        #captcha-header span { font-size:10px;color:#3a3a3a;letter-spacing:0.14em; }
+        #captcha-close { color:#3a3a3a;cursor:pointer;font-size:20px;line-height:1; }
+        #captcha-close:hover { color:#888; }
+        #captcha-check-area { padding:22px 16px;display:flex;align-items:center;gap:16px;cursor:pointer;border-bottom:1px solid #1e1e1e;transition:background 0.2s; }
+        #captcha-check-area:hover { background:#1e1e1e; }
+        #captcha-checkbox { width:24px;height:24px;border:2px solid #2a2a2a;border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:border-color 0.2s; }
+        #captcha-check-area:hover #captcha-checkbox { border-color:#c4a882; }
+        #captcha-label { font-size:13px;color:#666;letter-spacing:0.04em; }
+        #captcha-footer { padding:8px 16px;display:flex;justify-content:flex-end; }
+        #captcha-footer span { font-size:9px;color:#242424;letter-spacing:0.08em; }
+        #game-area { display:none; }
+        #game-area.open { display:block; }
+        #game-canvas { display:block;width:100%;image-rendering:pixelated; }
+        #game-ui { padding:10px 16px;display:flex;justify-content:space-between;border-top:1px solid #1e1e1e; }
+        #game-score-display { font-size:10px;color:#555;letter-spacing:0.12em; }
+        #game-hint { font-size:10px;color:#2e2e2e; }
+        #game-over { display:none;padding:28px 20px;text-align:center; }
+        #game-over.open { display:block; }
+        #game-over-msg { font-size:14px;color:#c4a882;margin-bottom:10px;line-height:1.6; }
+        #game-over-sub { font-size:11px;color:#555;margin-bottom:20px; }
+        #game-retry { background:transparent;border:1px solid #242424;color:#555;padding:8px 28px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;transition:border-color 0.2s,color 0.2s; }
+        #game-retry:hover { border-color:#c4a882;color:#c4a882; }
+        #contact-reveal { display:none;margin-top:20px;padding-top:20px;border-top:1px solid #1e1e1e; }
+        #contact-reveal.open { display:block; }
+        #contact-reveal p { font-size:11px;color:#555;margin-bottom:8px; }
+        #contact-reveal a { color:#c4a882;font-size:14px;text-decoration:none; }
+        #contact-reveal a:hover { text-decoration:underline; }
     </style>
 </head>
 <body class="antialiased">
 
-<!-- ══════════════════════════════════
-     LANDING LAYER
-══════════════════════════════════ -->
+<!-- LANDING -->
 <div id="landing">
     <canvas id="landing-canvas"></canvas>
     <div id="landing-scanlines"></div>
-
     <div class="landing-corner tl"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
     <div class="landing-corner tr"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
     <div class="landing-corner bl"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
     <div class="landing-corner br"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
-
     <div id="landing-ui">
-        <div id="landing-name">COLIN<span>.</span>WILLOW</div>
+        <div id="landing-name">
+            <img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/assets/logo_01.png" 
+                 style="height:clamp(40px,6vw,80px);width:auto;opacity:0;transition:opacity 1.2s ease;"
+                 id="landing-logo-img" alt="Colin Willow Design">
+        </div>
         <div id="landing-tagline">3D · Motion · Design · Code</div>
         <button id="landing-enter">Enter</button>
     </div>
-
     <div id="landing-loader"></div>
 </div>
 
-<!-- ══════════════════════════════════
-     HEADER
-══════════════════════════════════ -->
+<!-- BORDER ANIMATION CANVAS -->
+<canvas id="border-canvas"></canvas>
+
+<!-- HEADER -->
 <header>
     <div class="container mx-auto px-4 py-5 flex flex-col md:flex-row justify-between items-center">
         <div class="flex items-center space-x-3 mb-4 md:mb-0">
-            <!-- Profile pic -->
-            <div id="profile-pic-container" class="relative flex-shrink-0 cursor-pointer" style="width: 60px; height: 60px;">
-                <!-- Profile image slightly inset so arcs have room outside -->
-                <div class="rounded-full bg-cover absolute"
-                     style="width: 48px; height: 48px; top: 6px; left: 6px;
-                            background-image: url('https://raw.githubusercontent.com/colinwillow/SVGs/main/Colin_Profile_CG_03.png');
-                            background-position: 50% 30%;
-                            box-shadow: 0 0 0 2px #333;">
-                </div>
-                <!-- Arcs sit outside the image in the 60x60 space -->
-                <!-- circ ≈ 169.6 | red=50 gap=3 blue=50 gap=3 green=50 gap=3 yellow=24 gap≈7 -->
-                <!-- dashoffset shifts start: red@0, blue@-(50+3)=-53, green@-(106), yellow@-(159) -->
+            <a href="#about" style="display:block;">
+            <div id="profile-pic-container" class="relative flex-shrink-0 cursor-pointer" style="width:60px;height:60px;">
+                <div class="rounded-full bg-cover absolute" style="width:48px;height:48px;top:6px;left:6px;background-image:url('https://raw.githubusercontent.com/colinwillow/SVGs/main/Colin_Profile_CG_03.png');background-position:50% 30%;box-shadow:0 0 0 2px #2a2a2a;"></div>
                 <svg id="profile-outline-svg" class="absolute inset-0 w-full h-full" viewBox="0 0 60 60">
                     <circle id="arc-red"    cx="30" cy="30" r="27" fill="none" stroke="#e8dfc8" stroke-width="3.5" stroke-dasharray="50 119.6" stroke-dashoffset="0"    stroke-linecap="round"/>
                     <circle id="arc-blue"   cx="30" cy="30" r="27" fill="none" stroke="#8B6340" stroke-width="3.5" stroke-dasharray="50 119.6" stroke-dashoffset="-53"  stroke-linecap="round"/>
@@ -366,20 +361,20 @@
                     <circle id="arc-yellow" cx="30" cy="30" r="27" fill="none" stroke="#666560" stroke-width="3.5" stroke-dasharray="24 145.6" stroke-dashoffset="-159" stroke-linecap="round"/>
                 </svg>
             </div>
-            <!-- Logo -->
-            <a href="#" class="block" style="height: 44px; width: auto;">
-                <span id="logo-text-fallback" class="font-semibold text-white text-xl leading-8">Colin Willow.</span>
-                <div id="logo-svg-wrapper" class="hidden" style="height: 44px; width: 220px;"></div>
+            </a>
+            <a href="#" class="block" style="height:44px;width:auto;">
+                <span id="logo-text-fallback" class="font-semibold text-white text-xl" style="line-height:44px;">Colin Willow.</span>
+                <div id="logo-svg-wrapper" class="hidden" style="height:44px;width:220px;"></div>
             </a>
         </div>
-
         <nav class="flex space-x-6 mb-4 md:mb-0">
-            <a href="#motion"        class="text-gray-400 hover:text-white transition-colors text-sm">Motion</a>
-            <a href="#illustrations" class="text-gray-400 hover:text-white transition-colors text-sm">Illustrations</a>
-            <a href="#logos"         class="text-gray-400 hover:text-white transition-colors text-sm">Logos</a>
-            <a href="#contact"       class="text-gray-400 hover:text-white transition-colors text-sm">Contact</a>
+            <a href="#motion"        class="text-gray-500 hover:text-white transition-colors text-sm">Motion</a>
+            <a href="#illustrations" class="text-gray-500 hover:text-white transition-colors text-sm">Illustrations</a>
+            <a href="#logos"         class="text-gray-500 hover:text-white transition-colors text-sm">Logos</a>
+            <a href="#interactive"   class="text-gray-500 hover:text-white transition-colors text-sm">Interactive</a>
+            <a href="#about"         class="text-gray-500 hover:text-white transition-colors text-sm">Human</a>
+            <a href="#contact"       class="text-gray-500 hover:text-white transition-colors text-sm">Contact</a>
         </nav>
-
         <div class="flex space-x-4">
             <a href="#" class="social-icon" aria-label="Vimeo">V</a>
             <a href="#" class="social-icon" aria-label="Behance">Be</a>
@@ -389,71 +384,30 @@
     </div>
 </header>
 
-<!-- ══════════════════════════════════
-     HERO BIO — commented out for now
-══════════════════════════════════ -->
-<!--
-<section style="background:#111; padding: 64px 0 32px;">
-    <div class="container mx-auto px-4">
-        <p class="text-lg leading-relaxed text-gray-400 max-w-2xl">
-            Blending technical mastery with visual storytelling — high-end 3D, CGI, and character creation for visionary brands.
-        </p>
-    </div>
-</section>
--->
-
-<!-- ══════════════════════════════════
-     HERO VIDEO  (16:9)
-══════════════════════════════════ -->
-<div class="hero-video-wrap">
-    <video id="hero-video-player" muted playsinline preload="auto"
-           poster="https://raw.githubusercontent.com/colinwillow/videos_02/main/Hero_Poster.jpg">
-    </video>
+<!-- HERO STATEMENT -->
+<div class="hero-statement">
+    <h1>CREATE <span style="color:#c4a882;">SH!T</span></h1>
 </div>
 
-<!-- ══════════════════════════════════
-     CG EXPERTISE TOGGLE
-══════════════════════════════════ -->
-<section style="background:#111; padding: 0 0 48px;">
+<!-- HERO VIDEO -->
+<div class="hero-video-wrap">
+    <video id="hero-video-player" muted playsinline preload="auto" poster="https://raw.githubusercontent.com/colinwillow/videos_02/main/Hero_Poster.jpg"></video>
+</div>
+
+<!-- MOTION -->
+<section id="motion" style="background:#0d0d0d;">
     <div class="container mx-auto px-4">
-        <div id="expertise-toggle" class="py-4 px-0 flex justify-between items-center">
-            <h2 class="text-xl font-light">CG Expertise & Creative Services</h2>
-            <span id="toggle-icon" class="text-2xl" style="color:#666;">+</span>
-        </div>
-        <div id="expertise-content" class="pt-6 max-w-4xl hidden">
-            <div class="grid md:grid-cols-2 gap-10">
-                <div>
-                    <p class="text-base leading-relaxed mb-4">
-                        I specialize in comprehensive character design and creation, handling the entire pipeline from concept through to final game or animation-ready topology. My technical skills cover sculpting, clean modeling, texturing, character rigging, and retopology.
-                    </p>
-                    <p class="text-base leading-relaxed">
-                        Beyond character work, I love product design and creating striking product demonstrations — funky, attractive visuals with professional product placement.
-                    </p>
-                </div>
-                <div>
-                    <h3 class="text-lg font-medium text-gray-200 mb-3">Software & Tech</h3>
-                    <p class="text-base leading-relaxed mb-4">
-                        Cinema 4D, ZBrush, Octane, Redshift, Unreal Engine.
-                    </p>
-                    <p class="text-base leading-relaxed">
-                        3D scanning, photogrammetry, and AI-assisted workflows to bring ambitious ideas to life efficiently.
-                    </p>
+        <div class="section-header">
+            <p class="section-label"><span class="wave-word" data-word="Motion"></span></p>
+            <div class="ticker-wrap">
+                <div class="ticker-track">
+                    <span class="ticker-item">3D animation &amp; motion design<span class="dot"> ◆ </span>characters that move like they mean it<span class="dot"> ◆ </span>product vis &amp; commercial work<span class="dot"> ◆ </span>frame by frame obsession<span class="dot"> ◆ </span>rendered in octane &amp; redshift<span class="dot"> ◆ </span></span>
+                    <span class="ticker-item">3D animation &amp; motion design<span class="dot"> ◆ </span>characters that move like they mean it<span class="dot"> ◆ </span>product vis &amp; commercial work<span class="dot"> ◆ </span>frame by frame obsession<span class="dot"> ◆ </span>rendered in octane &amp; redshift<span class="dot"> ◆ </span></span>
                 </div>
             </div>
         </div>
     </div>
-</section>
-
-<!-- ══════════════════════════════════
-     MOTION  (16:9 — edge to edge)
-══════════════════════════════════ -->
-<section id="motion" style="background:#0d0d0d;">
-    <div class="container mx-auto px-4">
-        <p class="section-label">Motion</p>
-    </div>
-    <div class="grid-outer">
-    <div class="motion-grid">
-        <!-- Motion files in your chosen order (numbered filenames) -->
+    <div class="grid-outer"><div class="motion-grid">
         <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/1_motion_man_chair.mp4"       type="video/mp4"></video></div>
         <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/2_motion_alien_dj.mp4"        type="video/mp4"></video></div>
         <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/3_motion_brain_vat.mp4"       type="video/mp4"></video></div>
@@ -475,19 +429,23 @@
         <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/19_motion_splash_ball.mp4"    type="video/mp4"></video></div>
         <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/20_motion_monster_forest.mp4" type="video/mp4"></video></div>
         <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/20_motion_xbox.mp4"            type="video/mp4"></video></div>
-    </div>
-    </div>
+    </div></div>
 </section>
 
-<!-- ══════════════════════════════════
-     ILLUSTRATIONS  (2:3)
-══════════════════════════════════ -->
+<!-- ILLUSTRATIONS -->
 <section id="illustrations" style="background:#111;">
     <div class="container mx-auto px-4">
-        <p class="section-label">Illustrations</p>
+        <div class="section-header">
+            <p class="section-label"><span class="wave-word" data-word="Illustrations"></span></p>
+            <div class="ticker-wrap">
+                <div class="ticker-track">
+                    <span class="ticker-item">hand-drawn &amp; digital illustration<span class="dot"> ◆ </span>portraits, creatures &amp; characters<span class="dot"> ◆ </span>ink, graphite &amp; pixels<span class="dot"> ◆ </span>people that look like people<span class="dot"> ◆ </span>every line intentional<span class="dot"> ◆ </span></span>
+                    <span class="ticker-item">hand-drawn &amp; digital illustration<span class="dot"> ◆ </span>portraits, creatures &amp; characters<span class="dot"> ◆ </span>ink, graphite &amp; pixels<span class="dot"> ◆ </span>people that look like people<span class="dot"> ◆ </span>every line intentional<span class="dot"> ◆ </span></span>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="grid-outer">
-    <div class="illustration-grid">
+    <div class="grid-outer"><div class="illustration-grid">
         <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/1_illlustration_faith.JPG"            alt="Faith"            loading="lazy"></div>
         <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/2_illlustration_megan.jpg"            alt="Megan"            loading="lazy"></div>
         <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/3_illustration_colin_graffiti.jpg"    alt="Colin Graffiti"   loading="lazy"></div>
@@ -500,103 +458,222 @@
         <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/14_illustration_faith_robe.jpg"       alt="Faith Robe"       loading="lazy"></div>
         <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/15_illustration_colin_headphones.jpg" alt="Colin Headphones" loading="lazy"></div>
         <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/16_illustration_winky.jpg"            alt="Winky"            loading="lazy"></div>
-    </div>
-    </div>
+    </div></div>
 </section>
 
-<!-- ══════════════════════════════════
-     LOGOS  (1:1)
-══════════════════════════════════ -->
+<!-- LOGOS -->
 <section id="logos" style="background:#0d0d0d;">
     <div class="container mx-auto px-4">
-        <p class="section-label">Logos & Branding</p>
+        <div class="section-header">
+            <p class="section-label"><span class="wave-word" data-word="Logos & Branding"></span></p>
+            <div class="ticker-wrap">
+                <div class="ticker-track">
+                    <span class="ticker-item">identity systems &amp; brand marks<span class="dot"> ◆ </span>logos that actually mean something<span class="dot"> ◆ </span>built to scale from sticker to billboard<span class="dot"> ◆ </span>wordmarks, icons &amp; full systems<span class="dot"> ◆ </span>make it recognizable<span class="dot"> ◆ </span></span>
+                    <span class="ticker-item">identity systems &amp; brand marks<span class="dot"> ◆ </span>logos that actually mean something<span class="dot"> ◆ </span>built to scale from sticker to billboard<span class="dot"> ◆ </span>wordmarks, icons &amp; full systems<span class="dot"> ◆ </span>make it recognizable<span class="dot"> ◆ </span></span>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="grid-outer">
-    <div class="logo-grid">
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_colin_willow_512px.jpg.jpg"          alt="Colin Willow"         loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_colin_willow_design_512px.jpg.jpg"   alt="Colin Willow Design"  loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_entheos_512px_02.jpg.JPG"            alt="Entheos 02"           loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_entheos__512px_02.jpg.JPG"           alt="Entheos"              loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_guy_512px.jpg.png"                   alt="Guy"                  loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_01_512px.jpg.jpg"        alt="Higher Level 01"      loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_02_512px.jpg.JPG"        alt="Higher Level 02"      loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_03_512px.jpg.JPG"        alt="Higher Level 03"      loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_04_512px.jpg.JPG"        alt="Higher Level 04"      loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_05_512px.jpg.JPG"        alt="Higher Level 05"      loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_majia__512px.jpg.JPG"                alt="Majia"                loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_osiris_01_512px.jpg.jpg"             alt="Osiris 01"            loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_osiris_black_512px.jpg.jpg"          alt="Osiris Black"         loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_osiris_white_512px.jpg.jpg"          alt="Osiris White"         loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_unauthorized_512px.jpg.JPG"          alt="Unauthorized"         loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_unknown_512px.jpg.JPG"               alt="Unknown"              loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_vvolt_512px.jpg.png"                 alt="Vvolt"                loading="lazy"></div>
-        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/thatswassupps_logo_512px.jpg.jpg"         alt="Thatswassupps"        loading="lazy"></div>
-    </div>
-    </div>
+    <div class="grid-outer"><div class="logo-grid">
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_colin_willow_512px.jpg.jpg"          alt="Colin Willow"        loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_colin_willow_design_512px.jpg.jpg"   alt="Colin Willow Design" loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_entheos_512px_02.jpg.JPG"            alt="Entheos 02"          loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_entheos__512px_02.jpg.JPG"           alt="Entheos"             loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_guy_512px.jpg.png"                   alt="Guy"                 loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_01_512px.jpg.jpg"        alt="Higher Level 01"     loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_02_512px.jpg.JPG"        alt="Higher Level 02"     loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_03_512px.jpg.JPG"        alt="Higher Level 03"     loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_04_512px.jpg.JPG"        alt="Higher Level 04"     loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_higherlevel_05_512px.jpg.JPG"        alt="Higher Level 05"     loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_majia__512px.jpg.JPG"                alt="Majia"               loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_osiris_01_512px.jpg.jpg"             alt="Osiris 01"           loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_osiris_black_512px.jpg.jpg"          alt="Osiris Black"        loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_osiris_white_512px.jpg.jpg"          alt="Osiris White"        loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_unauthorized_512px.jpg.JPG"          alt="Unauthorized"        loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_unknown_512px.jpg.JPG"               alt="Unknown"             loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_vvolt_512px.jpg.png"                 alt="Vvolt"               loading="lazy"></div>
+        <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/thatswassupps_logo_512px.jpg.jpg"         alt="Thatswassupps"       loading="lazy"></div>
+    </div></div>
 </section>
 
-<!-- ══════════════════════════════════
-     CONTACT
-══════════════════════════════════ -->
-<section id="contact" class="contact-section" style="background:#111; padding: 80px 0;">
+<!-- ABOUT / THE HUMAN -->
+<section id="about">
     <div class="container mx-auto px-4">
-        <h2 class="text-4xl font-light text-white mb-4">Let's build something great.</h2>
-        <p class="text-gray-500 max-w-xl mb-12">Have a project idea, a commercial brief, or just want to discuss the future of CGI?</p>
-
-        <div class="grid md:grid-cols-2 gap-12">
-            <div>
-                <p class="text-sm text-gray-500 mb-1">Email</p>
-                <a href="mailto:hello@colinwillow.com" class="text-white hover:text-gray-300 transition-colors">hello@colinwillow.com</a>
+        <div class="section-header">
+            <p class="section-label"><span class="wave-word" data-word="The Human"></span></p>
+            <div class="ticker-wrap">
+                <div class="ticker-track">
+                    <span class="ticker-item">3D artist &amp; motion designer<span class="dot"> ◆ </span>based wherever the wifi works<span class="dot"> ◆ </span>obsessed with things that glow<span class="dot"> ◆ </span>making brands look like 2047<span class="dot"> ◆ </span>probably drinking coffee right now<span class="dot"> ◆ </span></span>
+                    <span class="ticker-item">3D artist &amp; motion designer<span class="dot"> ◆ </span>based wherever the wifi works<span class="dot"> ◆ </span>obsessed with things that glow<span class="dot"> ◆ </span>making brands look like 2047<span class="dot"> ◆ </span>probably drinking coffee right now<span class="dot"> ◆ </span></span>
+                </div>
             </div>
-            <div>
-                <form action="#" method="POST" class="space-y-4">
-                    <input type="text"  placeholder="Your Name"    class="w-full px-4 py-3 rounded text-sm">
-                    <input type="email" placeholder="Your Email"   class="w-full px-4 py-3 rounded text-sm">
-                    <textarea           placeholder="Your Message" rows="4" class="w-full px-4 py-3 rounded text-sm resize-none"></textarea>
-                    <button type="button" style="background:#fff; color:#111;"
-                            class="w-full py-3 px-6 font-medium text-sm hover:opacity-80 transition-opacity rounded">
-                        Send Message
-                    </button>
-                </form>
+        </div>
+    </div>
+    <div style="padding:0 24px 80px;">
+        <div class="about-inner">
+            <!-- Avatar with spinning arcs (larger version) -->
+            <div class="about-avatar-wrap">
+                <div class="about-avatar-img"></div>
+                <svg class="about-avatar-svg" viewBox="0 0 200 200">
+                    <!-- circumference at r=94 ≈ 590. arcs: 175 175 175 85, gaps ~14 -->
+                    <circle class="about-arc" cx="100" cy="100" r="94" fill="none" stroke="#e8dfc8" stroke-width="4" stroke-dasharray="175 415" stroke-dashoffset="0"    stroke-linecap="round"/>
+                    <circle class="about-arc" cx="100" cy="100" r="94" fill="none" stroke="#8B6340" stroke-width="4" stroke-dasharray="175 415" stroke-dashoffset="-189" stroke-linecap="round"/>
+                    <circle class="about-arc" cx="100" cy="100" r="94" fill="none" stroke="#c4a882" stroke-width="4" stroke-dasharray="175 415" stroke-dashoffset="-378" stroke-linecap="round"/>
+                    <circle class="about-arc" cx="100" cy="100" r="94" fill="none" stroke="#666560" stroke-width="4" stroke-dasharray="85  505" stroke-dashoffset="-552" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <!-- Text -->
+            <div class="about-text">
+                <h2>colin willow<span>.</span></h2>
+                <p>3D artist, motion designer, and general chaos agent based wherever the wifi works. i make characters, creatures, and things that glow — usually for brands that want to look like they're living in 2047.</p>
+                <p>full pipeline from concept sketch to game-ready asset. obsessed with the moment something rendered finally looks alive. currently also just trying to figure out what the AI stuff means for all of us.</p>
+                <div class="about-tags">
+                    <span class="about-tag">Character Design</span>
+                    <span class="about-tag">3D / CGI</span>
+                    <span class="about-tag">Motion</span>
+                    <span class="about-tag">Product Vis</span>
+                    <span class="about-tag">ZBrush</span>
+                    <span class="about-tag">Cinema 4D</span>
+                    <span class="about-tag">Unreal Engine</span>
+                    <span class="about-tag">Octane</span>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
+<!-- THE BRAIN TRUST -->
+
 <!-- ══════════════════════════════════
-     FOOTER
+     INTERACTIVE / VISUALIZER
 ══════════════════════════════════ -->
-<footer style="padding: 40px 0;">
+<section id="interactive" style="background:#0a0a0a;">
+    <div class="container mx-auto px-4">
+        <div class="section-header">
+            <p class="section-label"><span class="wave-word" data-word="Interactive"></span></p>
+            <div class="ticker-wrap">
+                <div class="ticker-track">
+                    <span class="ticker-item">audio reactive visuals<span class="dot"> ◆ </span>real-time FFT analysis<span class="dot"> ◆ </span>click to start<span class="dot"> ◆ </span>hover to switch modes<span class="dot"> ◆ </span>built in p5.js<span class="dot"> ◆ </span></span>
+                    <span class="ticker-item">audio reactive visuals<span class="dot"> ◆ </span>real-time FFT analysis<span class="dot"> ◆ </span>click to start<span class="dot"> ◆ </span>hover to switch modes<span class="dot"> ◆ </span>built in p5.js<span class="dot"> ◆ </span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canvas -->
+    <div id="viz-canvas-wrap">
+        <!-- p5 canvas injected here -->
+        <div id="viz-click-prompt">
+            <div class="prompt-ring">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+            <p>click to unmute</p>
+        </div>
+        <button id="viz-unmute">🔇 unmute</button>
+    </div>
+
+    <!-- Mode switcher -->
+    <div id="viz-modes">
+        <button class="viz-mode-btn active" data-vizmode="0">
+            <span class="viz-mode-dot" style="background:#c4a882;"></span>
+            <span class="viz-mode-label">Organic</span>
+        </button>
+        <button class="viz-mode-btn" data-vizmode="1">
+            <span class="viz-mode-dot" style="background:#4af;"></span>
+            <span class="viz-mode-label">Geometric</span>
+        </button>
+    </div>
+</section>
+
+<!-- THE BRAIN TRUST -->
+<div id="brain-trust">
+    <div id="brain-trust-toggle">
+        <h2>the brain trust — what even is this stuff?</h2>
+        <span id="brain-trust-icon" style="color:#2a2a2a;font-family:'Space Mono',monospace;font-size:11px;">[ + ]</span>
+    </div>
+    <div id="brain-trust-content">
+        <div>
+            <p>full pipeline character work — concept to game-ready topology. sculpting, modeling, texturing, rigging, retopo. the whole enchilada. also really into product vis because making a can of pepsi look cooler than it deserves to is deeply satisfying.</p>
+        </div>
+        <div>
+            <h3>tools of destruction</h3>
+            <p>Cinema 4D · ZBrush · Octane · Redshift · Unreal Engine · 3D scanning · photogrammetry · whatever AI thing dropped last week.</p>
+        </div>
+    </div>
+</div>
+
+<!-- CONTACT -->
+<section id="contact" style="background:#111;padding:80px 24px;">
+    <p style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#3a3a3a;margin-bottom:16px;font-family:'Space Mono',monospace;">get in touch</p>
+    <h2 style="font-family:'Space Mono',monospace;font-size:clamp(30px,5vw,60px);color:#fff;font-weight:700;line-height:1.05;margin-bottom:36px;">Make stuff?</h2>
+    <button id="open-captcha" style="background:transparent;border:1px solid #242424;color:#555;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;padding:15px 40px;cursor:pointer;transition:border-color 0.3s,color 0.3s;"
+        onmouseover="this.style.borderColor='#c4a882';this.style.color='#c4a882'"
+        onmouseout="this.style.borderColor='#242424';this.style.color='#555'">
+        get in touch →
+    </button>
+</section>
+
+<!-- FOOTER -->
+<footer style="padding:36px 0;">
     <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
-        <span class="text-gray-600 text-sm mb-4 md:mb-0">All rights reserved © Colin Willow 2025</span>
+        <span style="color:#2a2a2a;font-size:12px;font-family:'Space Mono',monospace;margin-bottom:16px;" class="md:mb-0">© Colin Willow 2025</span>
         <div class="flex space-x-4">
-            <a href="#" class="social-icon" aria-label="Vimeo">V</a>
-            <a href="#" class="social-icon" aria-label="Behance">Be</a>
-            <a href="#" class="social-icon" aria-label="LinkedIn">in</a>
-            <a href="#" class="social-icon" aria-label="YouTube">▶</a>
+            <a href="#" class="social-icon">V</a>
+            <a href="#" class="social-icon">Be</a>
+            <a href="#" class="social-icon">in</a>
+            <a href="#" class="social-icon">▶</a>
         </div>
     </div>
 </footer>
 
+<!-- CAPTCHA MODAL -->
+<div id="captcha-modal">
+    <div id="captcha-box">
+        <div id="captcha-header">
+            <span>SECURITY VERIFICATION</span>
+            <span id="captcha-close">×</span>
+        </div>
+        <div id="captcha-step1">
+            <div id="captcha-check-area">
+                <div id="captcha-checkbox"></div>
+                <span id="captcha-label">I'm not a robot</span>
+            </div>
+            <div id="captcha-footer"><span>reCAPTCHA · Privacy · Terms</span></div>
+        </div>
+        <div id="game-area">
+            <canvas id="game-canvas" width="420" height="180"></canvas>
+            <div id="game-ui">
+                <span id="game-score-display">SCORE: 0</span>
+                <span id="game-hint">SPACE or TAP to jump</span>
+            </div>
+        </div>
+        <div id="game-over">
+            <div id="game-over-msg"></div>
+            <div id="game-over-sub"></div>
+            <button id="game-retry">try again</button>
+            <div id="contact-reveal">
+                <p>fine. you win. here:</p>
+                <a href="mailto:hello@colinwillow.com">hello@colinwillow.com</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-// ── SVG Logo ──
+// ── SVG LOGO ──
 async function loadSVGLogo(url) {
     try {
-        const r = await fetch(url);
-        if (!r.ok) throw new Error();
+        const r = await fetch(url); if (!r.ok) throw 0;
         const svg = await r.text();
-        const wrapper = document.getElementById('logo-svg-wrapper');
-        const fallback = document.getElementById('logo-text-fallback');
-        wrapper.innerHTML = svg;
-        // Invert the SVG so it shows white on dark bg
-        wrapper.style.filter = 'invert(1)';
-        wrapper.classList.remove('hidden');
-        fallback.classList.add('hidden');
-    } catch(e) { /* show text fallback */ }
+        const w = document.getElementById('logo-svg-wrapper');
+        w.innerHTML = svg; w.style.filter = 'invert(1)'; w.classList.remove('hidden');
+        document.getElementById('logo-text-fallback').classList.add('hidden');
+    } catch(e){}
 }
+document.addEventListener('DOMContentLoaded', () => loadSVGLogo("https://raw.githubusercontent.com/colinwillow/SVGs/main/Colin_Willow.svg"));
 
-// ── Hero video sequence ──
-const heroSources = [
+// ── HERO VIDEO ──
+const heroSrc = [
     "https://raw.githubusercontent.com/colinwillow/videos_02/main/Hero_Video_01.mp4",
     "https://raw.githubusercontent.com/colinwillow/videos_02/main/brain.mp4",
     "https://raw.githubusercontent.com/colinwillow/videos_02/main/dj_alien.mp4",
@@ -607,292 +684,447 @@ const heroSources = [
 ];
 let heroIdx = 0;
 const heroPlayer = document.getElementById('hero-video-player');
-
-function playHero(idx) {
-    heroPlayer.src = heroSources[idx % heroSources.length];
-    heroPlayer.load();
-    heroPlayer.play().catch(() => {});
-    heroIdx = idx % heroSources.length;
-}
-
-heroPlayer.addEventListener('ended', () => playHero(heroIdx + 1));
+function playHero(i){ heroPlayer.src=heroSrc[i%heroSrc.length]; heroPlayer.load(); heroPlayer.play().catch(()=>{}); heroIdx=i%heroSrc.length; }
+heroPlayer.addEventListener('ended',()=>playHero(heroIdx+1));
 playHero(0);
 
-// ── Expertise toggle ──
-document.getElementById('expertise-toggle').addEventListener('click', () => {
-    const c = document.getElementById('expertise-content');
-    const i = document.getElementById('toggle-icon');
-    c.classList.toggle('hidden');
-    i.textContent = c.classList.contains('hidden') ? '+' : '–';
-});
+// ── LAZY VIDEO ──
+const vObs = new IntersectionObserver(entries=>entries.forEach(e=>{const v=e.target.querySelector('video');if(!v)return;e.isIntersecting?v.play().catch(()=>{}):v.pause();}),{rootMargin:'200px'});
+document.querySelectorAll('.motion-cell').forEach(c=>vObs.observe(c));
 
-// ── Lazy-load videos via IntersectionObserver ──
-const videoObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        const vid = entry.target.querySelector('video');
-        if (!vid) return;
-        if (entry.isIntersecting) {
-            vid.play().catch(() => {});
-        } else {
-            vid.pause();
-        }
-    });
-}, { rootMargin: '200px' });
-
-document.querySelectorAll('.motion-cell').forEach(cell => videoObserver.observe(cell));
-
-// ── Logo SVG ──
-document.addEventListener('DOMContentLoaded', () => {
-    loadSVGLogo("https://raw.githubusercontent.com/colinwillow/SVGs/main/Colin_Willow.svg");
-});
-
-// ── Profile arc spin with smooth lerp return ──
-(function() {
-    const container = document.getElementById('profile-pic-container');
+// ── PROFILE ARCS ──
+(function(){
+    const cont = document.getElementById('profile-pic-container');
     const arcs = [
-        { el: document.getElementById('arc-red'),    speed:  0.8  },
-        { el: document.getElementById('arc-blue'),   speed: -0.55 },
-        { el: document.getElementById('arc-green'),  speed:  0.45 },
-        { el: document.getElementById('arc-yellow'), speed: -0.7  },
+        {el:document.getElementById('arc-red'),    speed: 0.8 },
+        {el:document.getElementById('arc-blue'),   speed:-0.55},
+        {el:document.getElementById('arc-green'),  speed: 0.45},
+        {el:document.getElementById('arc-yellow'), speed:-0.7 },
     ];
+    const ang=[0,0,0,0]; let spinning=false,returning=false,rafId=null;
+    function spin(){returning=false;spinning=true;cancelAnimationFrame(rafId);(function f(){if(!spinning)return;arcs.forEach((a,i)=>{ang[i]+=a.speed;a.el.style.transform=`rotate(${ang[i]}deg)`;});rafId=requestAnimationFrame(f);})();}
+    function rest(){spinning=false;returning=true;cancelAnimationFrame(rafId);(function f(){if(!returning)return;let done=true;arcs.forEach((a,i)=>{const t=Math.round(ang[i]/360)*360,d=t-ang[i];if(Math.abs(d)<0.1){ang[i]=0;a.el.style.transform='rotate(0deg)';}else{ang[i]+=d*0.08;a.el.style.transform=`rotate(${ang[i]}deg)`;done=false;}});if(!done)rafId=requestAnimationFrame(f);else returning=false;})();}
+    cont.addEventListener('mouseenter',spin);
+    cont.addEventListener('mouseleave',rest);
+})();
 
+// ── BRAIN TRUST TOGGLE ──
+document.getElementById('brain-trust-toggle').addEventListener('click',()=>{
+    const c=document.getElementById('brain-trust-content'),i=document.getElementById('brain-trust-icon');
+    c.classList.toggle('open'); i.textContent=c.classList.contains('open')?'[ – ]':'[ + ]';
+});
+
+// ── BORDER CANVAS ──
+(function(){
+    const bc=document.getElementById('border-canvas'),bctx=bc.getContext('2d');
+    let BW=bc.width=window.innerWidth,BH=bc.height=window.innerHeight;
+    window.addEventListener('resize',()=>{BW=bc.width=window.innerWidth;BH=bc.height=window.innerHeight;});
+    const BC=['rgba(196,168,130,','rgba(232,223,200,','rgba(139,99,64,','rgba(102,101,96,'];
+    class R{
+        constructor(){this.reset(true);}
+        reset(init=false){
+            this.edge=Math.floor(Math.random()*4);
+            this.len=Math.random()*70+20; this.thick=Math.random()*1.4+0.4;
+            this.speed=(Math.random()*0.5+0.1)*(Math.random()<0.5?1:-1);
+            this.alpha=Math.random()*0.18+0.03;
+            this.sAmp=Math.random()*5+1; this.sPh=Math.random()*Math.PI*2;
+            this.color=BC[Math.floor(Math.random()*BC.length)];
+            this.t=init?Math.random():(this.speed>0?-0.05:1.05);
+        }
+        update(){this.t+=this.speed*0.003;this.sPh+=0.018;if(this.t>1.12||this.t<-0.12)this.reset();}
+        draw(){
+            const M=24,s=Math.sin(this.sPh)*this.sAmp;
+            bctx.fillStyle=this.color+this.alpha+')';
+            if(this.edge===0)      bctx.fillRect(this.t*BW,  M+s,         this.len,this.thick);
+            else if(this.edge===1) bctx.fillRect(BW-M+s,    this.t*BH,   this.thick,this.len);
+            else if(this.edge===2) bctx.fillRect(this.t*BW,  BH-M+s,     this.len,this.thick);
+            else                   bctx.fillRect(M+s,         this.t*BH,  this.thick,this.len);
+        }
+    }
+    const rects=Array.from({length:32},()=>new R());
+    (function loop(){bctx.clearRect(0,0,BW,BH);rects.forEach(r=>{r.update();r.draw();});requestAnimationFrame(loop);})();
+})();
+
+// ── CAPTCHA GAME ──
+(function(){
+    const modal=document.getElementById('captcha-modal'),step1=document.getElementById('captcha-step1'),
+          gameArea=document.getElementById('game-area'),gameOver=document.getElementById('game-over'),
+          canvas=document.getElementById('game-canvas'),ctx=canvas.getContext('2d'),
+          scoreDisp=document.getElementById('game-score-display'),retryBtn=document.getElementById('game-retry'),
+          contactRev=document.getElementById('contact-reveal'),overMsg=document.getElementById('game-over-msg'),
+          overSub=document.getElementById('game-over-sub');
+    const GW=420,GH=180; canvas.width=GW; canvas.height=GH;
+    const GROUND=GH-36;
+    const C={bg:'#0d0d0d',g:'#1a1a1a',p:'#c4a882',o:'#8B6340',a:'#e8dfc8',d:'#242424'};
+    let gs='idle',score=0,hi=0,attempts=0,animId=null;
+    const pl={x:44,y:GROUND,w:16,h:22,vy:0,j:false};
+    let obs=[],fc=0,spd=3;
+    const GR=0.58,JP=-11;
+    function reset(){pl.y=GROUND;pl.vy=0;pl.j=false;obs=[];fc=0;spd=3;score=0;scoreDisp.textContent='SCORE: 0';}
+    function px(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(Math.floor(x),Math.floor(y),w,h);}
+    function loop(){
+        px(0,0,GW,GH,C.bg);
+        px(0,GROUND+pl.h+2,GW,1,C.g);
+        ctx.fillStyle=C.d;
+        for(let x=(-(fc*spd)%48);x<GW;x+=48)ctx.fillRect(x,GROUND+pl.h+6,24,1);
+        fc++;score=Math.floor(fc/6);spd=3+score*0.004;
+        scoreDisp.textContent='SCORE: '+score;
+        pl.vy+=GR;pl.y+=pl.vy;
+        if(pl.y>=GROUND){pl.y=GROUND;pl.vy=0;pl.j=false;}
+        if(fc%Math.max(50,Math.floor(110-score*0.22))===0){const h=Math.random()*22+14;obs.push({x:GW,y:GROUND+pl.h-h,w:13,h});}
+        obs.forEach(o=>{o.x-=spd;px(o.x,o.y,o.w,o.h,C.o);});
+        obs=obs.filter(o=>o.x>-20);
+        for(const o of obs){if(pl.x+pl.w-4>o.x+2&&pl.x+4<o.x+o.w&&pl.y+pl.h>o.y+3){end();return;}}
+        // draw player
+        px(pl.x,pl.y,pl.w,pl.h,C.p);
+        px(pl.x+10,pl.y+4,3,3,C.bg);
+        px(pl.x+2,pl.y-2,10,2,C.a);
+        if(!pl.j){const l=Math.abs(Math.sin(fc*0.28))*4;px(pl.x+2,pl.y+pl.h,4,l+3,C.a);px(pl.x+9,pl.y+pl.h,4,(4-l)+3,C.a);}
+        ctx.fillStyle='#2a2a2a';ctx.font='9px monospace';ctx.fillText('HI '+hi,GW-50,13);
+        animId=requestAnimationFrame(loop);
+    }
+    function start(){step1.style.display='none';gameOver.classList.remove('open');gameArea.classList.add('open');reset();gs='running';loop();}
+    const die=["yep. definitely human. 💀","incredible. a genuine skill issue.","the robot would've done better.","bless your heart. truly.","i've seen potatoes with better reflexes."];
+    const win=["okay fine. you're basically a robot anyway.","not bad for a meat-based life form.","fine. you earned it. weirdo."];
+    function end(){
+        cancelAnimationFrame(animId);gs='dead';attempts++;if(score>hi)hi=score;
+        gameArea.classList.remove('open');gameOver.classList.add('open');contactRev.classList.remove('open');
+        if(score>=50){overMsg.textContent=win[Math.floor(Math.random()*win.length)];overSub.textContent='you scored '+score+'. fine. here\'s my info:';retryBtn.style.display='none';contactRev.classList.add('open');}
+        else if(attempts>=3){overMsg.textContent="alright, i'll give you a break.";overSub.textContent='scored '+score+'. i respect the persistence.';retryBtn.style.display='none';contactRev.classList.add('open');}
+        else{overMsg.textContent=die[Math.floor(Math.random()*die.length)];overSub.textContent='you scored '+score+'. get to 50 for my contact info. (attempt '+attempts+'/3)';retryBtn.style.display='inline-block';}
+    }
+    function jump(){if(gs==='running'&&!pl.j){pl.vy=JP;pl.j=true;}}
+    document.getElementById('open-captcha').addEventListener('click',()=>{attempts=0;hi=0;modal.classList.add('open');step1.style.display='block';gameArea.classList.remove('open');gameOver.classList.remove('open');document.getElementById('captcha-checkbox').innerHTML='';});
+    document.getElementById('captcha-check-area').addEventListener('click',()=>{document.getElementById('captcha-checkbox').innerHTML='<span style="color:#c4a882;font-size:14px;">✓</span>';setTimeout(start,500);});
+    document.getElementById('captcha-close').addEventListener('click',()=>{cancelAnimationFrame(animId);modal.classList.remove('open');gs='idle';});
+    retryBtn.addEventListener('click',start);
+    window.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();jump();}});
+    canvas.addEventListener('mousedown',e=>{e.preventDefault();jump();});
+    canvas.addEventListener('touchstart',e=>{e.preventDefault();jump();},{passive:false});
+})();
+
+// ── WAVE LETTERS ──
+document.querySelectorAll('.wave-word').forEach(word => {
+    const text = word.dataset.word;
+    word.innerHTML = text.split('').map((ch, i) => {
+        if (ch === ' ') return `<span class="wave-letter" style="width:0.4em;">&nbsp;</span>`;
+        const delay = i * 30;
+        return `<span class="wave-letter">
+            <span style="transition:transform 0.35s cubic-bezier(0.76,0,0.24,1) ${delay}ms">${ch}</span>
+            <span class="clone" aria-hidden="true" style="transition:transform 0.35s cubic-bezier(0.76,0,0.24,1) ${delay}ms">${ch}</span>
+        </span>`;
+    }).join('');
+});
+
+// ── ABOUT ARC SLOW DRIFT ──
+(function(){
+    const arcs = document.querySelectorAll('.about-arc');
+    if (!arcs.length) return;
+    const speeds = [0.12, -0.08, 0.06, -0.1];
     const angles = [0, 0, 0, 0];
-    let spinning = false;
-    let returning = false;
-    let rafId = null;
-
-    function spin() {
-        returning = false;
-        spinning = true;
-        cancelAnimationFrame(rafId);
-        function frame() {
-            if (!spinning) return;
-            arcs.forEach((arc, i) => {
-                angles[i] += arc.speed;
-                arc.el.style.transform = `rotate(${angles[i]}deg)`;
-            });
-            rafId = requestAnimationFrame(frame);
-        }
-        frame();
+    function drift() {
+        arcs.forEach((arc, i) => {
+            angles[i] += speeds[i];
+            arc.style.transform = `rotate(${angles[i]}deg)`;
+            arc.style.transformOrigin = '100px 100px';
+        });
+        requestAnimationFrame(drift);
     }
-
-    function returnToRest() {
-        spinning = false;
-        returning = true;
-        cancelAnimationFrame(rafId);
-        function frame() {
-            if (!returning) return;
-            let allDone = true;
-            arcs.forEach((arc, i) => {
-                // find nearest multiple of 360
-                const target = Math.round(angles[i] / 360) * 360;
-                const diff = target - angles[i];
-                if (Math.abs(diff) < 0.1) {
-                    angles[i] = 0;
-                    arc.el.style.transform = `rotate(0deg)`;
-                } else {
-                    angles[i] += diff * 0.08;
-                    arc.el.style.transform = `rotate(${angles[i]}deg)`;
-                    allDone = false;
-                }
-            });
-            if (!allDone) rafId = requestAnimationFrame(frame);
-            else returning = false;
-        }
-        frame();
-    }
-
-    container.addEventListener('mouseenter', spin);
-    container.addEventListener('mouseleave', returnToRest);
+    drift();
 })();
 
 // ══════════════════════════════════════════════
-//  LANDING PAGE PARTICLE SYSTEM
+//  VISUALIZER
 // ══════════════════════════════════════════════
-(function() {
-    const landing = document.getElementById('landing');
-    const canvas  = document.getElementById('landing-canvas');
-    const ctx     = canvas.getContext('2d');
-    const loader  = document.getElementById('landing-loader');
+(function(){
+    // ── Native Web Audio API — bypasses p5.sound autoplay block ──
+    let audioCtx, analyser, gainNode, srcNode, audioBuffer;
+    let vizStarted=false, vizMuted=true, vizMode=0, vizBlend=0;
+    let fftData = new Uint8Array(512);
+    let linAvg  = new Array(30).fill(0);
 
-    let W = canvas.width  = window.innerWidth;
-    let H = canvas.height = window.innerHeight;
+    // ── Viz1 state ──
+    let b0=[],b1=[],b3=[],b4=[],tarR=0;
+    for(let j=0;j<41;j++) b0[j]=b1[j]=b3[j]=b4[j]=0;
 
-    const mouse = { x: W/2, y: H/2 };
-    let lastMX = W/2, lastMY = H/2;
+    // ── Viz2 state ──
+    const NR=40,NS=12,NRI=18,FL=0.25,RL=0.15,DS=5,CS=3,OO=50,BT=200;
+    let rv=new Array(NR).fill(0),tj=1,rc=0,ps=0;
 
-    window.addEventListener('mousemove', e => {
-        lastMX = mouse.x = e.clientX;
-        lastMY = mouse.y = e.clientY;
-    });
+    const unmuteBtn = document.getElementById('viz-unmute');
+    const prompt    = document.getElementById('viz-click-prompt');
 
-    const COLORS = [
-        'rgba(196,168,130,',
-        'rgba(232,223,200,',
-        'rgba(139,99,64,',
-        'rgba(102,101,96,',
-        'rgba(255,255,255,',
-    ];
+    // ── p5 sketch (rendering only — no p5.sound) ──
+    new p5(function(p){
+        p.setup = function(){
+            const wrap = document.getElementById('viz-canvas-wrap');
+            const cnv = p.createCanvas(wrap.offsetWidth, wrap.offsetHeight, p.WEBGL);
+            cnv.parent('viz-canvas-wrap');
+            p.pixelDensity(1); p.angleMode(p.DEGREES); p.rectMode(p.CENTER);
+            window._vizP5 = p;
+        };
 
-    class Particle {
-        constructor() { this.reset(true); }
-        reset(init = false) {
-            this.x = this.baseX = init ? Math.random() * W : (Math.random() < 0.5 ? -10 : W + 10);
-            this.y = this.baseY = init ? Math.random() * H : Math.random() * H;
-            this.size   = Math.random() * 1.8 + 0.3;
-            this.speedX = (Math.random() - 0.5) * 0.3;
-            this.speedY = (Math.random() - 0.5) * 0.3;
-            this.color  = COLORS[Math.floor(Math.random() * COLORS.length)];
-            this.alpha  = Math.random() * 0.5 + 0.1;
-            this.life   = 0;
-            this.maxLife = Math.random() * 400 + 200;
-            this.drift  = Math.random() < 0.3;
-            this.driftAngle  = Math.random() * Math.PI * 2;
-            this.driftSpeed  = (Math.random() * 0.004 + 0.001) * (Math.random() < 0.5 ? 1 : -1);
-            this.connectable = Math.random() < 0.4;
-            this.currentAlpha = 0;
-        }
-        update() {
-            this.life++;
-            if (this.drift) {
-                this.driftAngle += this.driftSpeed;
-                this.x = this.baseX + Math.cos(this.driftAngle) * 18;
-                this.y = this.baseY + Math.sin(this.driftAngle) * 18;
-            }
-            this.baseX += this.speedX;
-            this.baseY += this.speedY;
-            if (!this.drift) { this.x = this.baseX; this.y = this.baseY; }
+        p.draw = function(){
+            p.background(0);
+            if(!vizStarted) return;
+            vizBlend = p.lerp(vizBlend, vizMode, 0.06);
 
-            const dx = this.x - mouse.x, dy = this.y - mouse.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < 120) {
-                const f = (120 - dist) / 120;
-                this.baseX += (dx / dist) * f * 3.5;
-                this.baseY += (dy / dist) * f * 3.5;
-            }
-
-            const p = this.life / this.maxLife;
-            const fade = p < 0.1 ? p/0.1 : p > 0.8 ? 1-(p-0.8)/0.2 : 1;
-            this.currentAlpha = this.alpha * fade;
-
-            if (this.life > this.maxLife || this.baseX < -50 || this.baseX > W+50 || this.baseY < -50 || this.baseY > H+50)
-                this.reset();
-        }
-        draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
-            ctx.fillStyle = this.color + this.currentAlpha + ')';
-            ctx.fill();
-        }
-    }
-
-    class Streak {
-        constructor() { this.reset(); }
-        reset() {
-            this.x = Math.random() * W; this.y = Math.random() * H * 0.6;
-            this.len = Math.random() * 80 + 40;
-            this.speed = Math.random() * 4 + 2;
-            this.angle = Math.PI * 0.15 + (Math.random() - 0.5) * 0.3;
-            this.alpha = 0; this.maxAlpha = Math.random() * 0.12 + 0.04;
-            this.life = 0; this.maxLife = Math.floor(this.len / this.speed) + 20;
-            this.color = COLORS[Math.floor(Math.random() * 3)];
-            this.delay = Math.floor(Math.random() * 300);
-        }
-        update() {
-            if (this.delay > 0) { this.delay--; return; }
-            this.life++;
-            this.x += Math.cos(this.angle) * this.speed;
-            this.y += Math.sin(this.angle) * this.speed;
-            const p = this.life / this.maxLife;
-            this.alpha = p < 0.3 ? (p/0.3)*this.maxAlpha : p > 0.7 ? (1-(p-0.7)/0.3)*this.maxAlpha : this.maxAlpha;
-            if (this.life > this.maxLife) this.reset();
-        }
-        draw() {
-            const tx = this.x - Math.cos(this.angle)*this.len;
-            const ty = this.y - Math.sin(this.angle)*this.len;
-            const g = ctx.createLinearGradient(tx, ty, this.x, this.y);
-            g.addColorStop(0, this.color+'0)');
-            g.addColorStop(1, this.color+this.alpha+')');
-            ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(this.x, this.y);
-            ctx.strokeStyle = g; ctx.lineWidth = 0.8; ctx.stroke();
-        }
-    }
-
-    const COUNT = Math.min(Math.floor((W * H) / 6000), 220);
-    const particles = Array.from({ length: COUNT }, () => new Particle());
-    const streaks   = Array.from({ length: 8 },   () => new Streak());
-    const trail = [];
-
-    window.addEventListener('mousemove', e => {
-        trail.push({ x: e.clientX, y: e.clientY, t: Date.now() });
-        if (trail.length > 24) trail.shift();
-    });
-
-    let active = true;
-    function loop() {
-        if (!active) return;
-        ctx.fillStyle = 'rgba(10,10,10,0.18)';
-        ctx.fillRect(0, 0, W, H);
-
-        // connections
-        const conn = particles.filter(p => p.connectable);
-        for (let i = 0; i < conn.length; i++) {
-            for (let j = i+1; j < conn.length; j++) {
-                const dx = conn[i].x-conn[j].x, dy = conn[i].y-conn[j].y;
-                const d = Math.sqrt(dx*dx+dy*dy);
-                if (d < 90) {
-                    ctx.beginPath(); ctx.moveTo(conn[i].x, conn[i].y); ctx.lineTo(conn[j].x, conn[j].y);
-                    ctx.strokeStyle = `rgba(196,168,130,${(1-d/90)*0.1})`; ctx.lineWidth = 0.5; ctx.stroke();
+            if(analyser){
+                analyser.getByteFrequencyData(fftData);
+                const binsP = Math.floor(fftData.length/30);
+                let bsum=0;
+                for(let i=0;i<30;i++){
+                    let acc=0;
+                    for(let k=0;k<binsP;k++) acc+=fftData[i*binsP+k];
+                    linAvg[i]=acc/binsP;
                 }
-            }
-        }
+                for(let i=6;i<30;i++) bsum+=linAvg[i];
+                let diff=Math.abs(bsum-ps); ps=bsum;
+                tj=Math.max(diff/1.5,(bsum/24)/10)*1.8;
+            } else { tj=50+p.sin(p.frameCount*0.2)*40; }
+            rc++;
 
-        // trail
-        for (let i = 1; i < trail.length; i++) {
-            const age = (Date.now()-trail[i].t)/400;
-            if (age > 1) continue;
-            ctx.beginPath(); ctx.arc(trail[i].x, trail[i].y, (1-age)*2, 0, Math.PI*2);
-            ctx.fillStyle = `rgba(196,168,130,${(1-age)*0.12})`; ctx.fill();
-        }
+            const a1=p.map(vizBlend,0,1,1,0);
+            const a2=p.map(vizBlend,0,1,0,1);
+            if(a1>0.01){ p.push(); drawV1(p,a1); p.pop(); }
+            if(a2>0.01){ p.push(); drawV2(p,a2); p.pop(); }
+        };
 
-        particles.forEach(p => { p.update(); p.draw(); });
-        streaks.forEach(s => { s.update(); s.draw(); });
-        requestAnimationFrame(loop);
-    }
-    loop();
+        p.mousePressed = function(){
+            const wrap = document.getElementById('viz-canvas-wrap');
+            const rect = wrap.getBoundingClientRect();
+            const mx = p.winMouseX, my = p.winMouseY;
+            if(mx < rect.left || mx > rect.right || my < rect.top || my > rect.bottom) return;
+            if(!vizStarted) return;
+            vizMuted ? unmute() : mute();
+        };
 
-    // Loading bar
-    let progress = 0;
-    const loadInterval = setInterval(() => {
-        progress += Math.random() * 4 + 1;
-        if (progress >= 100) {
-            progress = 100;
-            clearInterval(loadInterval);
-            loader.style.width = '100%';
-            setTimeout(() => {
-                loader.style.transition = 'opacity 0.5s';
-                loader.style.opacity = '0';
-                landing.classList.add('loaded');
-            }, 300);
-        }
-        loader.style.width = progress + '%';
-    }, 40);
-
-    // Enter button
-    document.getElementById('landing-enter').addEventListener('click', () => {
-        landing.classList.add('exiting');
-        setTimeout(() => {
-            active = false;
-            landing.classList.add('gone');
-        }, 850);
+        p.windowResized = function(){
+            const wrap=document.getElementById('viz-canvas-wrap');
+            p.resizeCanvas(wrap.offsetWidth, wrap.offsetHeight);
+        };
     });
 
-    // Touch support
-    canvas.addEventListener('touchmove', e => {
-        e.preventDefault();
-        mouse.x = e.touches[0].clientX;
-        mouse.y = e.touches[0].clientY;
-    }, { passive: false });
+    // ── Fetch audio (no gesture needed) ──
+    function preloadAudio(){
+        fetch('https://raw.githubusercontent.com/colinwillow/portfolio/main/audio/Yoga_Pants.mp3')
+            .then(r=>r.arrayBuffer())
+            .then(buf=>{
+                audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+                return audioCtx.decodeAudioData(buf);
+            })
+            .then(decoded=>{ audioBuffer=decoded; console.log('viz audio ready'); })
+            .catch(e=>console.warn('viz fetch:',e));
+    }
+
+    // ── Start muted — called by IntersectionObserver ──
+    function startMuted(){
+        if(vizStarted){ return; }
+        if(!audioBuffer){ setTimeout(startMuted,300); return; }
+
+        if(audioCtx.state==='suspended') audioCtx.resume();
+
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        fftData = new Uint8Array(analyser.frequencyBinCount);
+
+        gainNode = audioCtx.createGain();
+        gainNode.gain.value = 0; // muted
+
+        srcNode = audioCtx.createBufferSource();
+        srcNode.buffer = audioBuffer;
+        srcNode.loop = true;
+        srcNode.connect(analyser);
+        analyser.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        srcNode.start(0);
+
+        vizStarted=true; vizMuted=true;
+        prompt.classList.add('hidden');
+        unmuteBtn.classList.add('visible');
+        unmuteBtn.textContent='🔇 unmute';
+    }
+
+    function unmute(){
+        if(!gainNode) return;
+        vizMuted=false;
+        gainNode.gain.setTargetAtTime(0.8, audioCtx.currentTime, 0.3);
+        unmuteBtn.textContent='🔊 mute';
+    }
+    function mute(){
+        if(!gainNode) return;
+        vizMuted=true;
+        gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
+        unmuteBtn.textContent='🔇 unmute';
+    }
+
+    unmuteBtn.addEventListener('click',e=>{ e.stopPropagation(); vizMuted?unmute():mute(); });
+
+    // ── IntersectionObserver ──
+    const section=document.getElementById('interactive');
+    if(section && 'IntersectionObserver' in window){
+        const obs=new IntersectionObserver((entries)=>{
+            entries.forEach(entry=>{ if(entry.isIntersecting){ startMuted(); obs.disconnect(); } });
+        },{threshold:0.3});
+        obs.observe(section);
+    }
+
+    window.addEventListener('load', preloadAudio);
+
+    // ── VIZ 1 — organic warm ──
+    function drawV1(p,al){
+        p.noStroke();
+        let scl=p.width<=p.height?(p.width/1920)*0.8:(p.height/1080)*0.5;
+        p.scale(scl); p.push(); p.rotate(p.frameCount/3);
+        v1b(p,27,30,al); v1b1(p,15,0.2,al); v1b3(p,20,30,al); v1b4(p,24,0.5,al); v1c(p,al);
+        p.pop();
+    }
+    function vj(a,s){ return (linAvg[Math.min(a,29)]||0)*s; }
+    function v1b(p,sp,js,al){
+        b0[0]=p.lerp(b0[0],p.lerp(0,vj(sp,js),0.5),0.8);
+        for(let i=0;i<12;i++) for(let j=1;j<41;j++){
+            p.push(); let[cr,cg,cb]=vc(b0[j]);
+            let dx=b0[j]*(j/40)*j,dy=b0[j]*(j/2);
+            b0[j]=Math.abs(p.lerp(b0[j],b0[j-1],0.0175));
+            p.rotate((360/12)*i); p.translate(dx,dy); p.fill(cr,cg,cb,255*al); p.rotate(dx);
+            p.rect(0,0,b0[j]/2+4,b0[j]/24+1); p.pop();
+        }
+    }
+    function v1b1(p,sp,js,al){
+        b1[0]=vj(sp,js);
+        for(let i=0;i<12;i++) for(let j=1;j<41;j++){
+            p.push(); let[cr,cg,cb]=vc(b0[j]);
+            let dx=b1[j]*(j/100)*j,dy=b1[j]*(j/5);
+            b1[j]=Math.abs(p.lerp(b1[j],b1[j-1],0.0575));
+            p.rotate((360/12)*i); p.rotate(dy); p.translate(dx*3,dy*3); p.rotate(dx*3);
+            p.fill(cr,cg,cb,255*al); p.rect(0,0,(b1[j]/2+4)*2,(b1[j]/24+1)*2); p.pop();
+        }
+    }
+    function v1b3(p,sp,js,al){
+        b3[0]=p.lerp(b3[0],vj(sp,js),0.1);
+        for(let j=1;j<10;j++){
+            p.push(); b3[j]=Math.abs(p.lerp(b3[j],b3[j-1],0.5));
+            let[cr,cg,cb]=vc(b0[j]); p.noFill();
+            p.stroke(cr,cg,cb,255*al); p.strokeWeight(5); p.ellipse(0,0,b3[j]/3,b3[j]/3); p.pop();
+        }
+    }
+    function v1b4(p,sp,js,al){
+        b4[0]=vj(sp,js);
+        for(let i=0;i<12;i++) for(let j=1;j<41;j++){
+            p.push(); let[cr,cg,cb]=vc(b4[j]);
+            let dx=b4[j]*(j/40)*j,dy=(b4[j]*b4[40-j]*(j/2))/1000;
+            b4[j]=Math.abs(p.lerp(b4[j],b4[j-1],0.0175));
+            p.rotate((360/12)*i); p.rotate(-dy/20); p.translate(dy*16,dx);
+            p.strokeWeight(3); p.stroke(cb-50,cr,cg,255*al); p.rotate(dy/2);
+            p.rect(0,0,(b4[j]/2+4)*0.8,(b4[j]/24+1)*12); p.pop();
+        }
+    }
+    function v1c(p,al){
+        for(let c=1;c<30;c+=5){
+            tarR=p.lerp(tarR,vj(c,20),0.05); p.noFill();
+            let cm=p.map(tarR,0,1012,0,255);
+            p.stroke(cm,cm*0.2,250-cm*0.2,255*al);
+            p.strokeWeight(p.map(tarR,0,1012,0,5));
+            p.ellipse(0,0,tarR/c/2,tarR/c/2);
+        }
+    }
+    function vc(v){ let p=window._vizP5,cm=p?p.map(v,0,60,0,255):v*4; return[255/Math.max(cm,1)+150,251-cm,cm]; }
+
+    // ── VIZ 2 — geometric 3D ──
+    function drawV2(p,al){
+        let scl=p.width<=p.height?(p.width/1920)*0.8:(p.height/1080)*0.5;
+        p.scale(scl);
+        rv[0]=Math.abs(p.lerp(rv[0],tj,RL));
+        for(let j=1;j<NR;j++) rv[j]=Math.abs(p.lerp(rv[j],rv[j-1],FL));
+        p.rotate(rc/3);
+        spk(p,rc*0.5,false,al); spk(p,-rc*0.3,true,al); cring(p,al);
+    }
+    function spk(p,rs,rev,al){
+        p.push(); p.rotateZ(rs);
+        for(let u=0;u<NS;u++){
+            p.push(); p.rotateZ(30*u+90); p.noFill(); p.strokeWeight(2);
+            p.translate(BT,0);
+            for(let i=0;i<NR;i++){
+                p.push();
+                let xp=(rev?-rv[i]:rv[i])*DS+OO*(i+1);
+                p.translate(xp,OO*(i+1),0);
+                let sc=sc2(p,i,rv[i]);
+                p.stroke(p.red(sc),p.green(sc),p.blue(sc),255*al);
+                let sz=rev?rv[NR-1-i]/2:rv[i]; p.rect(0,0,sz,sz); p.pop();
+            }
+            p.pop();
+        }
+        p.pop();
+    }
+    function cring(p,al){
+        p.push(); p.rotateZ(p.frameCount/4);
+        for(let j=0;j<NS;j++){
+            p.push();
+            for(let i=6;i<24;i++){
+                p.push(); p.rotateZ(360/NRI*i); p.rotateX(90); p.rotateY(90); p.noFill();
+                const dv=[5,6,7,8,1,3],ri=[0,1,2,3,4,4];
+                for(let e=0;e<6;e++){
+                    p.push(); let rc2=rc2c(p,i,e,rv[ri[e]]);
+                    p.stroke(p.red(rc2),p.green(rc2),p.blue(rc2),255*al);
+                    p.translate(0,0,-rv[ri[e]]*DS);
+                    let sz=e===4?40*CS:rv[ri[e]]/dv[e]*CS; p.rect(0,0,sz,sz); p.pop();
+                }
+                p.pop();
+            }
+            p.pop();
+        }
+        p.pop();
+    }
+    function sc2(p,idx,rv){ if(idx<17) return idx%2===0?p.color(0,rv*DS/3,255):p.color(rv*DS/3,0,255); return p.color(0,0,255); }
+    function rc2c(p,ri,ei,rv){ return ei%2===0?p.color(ri,rv*DS/3,255):p.color(rv*DS/3,ri,255); }
+
+    // ── Mode buttons ──
+    document.querySelectorAll('.viz-mode-btn').forEach(btn=>{
+        btn.addEventListener('mouseenter',()=>{ vizMode=parseInt(btn.dataset.vizmode); setActive(btn); });
+        btn.addEventListener('click',()=>{ vizMode=parseInt(btn.dataset.vizmode); setActive(btn); });
+    });
+    function setActive(btn){
+        document.querySelectorAll('.viz-mode-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+})();
+(function(){
+    const landing=document.getElementById('landing'),canvas=document.getElementById('landing-canvas'),
+          ctx=canvas.getContext('2d'),loader=document.getElementById('landing-loader');
+    let W=canvas.width=window.innerWidth,H=canvas.height=window.innerHeight;
+    const mouse={x:W/2,y:H/2};
+    window.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
+    const C=['rgba(196,168,130,','rgba(232,223,200,','rgba(139,99,64,','rgba(102,101,96,','rgba(255,255,255,'];
+    class P{
+        constructor(){this.reset(true);}
+        reset(init=false){this.x=this.bx=init?Math.random()*W:(Math.random()<0.5?-10:W+10);this.y=this.by=init?Math.random()*H:Math.random()*H;this.sz=Math.random()*1.8+0.3;this.sx=(Math.random()-0.5)*0.3;this.sy=(Math.random()-0.5)*0.3;this.col=C[Math.floor(Math.random()*C.length)];this.al=Math.random()*0.5+0.1;this.life=0;this.ml=Math.random()*400+200;this.dr=Math.random()<0.3;this.da=Math.random()*Math.PI*2;this.ds=(Math.random()*0.004+0.001)*(Math.random()<0.5?1:-1);this.conn=Math.random()<0.4;this.ca=0;}
+        update(){this.life++;if(this.dr){this.da+=this.ds;this.x=this.bx+Math.cos(this.da)*18;this.y=this.by+Math.sin(this.da)*18;}this.bx+=this.sx;this.by+=this.sy;if(!this.dr){this.x=this.bx;this.y=this.by;}const dx=this.x-mouse.x,dy=this.y-mouse.y,d=Math.sqrt(dx*dx+dy*dy);if(d<120&&d>0){const f=(120-d)/120;this.bx+=(dx/d)*f*3.5;this.by+=(dy/d)*f*3.5;}const p=this.life/this.ml,fade=p<0.1?p/0.1:p>0.8?1-(p-0.8)/0.2:1;this.ca=this.al*fade;if(this.life>this.ml||this.bx<-50||this.bx>W+50||this.by<-50||this.by>H+50)this.reset();}
+        draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.sz,0,Math.PI*2);ctx.fillStyle=this.col+this.ca+')';ctx.fill();}
+    }
+    class S{
+        constructor(){this.reset();}
+        reset(){this.x=Math.random()*W;this.y=Math.random()*H*0.6;this.len=Math.random()*80+40;this.spd=Math.random()*4+2;this.ang=Math.PI*0.15+(Math.random()-0.5)*0.3;this.al=0;this.mal=Math.random()*0.12+0.04;this.life=0;this.ml=Math.floor(this.len/this.spd)+20;this.col=C[Math.floor(Math.random()*3)];this.dl=Math.floor(Math.random()*300);}
+        update(){if(this.dl>0){this.dl--;return;}this.life++;this.x+=Math.cos(this.ang)*this.spd;this.y+=Math.sin(this.ang)*this.spd;const p=this.life/this.ml;this.al=p<0.3?(p/0.3)*this.mal:p>0.7?(1-(p-0.7)/0.3)*this.mal:this.mal;if(this.life>this.ml)this.reset();}
+        draw(){const tx=this.x-Math.cos(this.ang)*this.len,ty=this.y-Math.sin(this.ang)*this.len,g=ctx.createLinearGradient(tx,ty,this.x,this.y);g.addColorStop(0,this.col+'0)');g.addColorStop(1,this.col+this.al+')');ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(this.x,this.y);ctx.strokeStyle=g;ctx.lineWidth=0.8;ctx.stroke();}
+    }
+    const trail=[];
+    window.addEventListener('mousemove',e=>{trail.push({x:e.clientX,y:e.clientY,t:Date.now()});if(trail.length>24)trail.shift();});
+    const ps=Array.from({length:Math.min(Math.floor(W*H/6000),220)},()=>new P());
+    const ss=Array.from({length:8},()=>new S());
+    let active=true;
+    (function loop(){
+        if(!active)return;
+        ctx.fillStyle='rgba(10,10,10,0.18)';ctx.fillRect(0,0,W,H);
+        const conn=ps.filter(p=>p.conn);
+        for(let i=0;i<conn.length;i++)for(let j=i+1;j<conn.length;j++){const dx=conn[i].x-conn[j].x,dy=conn[i].y-conn[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<90){ctx.beginPath();ctx.moveTo(conn[i].x,conn[i].y);ctx.lineTo(conn[j].x,conn[j].y);ctx.strokeStyle=`rgba(196,168,130,${(1-d/90)*0.1})`;ctx.lineWidth=0.5;ctx.stroke();}}
+        for(let i=1;i<trail.length;i++){const age=(Date.now()-trail[i].t)/400;if(age>1)continue;ctx.beginPath();ctx.arc(trail[i].x,trail[i].y,(1-age)*2,0,Math.PI*2);ctx.fillStyle=`rgba(196,168,130,${(1-age)*0.12})`;ctx.fill();}
+        ps.forEach(p=>{p.update();p.draw();});ss.forEach(s=>{s.update();s.draw();});
+        requestAnimationFrame(loop);
+    })();
+    let prog=0;
+    const iv=setInterval(()=>{prog+=Math.random()*4+1;if(prog>=100){prog=100;clearInterval(iv);loader.style.width='100%';setTimeout(()=>{loader.style.transition='opacity 0.5s';loader.style.opacity='0';landing.classList.add('loaded');},300);}loader.style.width=prog+'%';},40);
+    document.getElementById('landing-enter').addEventListener('click',()=>{landing.classList.add('exiting');setTimeout(()=>{active=false;landing.classList.add('gone');},850);});
+    canvas.addEventListener('touchmove',e=>{e.preventDefault();mouse.x=e.touches[0].clientX;mouse.y=e.touches[0].clientY;},{passive:false});
 })();
 </script>
 </body>
