@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>thatswassupps. the game.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; }
+  body {
+    background: #0a0a0a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Montserrat', sans-serif;
+    overflow: hidden;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  #gameWrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+</style>
+</head>
+<body>
+<div id="gameWrapper">
+  <canvas id="game"></canvas>
+  <button id="muteBtn" style="position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;padding:0">
+    <svg id="muteIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <path d="M19.07 4.93a10 10 0 010 14.14"/>
+      <path d="M15.54 8.46a5 5 0 010 7.07"/>
+    </svg>
+  </button>
+  <input type="text" id="mobileNameInput" maxlength="12" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+    style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;opacity:0;pointer-events:none;z-index:10;
+    font-family:'Montserrat',sans-serif;font-size:16px;background:#1a1a1a;color:#fff;border:1px solid #d4b856;padding:10px;text-align:center">
+</div>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const W = 420;
+const H = 748;
+canvas.width = W;
+canvas.height = H;
+
+const frameSrcs = [
+  'https://i.imgur.com/2NKm0ZA.png',
+  'https://i.imgur.com/ePcBeEH.png',
+  'https://i.imgur.com/jzhMcpz.png',
+  'https://i.imgur.com/WKGRdDv.png'
+];
+const spriteFrames = [];
+let spritesLoaded = 0;
+
+frameSrcs.forEach((src, i) => {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    spriteFrames[i] = img;
+    spritesLoaded++;
+    console.log('Loaded sprite ' + i + ' (' + img.width + 'x' + img.height + ')');
+  };
+  img.onerror = () => {
+    console.error('Failed to load sprite ' + i + ': ' + src);
+    // Try again without crossOrigin (some hosts block it)
+    const retry = new Image();
+    retry.onload = () => {
+      spriteFrames[i] = retry;
+      spritesLoaded++;
+      console.log('Loaded sprite ' + i + ' on retry');
+    };
+    retry.onerror = () => {
+      console.error('Sprite ' + i + ' failed completely');
+    };
+    retry.src = src;
+  };
+  img.src = src;
+});
+
+// ── CUSTOM BUILDING & GROUND ASSETS ──
+const assetBase = 'https://raw.githubusercontent.com/thatswassupps/index/refs/heads/main/floppy_crops/assets/';
+const obstacleImg = new Image();
+obstacleImg.crossOrigin = 'anonymous';
+obstacleImg.src = assetBase + 'building_02/building_02.png';
+const obstacleBase = new Image();
+obstacleBase.crossOrigin = 'anonymous';
+obstacleBase.src = assetBase + 'building_02/building_02_bottom.png';
+const streetImg = new Image();
+streetImg.crossOrigin = 'anonymous';
+streetImg.src = assetBase + 'ground/street.jpg';
+
+// ── BACKGROUND BUILDINGS ──
+const bgBuildingImgs = [];
+for (var bi = 1; bi <= 14; bi++) {
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.src = assetBase + 'background_buildings/building_' + String(bi).padStart(2, '0') + '.png';
+  bgBuildingImgs.push(img);
+}
+
+// ── CLOUDS ──
+const cloudImgs = [];
+for (var ci = 1; ci <= 5; ci++) {
+  var cimg = new Image();
+  cimg.crossOrigin = 'anonymous';
+  cimg.src = assetBase + 'clouds/cloud_' + String(ci).padStart(2, '0') + '.png';
+  cloudImgs.push(cimg);
+}
+
+// ── STREET SIGNS ──
+const signImg = new Image();
+signImg.crossOrigin = 'anonymous';
+signImg.src = assetBase + 'signs/sign_01.png';
+
+var signInstances = [];
+function initSigns() {
+  signInstances = [];
+  for (var i = 0; i < 3; i++) {
+    signInstances.push({
+      baseX: W * 0.8 + i * (W * 1.2 + Math.random() * W * 0.5),
+      speed: 0.8
+    });
+  }
+}
+initSigns();
+
+// ── CARS ──
+const carImg = new Image();
+carImg.crossOrigin = 'anonymous';
+carImg.src = assetBase + 'cars/car_01.png';
+
+var carInstances = [];
+var carSpawnTimer = 0;
+function spawnCar() {
+  carInstances.push({
+    x: -150,
+    speed: 0.8 + Math.random() * 0.6,
+    scale: 0.35 + Math.random() * 0.15
+  });
+}
+
+// Generate cloud instances — random positions, sizes, speeds
+var cloudInstances = [];
+function initClouds() {
+  cloudInstances = [];
+  // Always add one big TW cloud (cloud_05 = index 4)
+  cloudInstances.push({
+    imgIndex: 4,
+    x: W * 0.6 + Math.random() * W * 0.5,
+    y: 40 + Math.random() * 80,
+    scale: 1.8 + Math.random() * 0.5,
+    speed: 0.08,
+    opacity: 0.85
+  });
+  // Rest are random
+  for (var i = 0; i < 13; i++) {
+    cloudInstances.push({
+      imgIndex: Math.floor(Math.random() * 4), // 0-3 only, keep 05 special
+      x: Math.random() * W * 2,
+      y: 20 + Math.random() * (H * 0.45),
+      scale: 0.6 + Math.random() * 1.2,
+      speed: 0.1 + Math.random() * 0.3,
+      opacity: 0.6 + Math.random() * 0.4
+    });
+  }
+}
+initClouds();
+
+// Generate background building instances — spaced out skyline, no adjacent duplicates
+var bgBuildingInstances = [];
+function initBgBuildings() {
+  bgBuildingInstances = [];
+  var bx = 0;
+  var lastIdx = -1;
+  while (bx < W * 3) {
+    var idx = Math.floor(Math.random() * bgBuildingImgs.length);
+    while (idx === lastIdx && bgBuildingImgs.length > 1) {
+      idx = Math.floor(Math.random() * bgBuildingImgs.length);
+    }
+    lastIdx = idx;
+    bgBuildingInstances.push({
+      imgIndex: idx,
+      baseX: bx,
+      scale: 0.25 + Math.random() * 0.1,
+      speed: 0.2 + Math.random() * 0.1
+    });
+    bx += 40 + Math.random() * 50;
+  }
+}
+initBgBuildings();
+
+// ── SUPABASE LEADERBOARD ──
+const SUPABASE_URL = 'https://dpntjpvpzgsjhfsmfwix.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwbnRqcHZwemdzamhmc21md2l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNzkwNDAsImV4cCI6MjA5MDg1NTA0MH0.UUxL54J5aheJGzY5g7-gK6oRVke9RfJKcxhOmpbvleQ';
+
+let leaderboardAllTime = [];
+let leaderboardMonthly = [];
+let submittingScore = false;
+let scoreSubmitted = false;
+let playerName = '';
+let nameInputActive = false;
+let cursorBlink = 0;
+let leaderboardTab = 'alltime'; // 'alltime' or 'monthly'
+let leaderboardLoaded = false;
+
+async function fetchLeaderboard() {
+  try {
+    // All-time top 10
+    var res1 = await fetch(SUPABASE_URL + '/rest/v1/scores?select=name,score,created_at&order=score.desc&limit=10', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    if (res1.ok) leaderboardAllTime = await res1.json();
+
+    // Monthly top 10 — first day of current month
+    var now = new Date();
+    var monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    var res2 = await fetch(SUPABASE_URL + '/rest/v1/scores?select=name,score,created_at&order=score.desc&limit=10&created_at=gte.' + monthStart, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    if (res2.ok) leaderboardMonthly = await res2.json();
+    leaderboardLoaded = true;
+  } catch (e) {
+    console.log('Leaderboard fetch error:', e);
+  }
+}
+
+// ── DISCORD WEBHOOK ──
+var DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1490476408001134622/dBJeAGdauodja-UJO9rmTZPJFAelu5oN3dmEBY4MjrqUae0jZErAmGDjjE3ce4lJlHDw';
+
+function sendDiscordAlert(playerName, scoreVal, type, rank) {
+  var emoji = rank === 1 ? '👑' : rank === 2 ? '🥈' : '🥉';
+  var label = type === 'alltime' ? 'ALL-TIME' : 'MONTHLY';
+  var rankLabel = rank === 1 ? '#1' : rank === 2 ? '#2' : '#3';
+  var content = {
+    embeds: [{
+      title: emoji + ' NEW ' + label + ' ' + rankLabel + ' ' + emoji,
+      description: '**' + (playerName || 'anon').toLowerCase() + '** just dropped a **' + scoreVal + '** on floppy crops.',
+      color: rank === 1 ? 13874262 : rank === 2 ? 12632256 : 13467442,
+      footer: { text: 'thatswassupps. the game.' },
+      timestamp: new Date().toISOString()
+    }]
+  };
+  fetch(DISCORD_WEBHOOK, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(content)
+  }).catch(function(e) { console.log('Discord webhook error:', e); });
+}
+
+async function submitScore(name, scoreVal) {
+  if (submittingScore) return;
+  submittingScore = true;
+  try {
+    // Check current top 3 BEFORE submitting
+    var allTimeTop3 = leaderboardAllTime.slice(0, 3).map(function(e) { return e.score; });
+    var monthlyTop3 = leaderboardMonthly.slice(0, 3).map(function(e) { return e.score; });
+
+    await fetch(SUPABASE_URL + '/rest/v1/scores', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ name: name.substring(0, 16) || 'anon', score: scoreVal })
+    });
+    scoreSubmitted = true;
+
+    // Check if score cracks top 3 all-time
+    var allTimeRank = 0;
+    for (var i = 0; i < 3; i++) {
+      if (scoreVal > (allTimeTop3[i] || 0)) { allTimeRank = i + 1; break; }
+    }
+    
+    // Check if score cracks top 3 monthly
+    var monthlyRank = 0;
+    for (var j = 0; j < 3; j++) {
+      if (scoreVal > (monthlyTop3[j] || 0)) { monthlyRank = j + 1; break; }
+    }
+
+    // Send alerts — prioritize all-time over monthly
+    if (allTimeRank > 0) {
+      sendDiscordAlert(name, scoreVal, 'alltime', allTimeRank);
+    } else if (monthlyRank > 0) {
+      sendDiscordAlert(name, scoreVal, 'monthly', monthlyRank);
+    }
+
+    fetchLeaderboard(); // refresh after submit
+  } catch (e) {
+    console.log('Score submit error:', e);
+  }
+  submittingScore = false;
+}
+
+// Fetch leaderboard on load
+fetchLeaderboard();
+
+// ── BACKGROUND MUSIC ──
+var bgMusic = new Audio('https://cdn.jsdelivr.net/gh/thatswassupps/audio@main/1.wav');
+bgMusic.loop = true;
+bgMusic.volume = 0.4;
+var musicStarted = false;
+var isMuted = false;
+
+function startMusic() {
+  if (musicStarted) return;
+  if (isMuted) return;
+  bgMusic.play().then(function() { musicStarted = true; }).catch(function(){});
+}
+
+// ── SOUND EFFECTS — mhm ──
+var sfxBase = 'https://raw.githubusercontent.com/thatswassupps/index/refs/heads/main/floppy_crops/assets/sound_effects/';
+var mhmSound = new Audio(sfxBase + 'mhm_01.wav');
+mhmSound.volume = 1.0;
+
+function playHatSFX() {
+  if (isMuted) return;
+  // Clone the sound node to allow overlapping playback if multiple hats are collected quickly
+  var sfx = mhmSound.cloneNode();
+  sfx.volume = mhmSound.volume;
+  sfx.play().catch(function(){});
+}
+
+// ── MUTE BUTTON ──
+var muteBtn = document.getElementById('muteBtn');
+var muteIcon = document.getElementById('muteIcon');
+var svgUnmuted = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/>';
+var svgMuted = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
+
+muteBtn.addEventListener('click', function(e) {
+  e.stopPropagation();
+  isMuted = !isMuted;
+  if (isMuted) {
+    bgMusic.pause();
+    muteIcon.innerHTML = svgMuted;
+    muteBtn.style.borderColor = 'rgba(255,255,255,0.1)';
+  } else {
+    if (musicStarted) bgMusic.play().catch(function(){});
+    muteIcon.innerHTML = svgUnmuted;
+    muteBtn.style.borderColor = 'rgba(255,255,255,0.2)';
+  }
+});
+
+let gameState = 'menu';
+let score = 0;
+let highScore = 0;
+let frameCount = 0;
+let shakeTimer = 0;
+let shakeIntensity = 0;
+let currentDeathMsg = '';
+
+const bird = {
+  x: W * 0.25, y: H * 0.45, w: 64, h: 64,
+  vy: 0, gravity: 0.45, jumpForce: -7.5, rotation: 0,
+  spriteIndex: 0, flapTimer: 0, trail: [], deathFrame: 0
+};
+
+let pipes = [];
+const pipeW = 68;
+let pipeTimer = 0;
+
+// ── PROGRESSIVE DIFFICULTY (disabled for now — flat original mechanics) ──
+var currentLevel = 0;
+var difficultyLevels = [
+  { gap: 155, speed: 2.3, interval: 95, label: 'level 1', scoreThreshold: 0 }
+];
+
+function getDifficulty() {
+  return difficultyLevels[0];
+}
+var levelChangeTimer = 0;
+
+// Convenience getters
+function getPipeGap() { return getDifficulty().gap; }
+function getPipeSpeed() { return getDifficulty().speed; }
+function getPipeInterval() { return getDifficulty().interval; }
+
+let bucketHats = [];
+let particles = [];
+let bgElements = [];
+let bgScroll = 0;
+
+const graffitiTags = [
+  'mmk.', 'prolly not.', 'fine.', 'sure.', 'yup.',
+  'noted.', 'guess so.', 'whatever.', 'ok.', 'meh.',
+  'cool.', 'nah.', 'idk.', 'k.', 'word.'
+];
+const deathMsgs = [
+  'mmk.', 'cool.', 'that happened.', 'noted.',
+  'sure.', 'whatever.', 'fine.', 'ok then.',
+  'yup.', 'hm.', 'neat.', 'wow. jk.',
+  'rip i guess.', 'tragic.', 'anyway.',
+  "didn't even try.", 'on purpose.',
+  'meant to do that.', 'artistic choice.'
+];
+const graffitiColors = ['#ff4444', '#44aaff', '#ffaa00', '#44ff88', '#ff44ff', '#ffffff'];
+
+function wrapX(rawX, range) { return ((rawX % range) + range) % range; }
+
+function drawBackground() {
+  // ── Blue/teal sky gradient ──
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+  skyGrad.addColorStop(0, '#4A90D9');
+  skyGrad.addColorStop(0.4, '#5BA0E0');
+  skyGrad.addColorStop(0.7, '#6DB8E8');
+  skyGrad.addColorStop(1, '#87CEEB');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Clouds — drifting across the sky ──
+  cloudInstances.forEach(function(cloud) {
+    var cimg = cloudImgs[cloud.imgIndex];
+    if (!cimg || !cimg.complete || !cimg.naturalWidth) return;
+    cloud.x -= cloud.speed;
+    // Wrap around when off screen
+    var drawW = cimg.naturalWidth * cloud.scale;
+    var drawH = cimg.naturalHeight * cloud.scale;
+    if (cloud.x < -drawW) cloud.x = W + drawW + Math.random() * 100;
+    ctx.globalAlpha = cloud.opacity;
+    ctx.drawImage(cimg, cloud.x, cloud.y, drawW, drawH);
+    ctx.globalAlpha = 1;
+  });
+
+  // ── Background buildings — distant skyline, dimmed ──
+  var wrapRange = W * 3;
+  ctx.save();
+  ctx.filter = 'brightness(0.8) saturate(0.8)';
+  bgBuildingInstances.forEach(function(b) {
+    var bimg = bgBuildingImgs[b.imgIndex];
+    if (!bimg || !bimg.complete || !bimg.naturalWidth) return;
+    var bx = wrapX(b.baseX - bgScroll * b.speed, wrapRange) - 100;
+    var s = b.scale || 0.3;
+    var drawW = bimg.naturalWidth * s;
+    var drawH = bimg.naturalHeight * s;
+    var by = H - 98 - drawH;
+    ctx.drawImage(bimg, bx, by, drawW, drawH);
+  });
+  ctx.restore();
+
+  // ── Street signs — scrolling along the ground ──
+  if (signImg.complete && signImg.naturalWidth > 0) {
+    var signScale = 0.45;
+    var signW = signImg.naturalWidth * signScale;
+    var signH = signImg.naturalHeight * signScale;
+    var signWrapRange = W * 4;
+    signInstances.forEach(function(s) {
+      var sx = wrapX(s.baseX - bgScroll * s.speed, signWrapRange) - signW;
+      ctx.drawImage(signImg, sx, H - 98 - signH + 4, signW, signH);
+    });
+  }
+
+  // ── Ground — custom street asset, tiled and scrolling ──
+  if (streetImg.complete && streetImg.naturalWidth > 0) {
+    var streetW = streetImg.naturalWidth;
+    var streetH = streetImg.naturalHeight;
+    var groundY = H - streetH;
+    var scrollX = wrapX(-bgScroll * 0.8, streetW);
+    for (var sx = -streetW + scrollX; sx < W + streetW; sx += streetW - 1) {
+      ctx.drawImage(streetImg, sx, groundY, streetW, streetH);
+    }
+  } else {
+    ctx.fillStyle = '#5a5a65';
+    ctx.fillRect(0, H - 98, W, 98);
+    ctx.fillStyle = '#6a6a75';
+    ctx.fillRect(0, H - 98, W, 3);
+  }
+}
+
+function drawHoodie(x, y, rotation, spriteIdx) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  const drawSize = bird.w;
+  
+  if (spriteFrames[spriteIdx]) {
+    ctx.drawImage(spriteFrames[spriteIdx], -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+  } else {
+    // Fallback: draw a simple placeholder while loading
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.arc(0, 0, drawSize / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '700 5px Montserrat';
+    ctx.textAlign = 'center';
+    ctx.fillText('loading...', 0, 3);
+  }
+  ctx.restore();
+}
+
+function getCurrentFrame() {
+  if (gameState === 'dead') return 3;
+  if (bird.flapTimer > 10) return 2;
+  if (bird.flapTimer > 5) return 1;
+  if (bird.vy > 2) return 3;
+  return 0;
+}
+
+function drawPipe(pipe) {
+  const topH = pipe.topH;
+  const gap = pipe.gap || getPipeGap();
+  const bottomY = pipe.topH + gap;
+  const bottomH = H - 98 - bottomY;
+  var ready = obstacleImg.complete && obstacleImg.naturalWidth > 0;
+  var scale = pipeW / obstacleImg.naturalWidth;
+  var imgH = obstacleImg.naturalHeight * scale;
+
+  // ── TOP OBSTACLE (hangs from ceiling) ──
+  // Show right-side up, bottom of building visible at gap edge
+  if (ready) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pipe.x, 0, pipeW, topH);
+    ctx.clip();
+    // Position so the bottom of the image aligns with the gap edge
+    ctx.drawImage(obstacleImg, pipe.x, topH - imgH, pipeW, imgH);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = '#707080';
+    ctx.fillRect(pipe.x, 0, pipeW, topH);
+  }
+
+  // ── BOTTOM OBSTACLE (sits on ground) ──
+  // Show right-side up, top of building visible at gap edge
+  if (ready) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pipe.x, bottomY, pipeW, bottomH);
+    ctx.clip();
+    // Position so the top of the image aligns with the gap edge
+    ctx.drawImage(obstacleImg, pipe.x, bottomY, pipeW, imgH);
+    ctx.restore();
+    // Draw base piece at the ground level on top
+    if (obstacleBase.complete && obstacleBase.naturalWidth > 0) {
+      var baseScale = pipeW / obstacleBase.naturalWidth;
+      var baseH = obstacleBase.naturalHeight * baseScale;
+      ctx.drawImage(obstacleBase, pipe.x, H - 98 - baseH, pipeW, baseH);
+    }
+  } else {
+    ctx.fillStyle = '#8a7a60';
+    ctx.fillRect(pipe.x, bottomY, pipeW, bottomH);
+  }
+
+  if (pipe.tag) {
+    ctx.save();
+    ctx.font = `900 ${pipe.tagSize}px Montserrat`;
+    ctx.fillStyle = pipe.tagColor + 'BB';
+    ctx.translate(pipe.x + pipeW / 2, bottomY + 50);
+    ctx.rotate(pipe.tagRotation);
+    ctx.textAlign = 'center';
+    ctx.fillText(pipe.tag, 0, 0);
+    ctx.restore();
+  }
+}
+
+function drawBucketHat(hat) {
+  ctx.save();
+  ctx.translate(hat.x, hat.y);
+  const bob = Math.sin(frameCount * 0.04 + hat.x * 0.01) * 3;
+  ctx.translate(0, bob);
+  
+  // Hat brim
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.ellipse(0, 5, 18, 6, 0, 0, Math.PI * 2); ctx.fill();
+  
+  // Hat crown
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.moveTo(-12, 5); ctx.quadraticCurveTo(-14, -8, -7, -14);
+  ctx.lineTo(7, -14); ctx.quadraticCurveTo(14, -8, 12, 5);
+  ctx.closePath(); ctx.fill();
+  
+  // White band on hat
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(-10, -4, 20, 3);
+  
+  // Brim highlight
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.ellipse(0, 5, 18, 6, 0, 0, Math.PI); ctx.stroke();
+  
+  ctx.restore();
+}
+
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6,
+      life: 1, decay: 0.02 + Math.random() * 0.03, size: 2 + Math.random() * 4, color
+    });
+  }
+}
+function updateParticles() {
+  particles = particles.filter(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= p.decay;
+    return p.life > 0;
+  });
+}
+function drawParticles() {
+  particles.forEach(p => {
+    const alpha = Math.floor(p.life * 255).toString(16).padStart(2, '0');
+    ctx.fillStyle = p.color + alpha;
+    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+  });
+}
+
+function checkCollision() {
+  const bx = bird.x - bird.w * 0.3;
+  const by = bird.y - bird.h * 0.3;
+  const bw = bird.w * 0.6;
+  const bh = bird.h * 0.6;
+  if (bird.y + bird.h / 2 > H - 98 || bird.y - bird.h / 2 < 0) return true;
+  for (const pipe of pipes) {
+    const gap = pipe.gap || getPipeGap();
+    const bottomY = pipe.topH + gap;
+    if (bx + bw > pipe.x && bx < pipe.x + pipeW) {
+      if (by < pipe.topH || by + bh > bottomY) return true;
+    }
+  }
+  return false;
+}
+
+function checkBucketHats() {
+  bucketHats = bucketHats.filter(hat => {
+    const dx = bird.x - hat.x, dy = bird.y - hat.y;
+    if (Math.sqrt(dx * dx + dy * dy) < 30) {
+      score += 5;
+      playHatSFX();
+      spawnParticles(hat.x, hat.y, '#ffffff', 12);
+      return false;
+    }
+    return true;
+  });
+}
+
+function jump() {
+  startMusic();
+  if (gameState === 'menu') {
+    gameState = 'playing';
+    bird.vy = bird.jumpForce; bird.flapTimer = 15;
+    pipes = []; bucketHats = []; particles = [];
+    score = 0; pipeTimer = 60;
+    currentLevel = 0; levelChangeTimer = 0;
+    bird.y = H * 0.45; bird.trail = [];
+    scoreSubmitted = false;
+    playerName = '';
+  } else if (gameState === 'playing') {
+    bird.vy = bird.jumpForce; bird.flapTimer = 15;
+  } else if (gameState === 'dead') {
+    if (frameCount - bird.deathFrame > 30) {
+      // Go to name input
+      nameInputActive = true;
+      gameState = 'nameinput';
+      playerName = '';
+    }
+  } else if (gameState === 'leaderboard') {
+    gameState = 'menu';
+    bird.y = H * 0.45; bird.vy = 0; bird.rotation = 0;
+    pipes = []; bucketHats = []; particles = [];
+  }
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  var rect = canvas.getBoundingClientRect();
+  var scaleX = W / rect.width;
+  var scaleY = H / rect.height;
+  var tx = (e.clientX - rect.left) * scaleX;
+  var ty = (e.clientY - rect.top) * scaleY;
+
+  if (gameState === 'nameinput') {
+    var mobileInput = document.getElementById('mobileNameInput');
+    // Tap submit button
+    if (canvas._submitBtn && tx >= canvas._submitBtn.x && tx <= canvas._submitBtn.x + canvas._submitBtn.w &&
+        ty >= canvas._submitBtn.y && ty <= canvas._submitBtn.y + canvas._submitBtn.h) {
+      if (playerName.trim() === '') playerName = 'anon';
+      submitScore(playerName, score);
+      nameInputActive = false;
+      gameState = 'leaderboard';
+      mobileInput.style.opacity = '0';
+      mobileInput.style.pointerEvents = 'none';
+      mobileInput.blur();
+      return;
+    }
+    // Tap skip
+    if (canvas._skipBtn && tx >= canvas._skipBtn.x && tx <= canvas._skipBtn.x + canvas._skipBtn.w &&
+        ty >= canvas._skipBtn.y && ty <= canvas._skipBtn.y + canvas._skipBtn.h) {
+      playerName = 'anon';
+      submitScore(playerName, score);
+      nameInputActive = false;
+      gameState = 'leaderboard';
+      mobileInput.style.opacity = '0';
+      mobileInput.style.pointerEvents = 'none';
+      mobileInput.blur();
+      return;
+    }
+    // Tap input box — focus mobile keyboard
+    if (canvas._inputBox && tx >= canvas._inputBox.x && tx <= canvas._inputBox.x + canvas._inputBox.w &&
+        ty >= canvas._inputBox.y && ty <= canvas._inputBox.y + canvas._inputBox.h) {
+      mobileInput.style.opacity = '0.01';
+      mobileInput.style.pointerEvents = 'auto';
+      mobileInput.value = playerName;
+      mobileInput.focus();
+      return;
+    }
+    return;
+  }
+
+  if (gameState === 'leaderboard') {
+    // Tab switching
+    if (canvas._tabAllTime && tx >= canvas._tabAllTime.x && tx <= canvas._tabAllTime.x + canvas._tabAllTime.w &&
+        ty >= canvas._tabAllTime.y && ty <= canvas._tabAllTime.y + canvas._tabAllTime.h) {
+      leaderboardTab = 'alltime';
+      return;
+    }
+    if (canvas._tabMonthly && tx >= canvas._tabMonthly.x && tx <= canvas._tabMonthly.x + canvas._tabMonthly.w &&
+        ty >= canvas._tabMonthly.y && ty <= canvas._tabMonthly.y + canvas._tabMonthly.h) {
+      leaderboardTab = 'monthly';
+      return;
+    }
+    jump();
+    return;
+  }
+
+  if (!nameInputActive) jump();
+});
+
+// Mobile input sync
+var mobileInput = document.getElementById('mobileNameInput');
+mobileInput.addEventListener('input', function() {
+  playerName = this.value.substring(0, 12);
+});
+mobileInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (playerName.trim() === '') playerName = 'anon';
+    submitScore(playerName, score);
+    nameInputActive = false;
+    gameState = 'leaderboard';
+    this.style.opacity = '0';
+    this.style.pointerEvents = 'none';
+    this.blur();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (nameInputActive) {
+    if (e.key === 'Enter') {
+      // Submit score
+      if (playerName.trim() === '') playerName = 'anon';
+      submitScore(playerName, score);
+      nameInputActive = false;
+      gameState = 'leaderboard';
+      return;
+    }
+    if (e.key === 'Backspace') {
+      playerName = playerName.slice(0, -1);
+      return;
+    }
+    if (e.key === 'Escape') {
+      playerName = 'anon';
+      submitScore(playerName, score);
+      nameInputActive = false;
+      gameState = 'leaderboard';
+      return;
+    }
+    if (e.key.length === 1 && playerName.length < 12) {
+      playerName += e.key;
+    }
+    return;
+  }
+  if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); jump(); }
+});
+
+function spawnPipe() {
+  var gap = getPipeGap();
+  const minTop = 80, maxTop = H - 98 - gap - 80;
+  const topH = minTop + Math.random() * (maxTop - minTop);
+  pipes.push({
+    x: W + 10, topH, gap: gap, scored: false,
+    tag: Math.random() > 0.5 ? graffitiTags[Math.floor(Math.random() * graffitiTags.length)] : null,
+    tagColor: graffitiColors[Math.floor(Math.random() * graffitiColors.length)],
+    tagSize: 8 + Math.random() * 6,
+    tagRotation: (Math.random() - 0.5) * 0.4
+  });
+  if (Math.random() > 0.4) {
+    bucketHats.push({
+      x: W + 10 + pipeW / 2,
+      y: topH + gap / 2 + (Math.random() - 0.5) * 40
+    });
+  }
+}
+
+function update() {
+  frameCount++;
+  var speed = gameState === 'playing' ? getPipeSpeed() : 0.5;
+  bgScroll += speed;
+
+  if (gameState === 'playing') {
+    bird.vy += bird.gravity; bird.y += bird.vy;
+    bird.rotation = Math.min(Math.max(bird.vy * 0.06, -0.5), 1.2);
+    if (bird.flapTimer > 0) bird.flapTimer--;
+    bird.trail.push({ x: bird.x, y: bird.y, life: 1 });
+    if (bird.trail.length > 8) bird.trail.shift();
+    bird.trail.forEach(t => t.life -= 0.12);
+    pipeTimer++;
+    if (pipeTimer >= getPipeInterval()) { pipeTimer = 0; spawnPipe(); }
+    pipes.forEach(pipe => {
+      pipe.x -= speed;
+      if (!pipe.scored && pipe.x + pipeW < bird.x) { pipe.scored = true; score++; }
+    });
+    pipes = pipes.filter(p => p.x > -pipeW - 20);
+    bucketHats.forEach(hat => hat.x -= speed);
+    bucketHats = bucketHats.filter(h => h.x > -30);
+    checkBucketHats();
+    if (levelChangeTimer > 0) levelChangeTimer--;
+    if (checkCollision()) {
+      gameState = 'dead';
+      bird.deathFrame = frameCount;
+      currentDeathMsg = deathMsgs[Math.floor(Math.random() * deathMsgs.length)];
+      if (score > highScore) highScore = score;
+      shakeTimer = 12; shakeIntensity = 8;
+      spawnParticles(bird.x, bird.y, '#ff4444', 20);
+      spawnParticles(bird.x, bird.y, '#ffffff', 10);
+    }
+  }
+
+  if (gameState === 'menu') {
+    bird.y = H * 0.45 + Math.sin(frameCount * 0.03) * 12;
+    bird.rotation = Math.sin(frameCount * 0.02) * 0.05;
+    bird.spriteIndex = Math.floor((frameCount / 20) % 4);
+  }
+
+  if (gameState === 'dead') {
+    bird.vy += bird.gravity * 0.5; bird.y += bird.vy;
+    bird.rotation += 0.1;
+    if (bird.y > H - 98) bird.y = H - 98;
+  }
+
+  if (shakeTimer > 0) { shakeTimer--; shakeIntensity *= 0.85; }
+  // Update cars
+  if (carImg.complete && carImg.naturalWidth > 0) {
+    carSpawnTimer++;
+    if (carSpawnTimer > 400 + Math.random() * 500 && carInstances.length < 1) {
+      carSpawnTimer = 0;
+      spawnCar();
+    }
+    for (var ci = carInstances.length - 1; ci >= 0; ci--) {
+      carInstances[ci].x += carInstances[ci].speed;
+      if (carInstances[ci].x > W + 200) carInstances.splice(ci, 1);
+    }
+  }
+
+  updateParticles();
+}
+
+function draw() {
+  ctx.save();
+  if (shakeTimer > 0) {
+    ctx.translate((Math.random() - 0.5) * shakeIntensity, (Math.random() - 0.5) * shakeIntensity);
+  }
+  drawBackground();
+  pipes.forEach(drawPipe);
+  bucketHats.forEach(drawBucketHat);
+
+  // ── Cars — drawn on top of everything at street level ──
+  if (carImg.complete && carImg.naturalWidth > 0) {
+    carInstances.forEach(function(car) {
+      var cw = carImg.naturalWidth * car.scale;
+      var ch = carImg.naturalHeight * car.scale;
+      ctx.drawImage(carImg, car.x, H - 98 - ch + 24, cw, ch);
+    });
+  }
+
+  bird.trail.forEach(t => {
+    if (t.life > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${t.life * 0.08})`;
+      ctx.fillRect(t.x - 3, t.y - 3, 6, 6);
+    }
+  });
+
+  const frame = gameState === 'menu' ? bird.spriteIndex : getCurrentFrame();
+  drawHoodie(bird.x, bird.y, bird.rotation, frame);
+  drawParticles();
+
+  if (gameState === 'playing') {
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.font = '900 42px Montserrat';
+    ctx.textAlign = 'center';
+    // Score shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillText(score, W / 2 + 2, 62);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(score, W / 2, 60);
+
+    // Level change notification
+    if (levelChangeTimer > 0) {
+      var alpha = Math.min(1, levelChangeTimer / 20);
+      ctx.fillStyle = 'rgba(0,0,0,' + (alpha * 0.4) + ')';
+      ctx.font = '700 16px Montserrat';
+      ctx.fillText(getDifficulty().label + '.', W / 2 + 1, 91);
+      ctx.fillStyle = 'rgba(212,184,86,' + alpha + ')';
+      ctx.fillText(getDifficulty().label + '.', W / 2, 90);
+    }
+  }
+
+  if (gameState === 'menu') {
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+
+    // Title — big and bold with shadow
+    ctx.font = '900 32px Montserrat';
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillText('thatswassupps.', W / 2 + 2, H * 0.18 + 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('thatswassupps.', W / 2, H * 0.18);
+
+    // Subtitle
+    ctx.font = '700 16px Montserrat';
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillText('the game.', W / 2 + 1, H * 0.18 + 30);
+    ctx.fillStyle = '#cccccc';
+    ctx.fillText('the game.', W / 2, H * 0.18 + 28);
+
+    const menuFrame = Math.floor((frameCount / 20) % 4);
+    drawHoodie(bird.x, bird.y, bird.rotation, menuFrame);
+
+    // Play prompt
+    ctx.font = '700 16px Montserrat';
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillText('tap or press space.', W / 2 + 1, H * 0.70 + 1);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('tap or press space.', W / 2, H * 0.70);
+
+    ctx.font = '400 13px Montserrat';
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillText("or don't. whatever.", W / 2 + 1, H * 0.70 + 24);
+    ctx.fillStyle = '#bbbbbb';
+    ctx.fillText("or don't. whatever.", W / 2, H * 0.70 + 22);
+
+    // High score
+    if (highScore > 0) {
+      ctx.font = '700 14px Montserrat';
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillText('best: ' + highScore + '. cool.', W / 2 + 1, H * 0.80 + 1);
+      ctx.fillStyle = '#dddddd';
+      ctx.fillText('best: ' + highScore + '. cool.', W / 2, H * 0.80);
+    }
+
+    // Leaderboard champ
+    if (leaderboardAllTime.length > 0) {
+      ctx.font = '700 14px Montserrat';
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      var champText = '\u{1F451} ' + leaderboardAllTime[0].name.toLowerCase() + ': ' + leaderboardAllTime[0].score;
+      ctx.fillText(champText, W / 2 + 1, H * 0.85 + 1);
+      ctx.fillStyle = '#d4b856';
+      ctx.fillText(champText, W / 2, H * 0.85);
+    }
+
+    // Instructions
+    ctx.font = '700 12px Montserrat';
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillText('collect bucket hats. avoid stuff.', W / 2 + 1, H * 0.92 + 1);
+    ctx.fillStyle = '#aaaaaa';
+    ctx.fillText('collect bucket hats. avoid stuff.', W / 2, H * 0.92);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillText('pretty self explanatory.', W / 2 + 1, H * 0.92 + 18);
+    ctx.fillStyle = '#999999';
+    ctx.fillText('pretty self explanatory.', W / 2, H * 0.92 + 16);
+  }
+
+  if (gameState === 'dead') {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+
+    // Score
+    ctx.font = '900 48px Montserrat';
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillText(score, W / 2 + 2, H * 0.35 + 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(score, W / 2, H * 0.35);
+
+    // Death message
+    ctx.font = '700 18px Montserrat';
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillText(currentDeathMsg, W / 2 + 1, H * 0.35 + 36);
+    ctx.fillStyle = '#cccccc';
+    ctx.fillText(currentDeathMsg, W / 2, H * 0.35 + 34);
+
+    if (score > 0 && score === highScore) {
+      ctx.font = '700 14px Montserrat';
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillText('new best. sick.', W / 2 + 1, H * 0.35 + 62);
+      ctx.fillStyle = '#d4b856';
+      ctx.fillText('new best. sick.', W / 2, H * 0.35 + 60);
+    }
+
+    // Continue prompt
+    ctx.font = '700 14px Montserrat';
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillText('tap to continue.', W / 2 + 1, H * 0.65 + 1);
+    ctx.fillStyle = '#dddddd';
+    ctx.fillText('tap to continue.', W / 2, H * 0.65);
+  }
+
+  // ── NAME INPUT SCREEN ──
+  if (gameState === 'nameinput') {
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+
+    // Score
+    ctx.font = '900 42px Montserrat';
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillText(score, W / 2 + 2, H * 0.20 + 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(score, W / 2, H * 0.20);
+
+    // Death message
+    ctx.font = '700 16px Montserrat';
+    ctx.fillStyle = '#999';
+    ctx.fillText(currentDeathMsg, W / 2, H * 0.20 + 28);
+
+    // Prompt
+    ctx.font = '900 20px Montserrat';
+    ctx.fillStyle = '#d4b856';
+    ctx.fillText('enter your name.', W / 2, H * 0.36);
+
+    ctx.font = '700 13px Montserrat';
+    ctx.fillStyle = '#888';
+    ctx.fillText("or don't. we'll call you anon.", W / 2, H * 0.36 + 24);
+
+    // Name input box
+    var boxW = 260, boxH = 48;
+    var boxX = W / 2 - boxW / 2, boxY = H * 0.44;
+    ctx.fillStyle = '#111';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.strokeStyle = '#d4b856';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+    cursorBlink++;
+    var displayName = playerName;
+    if (cursorBlink % 60 < 30) displayName += '|';
+    ctx.fillStyle = '#fff';
+    ctx.font = '700 20px Montserrat';
+    ctx.textAlign = 'center';
+    ctx.fillText(displayName, W / 2, boxY + 32);
+
+    // Submit button
+    var btnY = boxY + boxH + 20;
+    ctx.fillStyle = '#d4b856';
+    ctx.fillRect(boxX, btnY, boxW, 44);
+    ctx.fillStyle = '#000';
+    ctx.font = '900 14px Montserrat';
+    ctx.fillText('submit. or whatever.', W / 2, btnY + 28);
+
+    // Skip button
+    var skipY = btnY + 60;
+    ctx.font = '700 13px Montserrat';
+    ctx.fillStyle = '#777';
+    ctx.fillText('skip →', W / 2, skipY);
+
+    // Store button positions for tap detection
+    canvas._submitBtn = { x: boxX, y: btnY, w: boxW, h: 44 };
+    canvas._skipBtn = { x: W / 2 - 40, y: skipY - 14, w: 80, h: 22 };
+    canvas._inputBox = { x: boxX, y: boxY, w: boxW, h: boxH };
+  }
+
+  // ── LEADERBOARD SCREEN ──
+  if (gameState === 'leaderboard') {
+    ctx.fillStyle = 'rgba(0,0,0,0.88)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+
+    // Title
+    ctx.font = '900 24px Montserrat';
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillText('leaderboard.', W / 2 + 2, 52);
+    ctx.fillStyle = '#d4b856';
+    ctx.fillText('leaderboard.', W / 2, 50);
+
+    // Tabs
+    var tabY = 75;
+    var tabW = 120;
+    // All-time tab
+    ctx.fillStyle = leaderboardTab === 'alltime' ? '#d4b856' : '#333';
+    ctx.fillRect(W / 2 - tabW - 4, tabY, tabW, 34);
+    ctx.fillStyle = leaderboardTab === 'alltime' ? '#000' : '#aaa';
+    ctx.font = '900 12px Montserrat';
+    ctx.fillText('all time', W / 2 - tabW / 2 - 4, tabY + 22);
+
+    // Monthly tab
+    ctx.fillStyle = leaderboardTab === 'monthly' ? '#d4b856' : '#333';
+    ctx.fillRect(W / 2 + 4, tabY, tabW, 34);
+    ctx.fillStyle = leaderboardTab === 'monthly' ? '#000' : '#aaa';
+    ctx.fillText('this month', W / 2 + tabW / 2 + 4, tabY + 22);
+
+    canvas._tabAllTime = { x: W / 2 - tabW - 4, y: tabY, w: tabW, h: 34 };
+    canvas._tabMonthly = { x: W / 2 + 4, y: tabY, w: tabW, h: 34 };
+
+    // Leaderboard entries
+    var entries = leaderboardTab === 'alltime' ? leaderboardAllTime : leaderboardMonthly;
+    var startY = tabY + 58;
+
+    if (!leaderboardLoaded) {
+      ctx.fillStyle = '#999';
+      ctx.font = '700 14px Montserrat';
+      ctx.fillText('loading...', W / 2, startY + 20);
+    } else if (entries.length === 0) {
+      ctx.fillStyle = '#999';
+      ctx.font = '700 14px Montserrat';
+      ctx.fillText('no scores yet. be the first.', W / 2, startY + 20);
+    } else {
+      entries.forEach(function(entry, i) {
+        var rowY = startY + i * 40;
+        var rankColors = ['#d4b856', '#c0c0c0', '#cd7f32'];
+        var isTop3 = i < 3;
+
+        // Highlight row
+        if (isTop3) {
+          ctx.fillStyle = 'rgba(212,184,86,0.08)';
+          ctx.fillRect(30, rowY - 14, W - 60, 36);
+        }
+
+        // Rank
+        ctx.fillStyle = rankColors[i] || '#666';
+        ctx.font = '900 16px Montserrat';
+        ctx.textAlign = 'left';
+        ctx.fillText((i + 1) + '.', 45, rowY + 10);
+
+        // Name
+        ctx.fillStyle = isTop3 ? '#fff' : '#aaa';
+        ctx.font = (isTop3 ? '900' : '700') + ' 15px Montserrat';
+        ctx.textAlign = 'left';
+        var displayN = (entry.name || 'anon').substring(0, 12).toLowerCase();
+        ctx.fillText(displayN, 80, rowY + 10);
+
+        // Score
+        ctx.fillStyle = isTop3 ? '#d4b856' : '#888';
+        ctx.font = '900 16px Montserrat';
+        ctx.textAlign = 'right';
+        ctx.fillText(entry.score, W - 45, rowY + 10);
+      });
+    }
+
+    // Your score
+    if (scoreSubmitted) {
+      ctx.textAlign = 'center';
+      ctx.font = '700 13px Montserrat';
+      ctx.fillStyle = '#999';
+      ctx.fillText('your score: ' + score + ' — submitted.', W / 2, H - 85);
+    }
+
+    ctx.textAlign = 'center';
+    ctx.font = '700 15px Montserrat';
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillText('tap to play again.', W / 2 + 1, H - 44);
+    ctx.fillStyle = '#ddd';
+    ctx.fillText('tap to play again.', W / 2, H - 45);
+  }
+
+  ctx.restore();
+}
+
+function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+// Init graffiti tags for the background
+function initGraffiti() {
+  bgElements = [];
+  for (var i = 0; i < 10; i++) {
+    bgElements.push({
+      type: 'graffiti', x: Math.random() * W * 2, y: H - 140 - Math.random() * 150,
+      text: graffitiTags[Math.floor(Math.random() * graffitiTags.length)],
+      color: graffitiColors[Math.floor(Math.random() * graffitiColors.length)],
+      size: 14 + Math.random() * 12, rotation: (Math.random() - 0.5) * 0.3, speed: 0.5
+    });
+  }
+}
+initGraffiti();
+gameLoop();
+</script>
+</body>
+</html>

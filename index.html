@@ -28,7 +28,14 @@
         .landing-corner svg { width:100%;height:100%; }
         .landing-corner.tl{top:24px;left:24px} .landing-corner.tr{top:24px;right:24px;transform:scaleX(-1)} .landing-corner.bl{bottom:24px;left:24px;transform:scaleY(-1)} .landing-corner.br{bottom:24px;right:24px;transform:scale(-1)}
         #landing-loader { position:absolute;bottom:0;left:0;height:1px;background:linear-gradient(90deg,#8B6340,#c4a882,#e8dfc8);width:0%;z-index:3;transition:width 0.05s linear; }
-        #landing.loaded #landing-name{opacity:1;transform:translateY(0)} #landing.loaded #landing-name img{opacity:1!important} #landing.loaded #landing-tagline{opacity:1;transform:translateY(0)} #landing.loaded #landing-enter{opacity:1;transform:translateY(0)} #landing.loaded .landing-corner{opacity:0.4}
+        #landing.loaded #landing-name{opacity:1;transform:translateY(0)} #landing.loaded #landing-name img{opacity:1!important} #landing.loaded #landing-name span{opacity:1!important} #landing.loaded #landing-tagline{opacity:1;transform:translateY(0)} #landing.loaded #landing-enter{opacity:1;transform:translateY(0)} #landing.loaded .landing-corner{opacity:0.4}
+        #landing-p5 canvas { position:absolute!important; inset:0; z-index:3; pointer-events:none; }
+        .word-trigger {
+            font-family:'Space Mono',monospace; font-size:clamp(10px,1.2vw,13px);
+            letter-spacing:0.35em; text-transform:uppercase; color:#555;
+            cursor:default; transition:color 0.3s;
+        }
+        .word-trigger:hover { color:#c4a882; }
         #landing.exiting{opacity:0;transition:opacity 0.8s ease;pointer-events:none} #landing.gone{display:none}
 
         /* ══ SITE ══ */
@@ -43,7 +50,7 @@
         #main-nav { display:flex; align-items:center; gap:4px; flex-wrap:nowrap; }
         #main-nav a {
             font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.12em;
-            text-transform:uppercase; color:#444; text-decoration:none;
+            text-transform:uppercase; color:#888; text-decoration:none;
             padding:6px 8px; white-space:nowrap; transition:color 0.2s;
             border:1px solid transparent; border-radius:2px;
         }
@@ -280,11 +287,69 @@
         }
         .viz-mode-btn:hover .viz-mode-label, .viz-mode-btn.active .viz-mode-label { color:#666; }
 
+        /* ══ GAMES ══ */
+        #games { background:#111; }
+        .game-grid { display:flex; flex-wrap:wrap; gap:24px; padding:0 24px; justify-content:center; }
+        .game-tile {
+            width: min(320px, calc(50% - 12px));
+            aspect-ratio:9/16; background:#0d0d0d; position:relative;
+            cursor:pointer; overflow:hidden;
+            transition:transform 0.3s ease, box-shadow 0.3s ease;
+            z-index:1;
+        }
+        .game-tile iframe {
+            position:absolute; inset:0; width:100%; height:100%;
+            border:none; pointer-events:none;
+        }
+        .game-tile .game-label {
+            position:absolute; bottom:0; left:0; right:0;
+            padding:8px; text-align:center;
+            font-family:'Space Mono',monospace; font-size:8px; letter-spacing:0.18em;
+            text-transform:uppercase; color:#444;
+            background:linear-gradient(transparent, rgba(0,0,0,0.7));
+            pointer-events:none; transition:color 0.2s;
+            z-index:2;
+        }
+        .game-tile:hover .game-label { color:#c4a882; }
+        .game-tile .game-click-shield {
+            position:absolute; inset:0; z-index:3;
+            background:transparent;
+        }
+        .game-tile.focused {
+            z-index:10;
+            box-shadow:0 0 0 2px #c4a882, 0 20px 60px rgba(0,0,0,0.8);
+            transform:scale(1.04);
+        }
+        .game-tile.focused iframe { pointer-events:all; }
+        .game-tile.focused .game-click-shield { display:none; }
+        .game-tile.focused .game-label { color:#c4a882; }
+        /* Game modal */
+        #game-modal {
+            display:none; position:fixed; inset:0; z-index:400;
+            background:rgba(0,0,0,0.95); align-items:center; justify-content:center;
+        }
+        #game-modal.open { display:flex; }
+        #game-modal-inner {
+            position:relative; width:min(100vw,calc(100vh*9/16));
+            height:min(100vh,calc(100vw*16/9));
+            max-width:420px; max-height:calc(420px*16/9);
+        }
+        #game-modal-inner iframe {
+            width:100%; height:100%; border:none; display:block;
+        }
+        #game-modal-close {
+            position:absolute; top:-40px; right:0;
+            font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.2em;
+            text-transform:uppercase; color:#444; cursor:pointer; background:none;
+            border:none; transition:color 0.2s;
+        }
+        #game-modal-close:hover { color:#c4a882; }
+
         /* ══ BRAIN TRUST ══ */
         #brain-trust { background:#0d0d0d;border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a; }
         #brain-trust-toggle { padding:28px 24px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background 0.2s; }
         #brain-trust-toggle:hover { background:#141414; }
-        #brain-trust-toggle h2 { font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#3a3a3a;font-weight:400; }
+        #brain-trust-toggle h2 { font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#777;font-weight:400; }
         #brain-trust-content { padding:0 24px 36px;display:none;gap:32px;color:#555; }
         #brain-trust-content.open { display:grid;grid-template-columns:1fr 1fr; }
         #brain-trust-content p { font-size:13px;line-height:1.9; }
@@ -310,13 +375,13 @@
         #captcha-check-area:hover #captcha-checkbox { border-color:#c4a882; }
         #captcha-label { font-size:13px;color:#666;letter-spacing:0.04em; }
         #captcha-footer { padding:8px 16px;display:flex;justify-content:flex-end; }
-        #captcha-footer span { font-size:9px;color:#242424;letter-spacing:0.08em; }
+        #captcha-footer span { font-size:9px;color:#555;letter-spacing:0.08em; }
         #game-area { display:none; }
         #game-area.open { display:block; }
         #game-canvas { display:block;width:100%;image-rendering:pixelated; }
         #game-ui { padding:10px 16px;display:flex;justify-content:space-between;border-top:1px solid #1e1e1e; }
         #game-score-display { font-size:10px;color:#555;letter-spacing:0.12em; }
-        #game-hint { font-size:10px;color:#2e2e2e; }
+        #game-hint { font-size:10px;color:#666; }
         #game-over { display:none;padding:28px 20px;text-align:center; }
         #game-over.open { display:block; }
         #game-over-msg { font-size:14px;color:#c4a882;margin-bottom:10px;line-height:1.6; }
@@ -334,20 +399,58 @@
 
 <!-- LANDING -->
 <div id="landing">
-    <canvas id="landing-canvas"></canvas>
-    <div id="landing-scanlines"></div>
-    <div class="landing-corner tl"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
-    <div class="landing-corner tr"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
-    <div class="landing-corner bl"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
-    <div class="landing-corner br"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
-    <div id="landing-ui">
+    <!-- Portal background video -->
+    <video id="portal-video" autoplay loop muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:0.5;">
+        <source src="https://raw.githubusercontent.com/colinwillow/videos/main/portal_generator_background_16x9.mp4" type="video/mp4">
+    </video>
+
+    <!-- Hidden SVGs for word sampling — visibility:hidden not display:none so getTotalLength works -->
+    <svg id="svg-motion" style="position:absolute;visibility:hidden;width:0;height:0;" viewBox="0 0 822 174">
+        <path fill="none" stroke="#000" d="M8.6,162.2L33.4,13.8h2.8l52.8,143.8h.2L140.8,13.8h2.8l25.4,148.4"/>
+        <path fill="none" stroke="#000" d="M266,12.4c39.2,0,69.8,31.2,69.8,75.6s-30.6,75.6-69.8,75.6-69.6-31.2-69.6-75.6S226.8,12.4,266,12.4Z"/>
+        <path fill="none" stroke="#000" d="M397.8,13.8v148.4M344.8,13.8h103.4"/>
+        <path fill="none" stroke="#000" d="M480.6,13.8v148.4"/>
+        <path fill="none" stroke="#000" d="M589.2,12.4c39.2,0,69.8,31.2,69.8,75.6s-30.6,75.6-69.8,75.6-69.6-31.2-69.6-75.6,30.4-75.6,69.6-75.6Z"/>
+        <path fill="none" stroke="#000" d="M698,162.2V13.8h3.2l98.2,148.4h.2V13.8"/>
+    </svg>
+    <svg id="svg-design" style="position:absolute;visibility:hidden;width:0;height:0;" viewBox="0 0 784 174">
+        <path fill="none" stroke="#000" d="M121,153.4c-11,6.8-24,10.2-37.8,10.2-34.8,0-71.6-26.8-71.6-75.8S48,12.4,81.6,12.4s28.6,3.6,39.4,10.2"/>
+        <path fill="none" stroke="#000" d="M209.8,12.4c39.2,0,69.8,31.2,69.8,75.6s-30.6,75.6-69.8,75.6-69.6-31.2-69.6-75.6S170.6,12.4,209.8,12.4Z"/>
+        <path fill="none" stroke="#000" d="M422.4,87.6c0,46.2-32,74.6-77.2,74.6h-26.6V13.8h26.6c45.2,0,77.2,27.6,77.2,73.8Z"/>
+        <path fill="none" stroke="#000" d="M464,13.8v148.4"/>
+        <path fill="none" stroke="#000" d="M514.4,162.2V13.8h3.2l98.2,148.4h.2V13.8"/>
+        <path fill="none" stroke="#000" d="M769.2,84v70.6c-9.4,4.8-26.2,9-40.8,9-39.6,0-70.8-29.8-70.8-75.8s31.2-75.4,69.6-75.4,29.8,3.6,41.8,10.8"/>
+    </svg>
+
+    <div id="landing-scanlines" style="position:absolute;inset:0;pointer-events:none;z-index:1;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);"></div>
+
+    <!-- p5 particle canvas injected here -->
+    <div id="landing-p5" style="position:absolute;inset:0;z-index:3;pointer-events:none;"></div>
+
+    <!-- Corner brackets -->
+    <div class="landing-corner tl" style="z-index:4;"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
+    <div class="landing-corner tr" style="z-index:4;"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
+    <div class="landing-corner bl" style="z-index:4;"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
+    <div class="landing-corner br" style="z-index:4;"><svg viewBox="0 0 40 40" fill="none" stroke="#c4a882" stroke-width="1"><path d="M0 20 L0 0 L20 0"/></svg></div>
+
+    <!-- UI layer -->
+    <div id="landing-ui" style="position:relative;z-index:5;pointer-events:none;display:flex;flex-direction:column;align-items:center;">
         <div id="landing-name">
-            <img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/assets/logo_01.png" 
-                 style="height:clamp(40px,6vw,80px);width:auto;opacity:0;transition:opacity 1.2s ease;"
-                 id="landing-logo-img" alt="Colin Willow Design">
+            <img src="https://raw.githubusercontent.com/colinwillow/portfolio/refs/heads/main/logos/logo_01.png"
+                 style="height:clamp(60px,10vmin,110px);width:auto;opacity:0;transition:opacity 1.2s ease;"
+                 id="landing-logo-img" alt="Colin Willow Design"
+                 onload="if(window.updateLogoCenter) window.updateLogoCenter();"
+                 onerror="this.style.display='none';document.getElementById('landing-logo-fallback').style.display='block';if(window.updateLogoCenter) window.updateLogoCenter();">
+            <span id="landing-logo-fallback" style="display:none;font-family:'Space Mono',monospace;font-weight:700;font-size:clamp(18px,3vw,36px);color:#fff;letter-spacing:0.08em;">COLIN WILLOW</span>
         </div>
-        <div id="landing-tagline">3D · Motion · Design · Code</div>
-        <button id="landing-enter">Enter</button>
+        <!-- Hoverable word triggers -->
+        <div id="landing-tagline" style="pointer-events:all;display:flex;gap:24px;flex-wrap:wrap;justify-content:center;">
+            <span class="word-trigger" data-word="motion">3D</span>
+            <span class="word-trigger" data-word="motion">Motion</span>
+            <span class="word-trigger" data-word="design">Design</span>
+            <span class="word-trigger" data-word="design">Code</span>
+        </div>
+        <button id="landing-enter" style="pointer-events:all;">Enter</button>
     </div>
     <div id="landing-loader"></div>
 </div>
@@ -382,6 +485,7 @@
             <a href="#motion">Motion</a>
             <a href="#illustrations">Illus</a>
             <a href="#logos">Logos</a>
+            <a href="#games">Games</a>
             <a href="#interactive">Interactive</a>
             <a href="#about">Human</a>
             <a href="#contact">Contact</a>
@@ -399,7 +503,7 @@
 
 <!-- HERO STATEMENT -->
 <div class="hero-statement">
-    <h1>CREATE <span style="color:#c4a882;">SH!T</span></h1>
+    <h1>CREATE <span style="color:#c4a882;">STUFF</span></h1>
 </div>
 
 <!-- HERO VIDEO -->
@@ -558,6 +662,32 @@
 <!-- THE BRAIN TRUST -->
 
 <!-- ══════════════════════════════════
+     GAMES
+══════════════════════════════════ -->
+<section id="games" style="background:#111;">
+    <div class="container mx-auto px-4">
+        <div class="section-header">
+            <p class="section-label"><span class="wave-word" data-word="Games"></span></p>
+            <div class="ticker-wrap">
+                <div class="ticker-track">
+                    <span class="ticker-item">playable in browser<span class="dot"> ◆ </span>built from scratch<span class="dot"> ◆ </span>coming soon to app store<span class="dot"> ◆ </span>tap to play<span class="dot"> ◆ </span>no download needed<span class="dot"> ◆ </span></span>
+                    <span class="ticker-item">playable in browser<span class="dot"> ◆ </span>built from scratch<span class="dot"> ◆ </span>coming soon to app store<span class="dot"> ◆ </span>tap to play<span class="dot"> ◆ </span>no download needed<span class="dot"> ◆ </span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="game-grid">
+        <div class="game-tile" data-game="floppycrops">
+            <iframe src="floppy_crops.html" scrolling="no" allowfullscreen></iframe>
+            <div class="game-click-shield"></div>
+            <div class="game-label">Floppy Crops</div>
+        </div>
+    </div>
+</section>
+
+<!-- games run inline in grid -->
+
+<!-- ══════════════════════════════════
      INTERACTIVE / VISUALIZER
 ══════════════════════════════════ -->
 <section id="interactive" style="background:#0a0a0a;">
@@ -617,8 +747,8 @@
 
 <!-- CONTACT -->
 <section id="contact" style="background:#111;padding:80px 24px;">
-    <p style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#3a3a3a;margin-bottom:16px;font-family:'Space Mono',monospace;">get in touch</p>
-    <h2 style="font-family:'Space Mono',monospace;font-size:clamp(30px,5vw,60px);color:#fff;font-weight:700;line-height:1.05;margin-bottom:36px;">Make <span style="color:#c4a882;">stuff?</span></h2>
+    <p style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#888;margin-bottom:16px;font-family:'Space Mono',monospace;">get in touch</p>
+    <h2 style="font-family:'Space Mono',monospace;font-size:clamp(30px,5vw,60px);color:#fff;font-weight:700;line-height:1.05;margin-bottom:36px;">Create <span style="color:#c4a882;">stuff?</span></h2>
     <button id="open-captcha" style="background:transparent;border:1px solid #242424;color:#555;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;padding:15px 40px;cursor:pointer;transition:border-color 0.3s,color 0.3s;"
         onmouseover="this.style.borderColor='#c4a882';this.style.color='#c4a882'"
         onmouseout="this.style.borderColor='#242424';this.style.color='#555'">
@@ -629,7 +759,7 @@
 <!-- FOOTER -->
 <footer style="padding:36px 0;">
     <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
-        <span style="color:#2a2a2a;font-size:12px;font-family:'Space Mono',monospace;margin-bottom:16px;" class="md:mb-0">© Colin Willow 2025</span>
+        <span style="color:#666;font-size:12px;font-family:'Space Mono',monospace;margin-bottom:16px;" class="md:mb-0">© Colin Willow 2025</span>
         <div class="flex space-x-4">
             <a href="#" class="social-icon">V</a>
             <a href="#" class="social-icon">Be</a>
@@ -866,21 +996,24 @@ document.querySelectorAll('.wave-word').forEach(word => {
     }).join('');
 });
 
-// ── ABOUT ARC SLOW DRIFT ──
+// ── ABOUT ARC — scroll driven, same behavior as header icon ──
 (function(){
     const arcs = document.querySelectorAll('.about-arc');
     if (!arcs.length) return;
-    const speeds = [0.12, -0.08, 0.06, -0.1];
+    // Different scroll speeds per arc, some clockwise some counter
+    const scrollSpeeds = [0.18, -0.11, 0.08, -0.14];
     const angles = [0, 0, 0, 0];
-    function drift() {
+    let lastScroll = window.scrollY;
+
+    window.addEventListener('scroll', () => {
+        const delta = window.scrollY - lastScroll;
+        lastScroll = window.scrollY;
         arcs.forEach((arc, i) => {
-            angles[i] += speeds[i];
+            angles[i] += delta * scrollSpeeds[i];
             arc.style.transform = `rotate(${angles[i]}deg)`;
             arc.style.transformOrigin = '100px 100px';
         });
-        requestAnimationFrame(drift);
-    }
-    drift();
+    }, { passive: true });
 })();
 
 // ══════════════════════════════════════════════
@@ -936,8 +1069,8 @@ document.querySelectorAll('.wave-word').forEach(word => {
 
             const a1=p.map(vizBlend,0,1,1,0);
             const a2=p.map(vizBlend,0,1,0,1);
-            // Thinner strokes on small screens
-            window._vizStrokeScale = Math.min(1, p.width / 800);
+            // Thinner strokes on small screens — more aggressive on mobile
+            window._vizStrokeScale = Math.min(1, p.width / 800) * (window.innerWidth < 600 ? 0.45 : window.innerWidth < 900 ? 0.65 : 1);
             if(a1>0.01){ p.push(); drawV1(p,a1); p.pop(); }
             if(a2>0.01){ p.push(); drawV2(p,a2); p.pop(); }
         };
@@ -1160,43 +1293,430 @@ document.querySelectorAll('.wave-word').forEach(word => {
         btn.classList.add('active');
     }
 })();
+// ══════════════════════════════════════════════
+//  GAMES — inline arcade focus
+// ══════════════════════════════════════════════
 (function(){
-    const landing=document.getElementById('landing'),canvas=document.getElementById('landing-canvas'),
-          ctx=canvas.getContext('2d'),loader=document.getElementById('landing-loader');
-    let W=canvas.width=window.innerWidth,H=canvas.height=window.innerHeight;
-    const mouse={x:W/2,y:H/2};
-    window.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
-    const C=['rgba(196,168,130,','rgba(232,223,200,','rgba(139,99,64,','rgba(102,101,96,','rgba(255,255,255,'];
-    class P{
-        constructor(){this.reset(true);}
-        reset(init=false){this.x=this.bx=init?Math.random()*W:(Math.random()<0.5?-10:W+10);this.y=this.by=init?Math.random()*H:Math.random()*H;this.sz=Math.random()*1.8+0.3;this.sx=(Math.random()-0.5)*0.3;this.sy=(Math.random()-0.5)*0.3;this.col=C[Math.floor(Math.random()*C.length)];this.al=Math.random()*0.5+0.1;this.life=0;this.ml=Math.random()*400+200;this.dr=Math.random()<0.3;this.da=Math.random()*Math.PI*2;this.ds=(Math.random()*0.004+0.001)*(Math.random()<0.5?1:-1);this.conn=Math.random()<0.4;this.ca=0;}
-        update(){this.life++;if(this.dr){this.da+=this.ds;this.x=this.bx+Math.cos(this.da)*18;this.y=this.by+Math.sin(this.da)*18;}this.bx+=this.sx;this.by+=this.sy;if(!this.dr){this.x=this.bx;this.y=this.by;}const dx=this.x-mouse.x,dy=this.y-mouse.y,d=Math.sqrt(dx*dx+dy*dy);if(d<120&&d>0){const f=(120-d)/120;this.bx+=(dx/d)*f*3.5;this.by+=(dy/d)*f*3.5;}const p=this.life/this.ml,fade=p<0.1?p/0.1:p>0.8?1-(p-0.8)/0.2:1;this.ca=this.al*fade;if(this.life>this.ml||this.bx<-50||this.bx>W+50||this.by<-50||this.by>H+50)this.reset();}
-        draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.sz,0,Math.PI*2);ctx.fillStyle=this.col+this.ca+')';ctx.fill();}
+    let focused = null;
+
+    document.querySelectorAll('.game-tile').forEach(tile => {
+        const shield = tile.querySelector('.game-click-shield');
+
+        // Click shield = not yet focused → focus it
+        shield.addEventListener('click', () => {
+            if (focused && focused !== tile) {
+                focused.classList.remove('focused');
+            }
+            tile.classList.add('focused');
+            focused = tile;
+        });
+    });
+
+    // Click anywhere outside a focused tile → unfocus
+    document.addEventListener('click', e => {
+        if (focused && !focused.contains(e.target)) {
+            focused.classList.remove('focused');
+            focused = null;
+        }
+    });
+
+    // ESC to unfocus
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && focused) {
+            focused.classList.remove('focused');
+            focused = null;
+        }
+    });
+})();
+
+// ══════════════════════════════════════════════
+//  LANDING — VEHICLE PARTICLE SWARM
+// ══════════════════════════════════════════════
+(function(){
+    const landing  = document.getElementById('landing');
+    const loader   = document.getElementById('landing-loader');
+    const NUM      = 1800;
+    const SVG_SCALE = 0.55;
+
+    // ── Sampling SVG paths into point arrays ──
+    function sampleSVG(svgId, count) {
+        const svg = document.getElementById(svgId);
+        if (!svg) return null;
+        const paths = svg.querySelectorAll('path');
+        let totalLen = 0;
+        for (const p of paths) totalLen += p.getTotalLength();
+        if (totalLen === 0) return null;
+        const pts = { x:[], y:[] };
+        for (const p of paths) {
+            const L = p.getTotalLength();
+            const n = Math.round((L/totalLen)*count);
+            for (let i=0;i<n;i++) {
+                const pt = p.getPointAtLength((i/Math.max(1,n-1))*L);
+                pts.x.push(pt.x); pts.y.push(pt.y);
+            }
+        }
+        // Normalize to center
+        let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+        for (let i=0;i<pts.x.length;i++) { minX=Math.min(minX,pts.x[i]); minY=Math.min(minY,pts.y[i]); maxX=Math.max(maxX,pts.x[i]); maxY=Math.max(maxY,pts.y[i]); }
+        const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
+        const sc = 400/Math.max(maxX-minX,maxY-minY,1);
+        for (let i=0;i<pts.x.length;i++) { pts.x[i]=(pts.x[i]-cx)*sc; pts.y[i]=(pts.y[i]-cy)*sc; }
+        // Pad to count
+        while(pts.x.length < count) { pts.x.push(pts.x[pts.x.length-1]||0); pts.y.push(pts.y[pts.y.length-1]||0); }
+        return pts;
     }
-    class S{
-        constructor(){this.reset();}
-        reset(){this.x=Math.random()*W;this.y=Math.random()*H*0.6;this.len=Math.random()*80+40;this.spd=Math.random()*4+2;this.ang=Math.PI*0.15+(Math.random()-0.5)*0.3;this.al=0;this.mal=Math.random()*0.12+0.04;this.life=0;this.ml=Math.floor(this.len/this.spd)+20;this.col=C[Math.floor(Math.random()*3)];this.dl=Math.floor(Math.random()*300);}
-        update(){if(this.dl>0){this.dl--;return;}this.life++;this.x+=Math.cos(this.ang)*this.spd;this.y+=Math.sin(this.ang)*this.spd;const p=this.life/this.ml;this.al=p<0.3?(p/0.3)*this.mal:p>0.7?(1-(p-0.7)/0.3)*this.mal:this.mal;if(this.life>this.ml)this.reset();}
-        draw(){const tx=this.x-Math.cos(this.ang)*this.len,ty=this.y-Math.sin(this.ang)*this.len,g=ctx.createLinearGradient(tx,ty,this.x,this.y);g.addColorStop(0,this.col+'0)');g.addColorStop(1,this.col+this.al+')');ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(this.x,this.y);ctx.strokeStyle=g;ctx.lineWidth=0.8;ctx.stroke();}
+
+    let targets = { motion:null, design:null };
+    // Sample after DOM is fully painted — needs longer delay for SVG layout
+    function trySampleSVGs() {
+        try {
+            const m = sampleSVG('svg-motion', NUM);
+            const d = sampleSVG('svg-design', NUM);
+            if (m && m.x.length > 10) targets.motion = m;
+            if (d && d.x.length > 10) targets.design = d;
+            console.log('SVG sampled — motion:', targets.motion ? targets.motion.x.length : 'failed', 'design:', targets.design ? targets.design.x.length : 'failed');
+        } catch(e) { console.warn('SVG sample error:', e); }
     }
-    const trail=[];
-    window.addEventListener('mousemove',e=>{trail.push({x:e.clientX,y:e.clientY,t:Date.now()});if(trail.length>24)trail.shift();});
-    const ps=Array.from({length:Math.min(Math.floor(W*H/6000),220)},()=>new P());
-    const ss=Array.from({length:8},()=>new S());
-    let active=true;
-    (function loop(){
-        if(!active)return;
-        ctx.fillStyle='rgba(10,10,10,0.18)';ctx.fillRect(0,0,W,H);
-        const conn=ps.filter(p=>p.conn);
-        for(let i=0;i<conn.length;i++)for(let j=i+1;j<conn.length;j++){const dx=conn[i].x-conn[j].x,dy=conn[i].y-conn[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<90){ctx.beginPath();ctx.moveTo(conn[i].x,conn[i].y);ctx.lineTo(conn[j].x,conn[j].y);ctx.strokeStyle=`rgba(196,168,130,${(1-d/90)*0.1})`;ctx.lineWidth=0.5;ctx.stroke();}}
-        for(let i=1;i<trail.length;i++){const age=(Date.now()-trail[i].t)/400;if(age>1)continue;ctx.beginPath();ctx.arc(trail[i].x,trail[i].y,(1-age)*2,0,Math.PI*2);ctx.fillStyle=`rgba(196,168,130,${(1-age)*0.12})`;ctx.fill();}
-        ps.forEach(p=>{p.update();p.draw();});ss.forEach(s=>{s.update();s.draw();});
-        requestAnimationFrame(loop);
-    })();
-    let prog=0;
-    const iv=setInterval(()=>{prog+=Math.random()*4+1;if(prog>=100){prog=100;clearInterval(iv);loader.style.width='100%';setTimeout(()=>{loader.style.transition='opacity 0.5s';loader.style.opacity='0';landing.classList.add('loaded');},300);}loader.style.width=prog+'%';},40);
-    document.getElementById('landing-enter').addEventListener('click',()=>{landing.classList.add('exiting');setTimeout(()=>{active=false;landing.classList.add('gone');},850);});
-    canvas.addEventListener('touchmove',e=>{e.preventDefault();mouse.x=e.touches[0].clientX;mouse.y=e.touches[0].clientY;},{passive:false});
+    // Try at 500ms and again at 1500ms as fallback
+    setTimeout(trySampleSVGs, 500);
+    setTimeout(trySampleSVGs, 1500);
+
+    // ── p5 sketch ──
+    new p5(function(p){
+        const vehicles = [];
+        let currentTarget = 'circle';  // 'circle' | 'motion' | 'design' | 'explode'
+        let exploding = false;
+
+        // Live logo center — read from DOM so it's always accurate regardless of screen size
+        let logoCenter = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        let logoBounds = { cx: window.innerWidth / 2, cy: window.innerHeight / 2, rx: 80, ry: 30 };
+        function updateLogoCenter() {
+            const img = document.getElementById('landing-logo-img');
+            if (img && img.naturalWidth > 0) {
+                const r = img.getBoundingClientRect();
+                // Convert from viewport coords to canvas coords (canvas may be CSS-scaled)
+                const cnv = p.canvas || document.querySelector('#landing-p5 canvas');
+                const scaleX = cnv ? p.width  / cnv.getBoundingClientRect().width  : 1;
+                const scaleY = cnv ? p.height / cnv.getBoundingClientRect().height : 1;
+                logoCenter.x = (r.left + r.width  / 2) * scaleX;
+                logoCenter.y = (r.top  + r.height / 2) * scaleY;
+                logoBounds.cx = logoCenter.x;
+                logoBounds.cy = logoCenter.y;
+                logoBounds.rx = (r.width  / 2) * scaleX;
+                logoBounds.ry = (r.height / 2) * scaleY;
+                if (!window._logoBoundsLogged || p.frameCount < 180) {
+                    if (p.frameCount % 30 === 0)
+                        console.log('[logoBounds] f'+p.frameCount+' img:', Math.round(r.width), 'x', Math.round(r.height), 'rx:', Math.round(logoBounds.rx), 'ry:', Math.round(logoBounds.ry));
+                    window._logoBoundsLogged = true;
+                }
+            } else {
+                // fallback: text element
+                const fb = document.getElementById('landing-logo-fallback');
+                if (fb && fb.offsetWidth > 0) {
+                    const r = fb.getBoundingClientRect();
+                    const cnv = p.canvas || document.querySelector('#landing-p5 canvas');
+                    const scaleX = cnv ? p.width  / cnv.getBoundingClientRect().width  : 1;
+                    const scaleY = cnv ? p.height / cnv.getBoundingClientRect().height : 1;
+                    logoCenter.x = (r.left + r.width  / 2) * scaleX;
+                    logoCenter.y = (r.top  + r.height / 2) * scaleY;
+                    logoBounds.cx = logoCenter.x;
+                    logoBounds.cy = logoCenter.y;
+                    logoBounds.rx = (r.width  / 2) * scaleX;
+                    logoBounds.ry = (r.height / 2) * scaleY;
+                    if (!window._logoBoundsLogged) {
+                        console.log('[logoBounds] FALLBACK TEXT:', Math.round(r.width), 'x', Math.round(r.height), 'rx:', Math.round(logoBounds.rx));
+                        window._logoBoundsLogged = true;
+                    }
+                } else {
+                    logoCenter.x = window.innerWidth / 2;
+                    logoCenter.y = window.innerHeight / 2;
+                    logoBounds = { cx: logoCenter.x, cy: logoCenter.y, rx: 80, ry: 30 };
+                    if (!window._logoBoundsLogged2) {
+                        console.log('[logoBounds] fallback: fb.offsetWidth=', fb ? fb.offsetWidth : 'no fb');
+                        window._logoBoundsLogged2 = true;
+                    }
+                }
+            }
+        }
+
+        // Vehicle class
+        class Vehicle {
+            constructor() {
+                this.pos = p.createVector(p.random(p.width), p.random(p.height));
+                this.vel = p.createVector(0,0);
+                this.acc = p.createVector(0,0);
+                this.r = p.random(1.5, 3.5);
+                this.maxSpeed = p.random(14, 22);
+                this.maxForce = p.random(0.25, 0.55);
+                this.target = this.pos.copy();
+                this.explodeVel = null;
+
+                // Assign to a strand — all particles on same strand share same curve params
+                // but have different t values spread along it
+                const NUM_STRANDS = 12;
+                this.strandIdx = Math.floor(p.random(NUM_STRANDS));
+                // t is this particle's position along its strand (0 to TWO_PI * cycles)
+                this.t = p.random(p.TWO_PI * 6);
+                this.fleeRadius = p.random(40, 110);
+
+                // Strand type — each strand is one of these curve families
+                const strandType = this.strandIdx % 4;
+                this.family = strandType;
+
+                // Shared curve params per strand (seeded by strandIdx for consistency)
+                const seed = this.strandIdx * 137.5;
+                // Use deterministic values based on strandIdx
+                const strandDefs = [
+                    // lissajous variants
+                    {la:3, lb:2, A:120, B:110, spd:0.0006},
+                    {la:5, lb:4, A:130, B:100, spd:0.0005},
+                    {la:4, lb:3, A:110, B:120, spd:0.0007},
+                    {la:5, lb:3, A:120, B:120, spd:0.0004},
+                    // rose curves
+                    {k:3, R:120, spd:0.0005},
+                    {k:5, R:110, spd:0.0006},
+                    {k:4, R:130, spd:0.0004},
+                    {k:7, R:100, spd:0.0007},
+                    // torus knots
+                    {p2:2, q:3, R:90, spd:0.0005},
+                    {p2:3, q:5, R:100, spd:0.0004},
+                    {p2:4, q:7, R:85, spd:0.0006},
+                    {p2:5, q:3, R:95, spd:0.0005},
+                ];
+                this.sd = strandDefs[this.strandIdx % strandDefs.length];
+                this.speed = this.sd.spd * p.random(0.8, 1.2);
+
+                // Colour — strands have colour families
+                const strandCols = [
+                    [196,168,130], [232,223,200], [255,255,255],
+                    [180,150,110], [220,200,160], [150,120,80],
+                    [240,230,210], [160,130,90],  [200,180,140],
+                    [255,245,220], [170,140,100], [210,190,150]
+                ];
+                const sc = strandCols[this.strandIdx % strandCols.length];
+                this.col = p.color(sc[0], sc[1], sc[2], p.random(160, 255));
+            }
+
+            updateBlobTarget(fc) {
+                const cx = logoCenter.x, cy = logoCenter.y;
+                // Scale swarm radius to the smaller screen dimension so it works on any aspect ratio
+                const scale = Math.min(p.width, p.height) / 800;
+                this.t += this.speed;
+                const t = this.t;
+                let tx, ty;
+                const sd = this.sd;
+                const si = this.strandIdx + 1; // strand index 1-12
+
+                // Per-strand time modulation — each strand pulses at different rate
+                // This is the key: amplitude * sin(frameCount * speed * i)
+                const pulse  = Math.sin(fc * 0.0008 * si + si) * si * 8 * scale;
+                const pulse2 = Math.cos(fc * 0.0006 * si + si * 0.7) * si * 6 * scale;
+                const globalTwist = Math.sin(fc * 0.0003) * 0.4; // slow global rotation
+
+                if (this.strandIdx < 4) {
+                    // Lissajous with pulsing amplitudes
+                    const A = sd.A * scale + pulse;
+                    const B = sd.B * scale + pulse2;
+                    const xt = A * Math.sin(sd.la * t + globalTwist);
+                    const yt = B * Math.sin(sd.lb * t + p.HALF_PI * 0.5);
+                    // Rotate the whole strand slowly
+                    const rot = fc * 0.0002 * si;
+                    tx = cx + xt * Math.cos(rot) - yt * Math.sin(rot);
+                    ty = cy + xt * Math.sin(rot) + yt * Math.cos(rot);
+
+                } else if (this.strandIdx < 8) {
+                    // Rose curve with pulsing radius
+                    const R = sd.R * scale + pulse;
+                    const r = R * Math.cos(sd.k * t + fc * 0.0001 * si);
+                    const rot = fc * 0.00015 * si;
+                    tx = cx + Math.cos(t + rot) * r;
+                    ty = cy + Math.sin(t + rot) * r;
+
+                } else {
+                    // Torus knot with modulated radii
+                    const r1 = sd.R * scale + pulse;
+                    const r2 = sd.R * scale * 0.38 + pulse2 * 0.3;
+                    const phi = t * sd.q + fc * 0.0001 * si;
+                    const psi = t * sd.p2;
+                    tx = cx + (r1 + r2 * Math.cos(psi)) * Math.cos(phi);
+                    ty = cy + (r1 + r2 * Math.cos(psi)) * Math.sin(phi);
+                }
+
+                this.target = p.createVector(tx, ty);
+            }
+            setCircleTarget(i) {
+                // kept for compatibility but not really used — blob does the work
+                const r = 180 * Math.sqrt(p.random(1));
+                const a = p.random(p.TWO_PI);
+                this.target = p.createVector(p.width/2 + Math.cos(a)*r, p.height/2 + Math.sin(a)*r);
+            }
+            setWordTarget(pts, i) {
+                if (!pts) return;
+                const idx = i % pts.x.length;
+                this.target = p.createVector(p.width/2 + pts.x[idx]*SVG_SCALE, p.height/2 + pts.y[idx]*SVG_SCALE);
+            }
+            explode() {
+                const angle = p.random(p.TWO_PI);
+                const speed = p.random(8, 28);
+                this.explodeVel = p.createVector(Math.cos(angle)*speed, Math.sin(angle)*speed);
+            }
+            update(fc) {
+                if (exploding && this.explodeVel) {
+                    this.pos.add(this.explodeVel);
+                    this.explodeVel.mult(1.06);
+                    return;
+                }
+                this.updateBlobTarget(fc);
+
+                // Arrive steering — tighter slow-down radius so particles settle cleanly
+                const desired = p5.Vector.sub(this.target, this.pos);
+                const d = desired.mag();
+                let spd = this.maxSpeed;
+                if (d < 60) spd = p.map(d, 0, 60, 0, this.maxSpeed);
+                desired.setMag(spd);
+                const steer = p5.Vector.sub(desired, this.vel);
+                steer.limit(this.maxForce);
+                this.acc.add(steer);
+
+                // Logo rectangle flee — push particles away from nearest point on the logo rect
+                const lb = logoBounds;
+                // Nearest point on the rectangle to this particle
+                const nearX = Math.max(lb.cx - lb.rx, Math.min(this.pos.x, lb.cx + lb.rx));
+                const nearY = Math.max(lb.cy - lb.ry, Math.min(this.pos.y, lb.cy + lb.ry));
+                const fromNearX = this.pos.x - nearX;
+                const fromNearY = this.pos.y - nearY;
+                const distToRect = Math.sqrt(fromNearX*fromNearX + fromNearY*fromNearY);
+
+                const inside = (this.pos.x > lb.cx - lb.rx && this.pos.x < lb.cx + lb.rx &&
+                                this.pos.y > lb.cy - lb.ry && this.pos.y < lb.cy + lb.ry);
+                if (inside) {
+                    // Inside rect — push straight outward from center, strong
+                    const push = p.createVector(this.pos.x - lb.cx, this.pos.y - lb.cy);
+                    if (push.mag() < 0.01) push.set(p.random(-1,1), p.random(-1,1));
+                    push.setMag(this.maxForce * 14);
+                    this.acc.add(push);
+                } else if (distToRect < 12) {
+                    // Outside but within soft zone — push away from nearest rect edge
+                    const push = p.createVector(fromNearX, fromNearY);
+                    if (push.mag() < 0.01) push.set(p.random(-1,1), p.random(-1,1));
+                    push.setMag(this.maxForce * p.map(distToRect, 0, 12, 3.5, 0));
+                    this.acc.add(push);
+                }
+
+                // Mouse flee — applied as a force through acc, never teleport pos directly
+                const mouse = p.createVector(p.mouseX, p.mouseY);
+                const diff = p5.Vector.sub(this.pos, mouse);
+                const md = diff.mag();
+                if (md < this.fleeRadius && md > 0) {
+                    const fleePow = p.map(md, 0, this.fleeRadius, this.maxForce * 6, 0);
+                    diff.setMag(fleePow);
+                    this.acc.add(diff);
+                }
+
+                this.vel.add(this.acc);
+                // Light damping to kill residual oscillation
+                this.vel.mult(0.95);
+                this.pos.add(this.vel);
+                this.acc.mult(0);
+            }
+            draw() {
+                p.noStroke();
+                const vel = this.vel.mag();
+                const alpha = exploding ? p.map(this.pos.dist(p.createVector(p.width/2,p.height/2)), 0, p.width, 220, 0) : p.map(vel,0,15,200,60);
+                p.fill(p.red(this.col), p.green(this.col), p.blue(this.col), Math.max(0,alpha));
+                const sz = this.r * (1 + vel*0.08);
+                p.ellipse(this.pos.x, this.pos.y, sz, sz);
+            }
+        }
+
+        p.setup = function(){
+            const cnv = p.createCanvas(window.innerWidth, window.innerHeight);
+            cnv.parent('landing-p5');
+            // Force canvas to sit above video
+            const el = cnv.elt;
+            el.style.position = 'absolute';
+            el.style.top = '0';
+            el.style.left = '0';
+            el.style.width = '100%';
+            el.style.height = '100%';
+            el.style.zIndex = '10';
+            el.style.pointerEvents = 'none';
+            p.clear();
+            updateLogoCenter();
+            for (let i=0;i<NUM;i++) {
+                const v = new Vehicle();
+                v.setCircleTarget(i);
+                vehicles.push(v);
+            }
+            window._landingP5 = p;
+            window._landingVehicles = vehicles;
+            window.updateLogoCenter = updateLogoCenter;
+            window._setLandingWord = function(word) {
+                currentTarget = word;
+                exploding = false;
+                const pts = targets[word] || null;
+                vehicles.forEach((v,i) => {
+                    if (pts) v.setWordTarget(pts, i);
+                    else v.setCircleTarget(i);
+                });
+            };
+            window._landingExplode = function() {
+                exploding = true;
+                vehicles.forEach(v => v.explode());
+            };
+            window._landingCircle = function() {
+                currentTarget = 'circle';
+                exploding = false;
+                vehicles.forEach((v,i) => v.setCircleTarget(i));
+            };
+        };
+
+        p.draw = function(){
+            p.clear();
+            updateLogoCenter(); // re-read every frame so bounds always match actual DOM position
+            vehicles.forEach(v => { v.update(p.frameCount); v.draw(); });
+        };
+
+        p.windowResized = function(){
+            p.resizeCanvas(window.innerWidth, window.innerHeight);
+            updateLogoCenter();
+            vehicles.forEach((v,i) => { if(!exploding) v.setCircleTarget(i); });
+        };
+    });
+
+    // ── Word trigger hover ──
+    document.querySelectorAll('.word-trigger').forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            const word = el.dataset.word;
+            if (window._setLandingWord) window._setLandingWord(word);
+        });
+        el.addEventListener('mouseleave', () => {
+            if (window._landingCircle) window._landingCircle();
+        });
+    });
+
+    // ── Enter button → explode → enter site ──
+    document.getElementById('landing-enter').addEventListener('click', () => {
+        if (window._landingExplode) window._landingExplode();
+        landing.classList.add('exiting');
+        setTimeout(() => landing.classList.add('gone'), 900);
+    });
+
+    // ── Loading bar ──
+    let prog = 0;
+    const iv = setInterval(()=>{
+        prog += Math.random()*4+1;
+        if (prog >= 100) {
+            prog = 100; clearInterval(iv);
+            loader.style.width = '100%';
+            setTimeout(()=>{
+                loader.style.transition = 'opacity 0.5s';
+                loader.style.opacity = '0';
+                landing.classList.add('loaded');
+            }, 300);
+        }
+        loader.style.width = prog+'%';
+    }, 40);
 })();
 </script>
 </body>
