@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Colin Willow</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/p5.min.js"></script>
@@ -19,8 +19,8 @@
         #landing-ui { position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;pointer-events:none; }
         #landing-name { font-family:'Space Mono',monospace;font-size:clamp(32px,6vw,76px);font-weight:700;letter-spacing:0.12em;color:#fff;opacity:0;transform:translateY(20px);text-align:center;transition:opacity 1.2s ease,transform 1.2s ease; }
         #landing-name span { color:#c4a882; }
-        #landing-tagline { margin-top:14px;font-size:clamp(10px,1.2vw,13px);letter-spacing:0.35em;text-transform:uppercase;color:#555;opacity:0;transform:translateY(10px);transition:opacity 1s ease 0.4s,transform 1s ease 0.4s; }
-        #landing-enter { margin-top:60px;padding:14px 48px;background:transparent;border:1px solid #333;color:#888;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;cursor:pointer;pointer-events:all;opacity:0;transform:translateY(10px);transition:opacity 0.8s ease 0.8s,transform 0.8s ease 0.8s,border-color 0.3s,color 0.3s;position:relative;overflow:hidden; }
+        #landing-tagline { margin-top:14px;font-size:clamp(10px,1.2vw,13px);letter-spacing:0.35em;text-transform:uppercase;color:#999;opacity:0;transform:translateY(10px);transition:opacity 1s ease 0.4s,transform 1s ease 0.4s; }
+        #landing-enter { margin-top:60px;padding:14px 48px;background:transparent;border:1px solid #555;color:#aaa;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;cursor:pointer;pointer-events:all;opacity:0;transform:translateY(10px);transition:opacity 0.8s ease 0.8s,transform 0.8s ease 0.8s,border-color 0.3s,color 0.3s;position:relative;overflow:hidden; }
         #landing-enter:hover { border-color:#c4a882;color:#c4a882; }
         #landing-enter::before { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(196,168,130,0.07),transparent);transform:translateX(-100%);transition:transform 0.6s ease; }
         #landing-enter:hover::before { transform:translateX(100%); }
@@ -32,7 +32,7 @@
         #landing-p5 canvas { position:absolute!important; inset:0; z-index:3; pointer-events:none; }
         .word-trigger {
             font-family:'Space Mono',monospace; font-size:clamp(10px,1.2vw,13px);
-            letter-spacing:0.35em; text-transform:uppercase; color:#555;
+            letter-spacing:0.35em; text-transform:uppercase; color:#999;
             cursor:default; transition:color 0.3s;
         }
         .word-trigger:hover { color:#c4a882; }
@@ -85,12 +85,14 @@
             align-items: center;
             gap: 24px;
             overflow: hidden;
+            cursor: pointer;
         }
+        .section-header:hover .wave-letter { color: #c4a882; }
 
         /* ── SECTION LABEL with wave hover ── */
         .section-label {
             display: block;
-            cursor: default;
+            cursor: pointer;
             user-select: none;
             flex-shrink: 0;
         }
@@ -101,25 +103,86 @@
         .section-label .wave-letter {
             display: inline-block;
             font-family: 'Space Mono', monospace;
-            font-size: 13px;
+            font-size: 18px;
             font-weight: 700;
-            letter-spacing: 0.18em;
+            letter-spacing: 0.22em;
             text-transform: uppercase;
-            color: #888;
+            color: #aaa;
             overflow: hidden;
             position: relative;
             height: 1.4em;
             line-height: 1.4em;
             transition: color 0.3s;
         }
-        .section-label .wave-letter span { display: block; }
+        .section-label .wave-letter span { display: block; transition: transform 0.3s ease; }
         .section-label .wave-letter .clone {
             position: absolute;
             top: 100%;
             left: 0;
             color: #c4a882;
         }
-        .section-label:hover .wave-letter span { transform: translateY(-100%); }
+        .section-header:hover .wave-letter span { transform: translateY(-100%); }
+
+        /* shimmer on section title */
+        @keyframes label-shimmer {
+            0%   { background-position: -200% center; }
+            100% { background-position:  200% center; }
+        }
+        @keyframes touch-prompt-fade {
+            0%   { opacity:0; }
+            100% { opacity:1; }
+        }
+        @keyframes touch-prompt-pulse {
+            0%,100% { opacity:0.5; }
+            50%      { opacity:1; }
+        }
+        @keyframes touch-arrow-float {
+            0%,100% { transform:translateY(0);   opacity:0.3; }
+            50%      { transform:translateY(6px); opacity:0.65; }
+        }
+        .section-label .wave-letter {
+            background: linear-gradient(90deg, #aaa 30%, #fff 50%, #c4a882 60%, #aaa 70%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: label-shimmer 4s linear infinite;
+        }
+        .section-label .wave-letter .clone {
+            -webkit-text-fill-color: #c4a882;
+            background: none;
+        }
+
+        /* tap-to-hide hint */
+        .section-tap-hint {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: #333;
+            white-space: nowrap;
+            flex-shrink: 0;
+            animation: hint-pulse 3s ease-in-out infinite;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .section-header:hover .section-tap-hint { color: #555; }
+        .section-header.collapsed-header .section-tap-hint { color: #444; }
+        .section-header.collapsed-header .section-tap-hint::before { content: 'tap to show ▸'; }
+        .section-tap-hint::before { content: 'tap to hide ▾'; }
+        @keyframes hint-pulse {
+            0%,100% { opacity:0.4; }
+            50%      { opacity:1; }
+        }
+        .section-collapse-arrow {
+            margin-left: 12px;
+            flex-shrink: 0;
+            color: #444;
+            font-size: 10px;
+            transition: transform 0.4s ease, color 0.2s;
+            display: inline-block;
+        }
+        .section-header:hover .section-collapse-arrow { color: #c4a882; }
+        .section-header.collapsed-header .section-collapse-arrow { transform: rotate(-90deg); }
 
         /* ── TICKER ── */
         .ticker-wrap {
@@ -155,7 +218,17 @@
             100% { transform: translateX(-50%); }
         }
 
-        /* ══ ABOUT SECTION ══ */
+        /* ── COLLAPSIBLE SECTION DRAWERS ── */
+        .section-body {
+            overflow: hidden;
+            max-height: 8000px; /* large enough for any content */
+            transition: max-height 0.6s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease;
+            opacity: 1;
+        }
+        .section-body.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
         #about { background:#111; padding: 80px 24px; }
         .about-inner {
             display: grid;
@@ -232,7 +305,7 @@
         .logo-cell:hover img { transform:scale(1.08);opacity:0.85; }
 
         /* ══ VISUALIZER SECTION ══ */
-        #viz-section { background:#0a0a0a; position:relative; }
+        #viz-section { background:#0d0d0d; position:relative; }
         #viz-canvas-wrap {
             width:100%; aspect-ratio:16/9; position:relative; cursor:pointer; overflow:hidden;
             margin:0 24px; width:calc(100% - 48px);
@@ -323,6 +396,49 @@
         .game-tile.focused iframe { pointer-events:all; }
         .game-tile.focused .game-click-shield { display:none; }
         .game-tile.focused .game-label { color:#c4a882; }
+
+        /* Mobile expanded game mode */
+        .game-tile.expanded {
+            position:fixed !important;
+            inset: auto !important;
+            left: 50% !important;
+            top: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            width: min(92vw, calc(92vh * 9/16)) !important;
+            height: min(92vh, calc(92vw * 16/9)) !important;
+            z-index: 500 !important;
+            box-shadow: 0 0 0 2px #c4a882, 0 0 80px rgba(0,0,0,0.95) !important;
+            border-radius: 4px;
+        }
+        .game-tile.expanded iframe { pointer-events:all; }
+        .game-tile.expanded .game-click-shield { display:none; }
+        #game-expand-overlay {
+            display:none;
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,0.85);
+            z-index:499;
+            backdrop-filter:blur(4px);
+        }
+        #game-expand-overlay.visible { display:block; }
+        #game-exit-btn {
+            display:none;
+            position:fixed;
+            top:16px;
+            right:16px;
+            z-index:501;
+            background:rgba(0,0,0,0.7);
+            border:1px solid #c4a882;
+            color:#c4a882;
+            font-family:'Space Mono',monospace;
+            font-size:10px;
+            letter-spacing:0.2em;
+            text-transform:uppercase;
+            padding:8px 14px;
+            cursor:pointer;
+            border-radius:2px;
+        }
+        #game-exit-btn.visible { display:block; }
         /* Game modal */
         #game-modal {
             display:none; position:fixed; inset:0; z-index:400;
@@ -445,13 +561,14 @@
         </div>
         <!-- Hoverable word triggers -->
         <div id="landing-tagline" style="pointer-events:all;display:flex;gap:24px;flex-wrap:wrap;justify-content:center;">
-            <span class="word-trigger" data-word="motion">3D</span>
             <span class="word-trigger" data-word="motion">Motion</span>
             <span class="word-trigger" data-word="design">Design</span>
             <span class="word-trigger" data-word="design">Code</span>
         </div>
         <button id="landing-enter" style="pointer-events:all;">Enter</button>
     </div>
+
+    <!-- Touch prompt — fades in after a delay, pulses gently -->
     <div id="landing-loader"></div>
 </div>
 
@@ -503,7 +620,7 @@
 
 <!-- HERO STATEMENT -->
 <div class="hero-statement">
-    <h1>CREATE <span style="color:#c4a882;">STUFF</span></h1>
+    <h1>I Make <span style="color:#c4a882;">Stuff</span></h1>
 </div>
 
 <!-- HERO VIDEO -->
@@ -522,9 +639,10 @@
                     <span class="ticker-item">3D animation &amp; motion design<span class="dot"> ◆ </span>characters that move like they mean it<span class="dot"> ◆ </span>product vis &amp; commercial work<span class="dot"> ◆ </span>frame by frame obsession<span class="dot"> ◆ </span>rendered in octane &amp; redshift<span class="dot"> ◆ </span></span>
                 </div>
             </div>
+            <span class="section-tap-hint"></span><span class="section-collapse-arrow">▼</span>
         </div>
     </div>
-    <div class="grid-outer"><div class="motion-grid">
+    <div class="section-body"><div class="grid-outer"><div class="motion-grid">
         <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/1_motion_man_chair.mp4"       type="video/mp4"></video></div>
         <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/2_motion_alien_dj.mp4"        type="video/mp4"></video></div>
         <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/3_motion_brain_vat.mp4"       type="video/mp4"></video></div>
@@ -546,7 +664,7 @@
         <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/19_motion_splash_ball.mp4"    type="video/mp4"></video></div>
         <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/20_motion_monster_forest.mp4" type="video/mp4"></video></div>
         <div class="motion-cell"><video autoplay loop muted playsinline preload="none"><source src="https://raw.githubusercontent.com/colinwillow/portfolio/main/motion/20_motion_xbox.mp4"            type="video/mp4"></video></div>
-    </div></div>
+    </div></div></div>
 </section>
 
 <!-- ILLUSTRATIONS -->
@@ -560,9 +678,10 @@
                     <span class="ticker-item">hand-drawn &amp; digital illustration<span class="dot"> ◆ </span>portraits, creatures &amp; characters<span class="dot"> ◆ </span>ink, graphite &amp; pixels<span class="dot"> ◆ </span>people that look like people<span class="dot"> ◆ </span>every line intentional<span class="dot"> ◆ </span></span>
                 </div>
             </div>
+            <span class="section-tap-hint"></span><span class="section-collapse-arrow">▼</span>
         </div>
     </div>
-    <div class="grid-outer"><div class="illustration-grid">
+    <div class="section-body"><div class="grid-outer"><div class="illustration-grid">
         <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/1_illlustration_faith.JPG"            alt="Faith"            loading="lazy"></div>
         <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/2_illlustration_megan.jpg"            alt="Megan"            loading="lazy"></div>
         <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/3_illustration_colin_graffiti.jpg"    alt="Colin Graffiti"   loading="lazy"></div>
@@ -575,7 +694,7 @@
         <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/14_illustration_faith_robe.jpg"       alt="Faith Robe"       loading="lazy"></div>
         <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/15_illustration_colin_headphones.jpg" alt="Colin Headphones" loading="lazy"></div>
         <div class="illustration-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/illustrations/16_illustration_winky.jpg"            alt="Winky"            loading="lazy"></div>
-    </div></div>
+    </div></div></div>
 </section>
 
 <!-- LOGOS -->
@@ -589,9 +708,10 @@
                     <span class="ticker-item">identity systems &amp; brand marks<span class="dot"> ◆ </span>logos that actually mean something<span class="dot"> ◆ </span>built to scale from sticker to billboard<span class="dot"> ◆ </span>wordmarks, icons &amp; full systems<span class="dot"> ◆ </span>make it recognizable<span class="dot"> ◆ </span></span>
                 </div>
             </div>
+            <span class="section-tap-hint"></span><span class="section-collapse-arrow">▼</span>
         </div>
     </div>
-    <div class="grid-outer"><div class="logo-grid">
+    <div class="section-body"><div class="grid-outer"><div class="logo-grid">
         <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_colin_willow_512px.jpg.jpg"          alt="Colin Willow"        loading="lazy"></div>
         <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_colin_willow_design_512px.jpg.jpg"   alt="Colin Willow Design" loading="lazy"></div>
         <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_entheos_512px_02.jpg.JPG"            alt="Entheos 02"          loading="lazy"></div>
@@ -610,7 +730,7 @@
         <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_unknown_512px.jpg.JPG"               alt="Unknown"             loading="lazy"></div>
         <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/logo_vvolt_512px.jpg.png"                 alt="Vvolt"               loading="lazy"></div>
         <div class="logo-cell"><img src="https://raw.githubusercontent.com/colinwillow/portfolio/main/logos/thatswassupps_logo_512px.jpg.jpg"         alt="Thatswassupps"       loading="lazy"></div>
-    </div></div>
+    </div></div></div>
 </section>
 
 <!-- ABOUT / THE HUMAN -->
@@ -624,9 +744,10 @@
                     <span class="ticker-item">3D artist &amp; motion designer<span class="dot"> ◆ </span>based wherever the wifi works<span class="dot"> ◆ </span>obsessed with things that glow<span class="dot"> ◆ </span>making brands look like 2047<span class="dot"> ◆ </span>probably drinking coffee right now<span class="dot"> ◆ </span></span>
                 </div>
             </div>
+            <span class="section-tap-hint"></span><span class="section-collapse-arrow">▼</span>
         </div>
     </div>
-    <div style="padding:0 24px 80px;">
+    <div class="section-body"><div style="padding:0 24px 80px;">
         <div class="about-inner">
             <!-- Avatar with spinning arcs (larger version) -->
             <div class="about-avatar-wrap">
@@ -656,7 +777,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div></div>
 </section>
 
 <!-- THE BRAIN TRUST -->
@@ -664,8 +785,9 @@
 <!-- ══════════════════════════════════
      GAMES
 ══════════════════════════════════ -->
-<section id="games" style="background:#111;">
-    <div class="container mx-auto px-4">
+<section id="games" style="background:#111; position:relative; overflow:hidden;">
+    <canvas id="games-bg-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0.55;"></canvas>
+    <div class="container mx-auto px-4" style="position:relative;z-index:1;">
         <div class="section-header">
             <p class="section-label"><span class="wave-word" data-word="Games"></span></p>
             <div class="ticker-wrap">
@@ -674,8 +796,10 @@
                     <span class="ticker-item">playable in browser<span class="dot"> ◆ </span>built from scratch<span class="dot"> ◆ </span>coming soon to app store<span class="dot"> ◆ </span>tap to play<span class="dot"> ◆ </span>no download needed<span class="dot"> ◆ </span></span>
                 </div>
             </div>
+            <span class="section-tap-hint"></span><span class="section-collapse-arrow">▼</span>
         </div>
     </div>
+    <div class="section-body" style="position:relative;z-index:1;">
     <div class="game-grid">
         <div class="game-tile" data-game="floppycrops">
             <iframe src="floppy_crops.html" scrolling="no" allowfullscreen></iframe>
@@ -683,14 +807,16 @@
             <div class="game-label">Floppy Crops</div>
         </div>
     </div>
+    </div>
 </section>
 
-<!-- games run inline in grid -->
+<div id="game-expand-overlay"></div>
+<button id="game-exit-btn">✕ exit game</button>
 
 <!-- ══════════════════════════════════
      INTERACTIVE / VISUALIZER
 ══════════════════════════════════ -->
-<section id="interactive" style="background:#0a0a0a;">
+<section id="interactive" style="background:#0d0d0d;">
     <div class="container mx-auto px-4">
         <div class="section-header">
             <p class="section-label"><span class="wave-word" data-word="Interactive"></span></p>
@@ -700,9 +826,10 @@
                     <span class="ticker-item">audio reactive visuals<span class="dot"> ◆ </span>real-time FFT analysis<span class="dot"> ◆ </span>click to start<span class="dot"> ◆ </span>hover to switch modes<span class="dot"> ◆ </span>built in p5.js<span class="dot"> ◆ </span></span>
                 </div>
             </div>
+            <span class="section-tap-hint"></span><span class="section-collapse-arrow">▼</span>
         </div>
     </div>
-
+    <div class="section-body">
     <!-- Canvas -->
     <div id="viz-canvas-wrap">
         <!-- p5 canvas injected here -->
@@ -726,6 +853,7 @@
             <span class="viz-mode-label">Geometric</span>
         </button>
     </div>
+    </div>
 </section>
 
 <!-- THE BRAIN TRUST -->
@@ -748,7 +876,7 @@
 <!-- CONTACT -->
 <section id="contact" style="background:#111;padding:80px 24px;">
     <p style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#888;margin-bottom:16px;font-family:'Space Mono',monospace;">get in touch</p>
-    <h2 style="font-family:'Space Mono',monospace;font-size:clamp(30px,5vw,60px);color:#fff;font-weight:700;line-height:1.05;margin-bottom:36px;">Create <span style="color:#c4a882;">stuff?</span></h2>
+    <h2 style="font-family:'Space Mono',monospace;font-size:clamp(30px,5vw,60px);color:#fff;font-weight:700;line-height:1.05;margin-bottom:36px;">Make <span style="color:#c4a882;">Things?</span></h2>
     <button id="open-captcha" style="background:transparent;border:1px solid #242424;color:#555;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;padding:15px 40px;cursor:pointer;transition:border-color 0.3s,color 0.3s;"
         onmouseover="this.style.borderColor='#c4a882';this.style.color='#c4a882'"
         onmouseout="this.style.borderColor='#242424';this.style.color='#555'">
@@ -1048,7 +1176,7 @@ document.querySelectorAll('.wave-word').forEach(word => {
         };
 
         p.draw = function(){
-            p.background(0);
+            p.background(13, 13, 13); // #0d0d0d — matches site background
             if(!vizStarted) return;
             vizBlend = p.lerp(vizBlend, vizMode, 0.12);
 
@@ -1165,12 +1293,29 @@ document.querySelectorAll('.wave-word').forEach(word => {
 
     unmuteBtn.addEventListener('click',e=>{ e.stopPropagation(); vizMuted?unmute():mute(); });
 
-    // ── IntersectionObserver ──
+    // ── Mobile fix: resume AudioContext on first touch gesture ──
+    const resumeOnTouch = () => {
+        if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        if(!vizStarted) startMuted();
+        document.removeEventListener('touchstart', resumeOnTouch);
+        document.removeEventListener('pointerdown', resumeOnTouch);
+    };
+    document.addEventListener('touchstart', resumeOnTouch, {passive:true});
+    document.addEventListener('pointerdown', resumeOnTouch, {passive:true});
+
+    // ── IntersectionObserver — pause p5 loop when not visible ──
     const section=document.getElementById('interactive');
     if(section && 'IntersectionObserver' in window){
         const obs=new IntersectionObserver((entries)=>{
-            entries.forEach(entry=>{ if(entry.isIntersecting){ startMuted(); obs.disconnect(); } });
-        },{threshold:0.3});
+            entries.forEach(entry=>{
+                if(entry.isIntersecting){
+                    startMuted();
+                    if(window._vizP5) window._vizP5.loop();
+                } else {
+                    if(window._vizP5) window._vizP5.noLoop();
+                }
+            });
+        },{threshold:0.1});
         obs.observe(section);
     }
 
@@ -1294,35 +1439,202 @@ document.querySelectorAll('.wave-word').forEach(word => {
     }
 })();
 // ══════════════════════════════════════════════
-//  GAMES — inline arcade focus
+//  GAMES SECTION — topology field background
 // ══════════════════════════════════════════════
 (function(){
+    const canvas = document.getElementById('games-bg-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let t = 0;
+    let rafId = null;
+    const COLS = 6;  // number of contour levels
+    const STEP = 18; // grid resolution
+
+    function resize() {
+        const section = document.getElementById('games');
+        canvas.width  = section.offsetWidth;
+        canvas.height = section.offsetHeight;
+    }
+
+    // Field value at point (x,y,t) — sum of sine waves = topology terrain
+    function field(x, y, t) {
+        const nx = x / canvas.width;
+        const ny = y / canvas.height;
+        return (
+            Math.sin(nx * 6 + t * 0.4) *
+            Math.cos(ny * 4 - t * 0.3) +
+            Math.sin((nx + ny) * 5 + t * 0.5) * 0.5 +
+            Math.cos(nx * 3 - ny * 7 + t * 0.2) * 0.3
+        );
+    }
+
+    // Marching squares — get contour segments for a given threshold
+    function marchingSquares(threshold) {
+        const segs = [];
+        for (let x = 0; x < canvas.width - STEP; x += STEP) {
+            for (let y = 0; y < canvas.height - STEP; y += STEP) {
+                const v0 = field(x,        y,        t);
+                const v1 = field(x + STEP, y,        t);
+                const v2 = field(x + STEP, y + STEP, t);
+                const v3 = field(x,        y + STEP, t);
+
+                const b = (v0 > threshold ? 8 : 0) |
+                          (v1 > threshold ? 4 : 0) |
+                          (v2 > threshold ? 2 : 0) |
+                          (v3 > threshold ? 1 : 0);
+                if (b === 0 || b === 15) continue;
+
+                // Interpolate edge crossings
+                const lerp = (a, b, va, vb) => a + (b - a) * (threshold - va) / (vb - va);
+                const top    = { x: lerp(x, x+STEP, v0, v1), y };
+                const right  = { x: x+STEP, y: lerp(y, y+STEP, v1, v2) };
+                const bottom = { x: lerp(x, x+STEP, v3, v2), y: y+STEP };
+                const left   = { x, y: lerp(y, y+STEP, v0, v3) };
+
+                const edges = {
+                    1:  [left,   bottom],
+                    2:  [bottom, right ],
+                    3:  [left,   right ],
+                    4:  [top,    right ],
+                    5:  [top,    left  ],
+                    6:  [top,    bottom],
+                    7:  [top,    left  ],
+                    8:  [top,    left  ],
+                    9:  [top,    bottom],
+                    10: [left,   right ],
+                    11: [top,    right ],
+                    12: [left,   right ],
+                    13: [bottom, right ],
+                    14: [left,   bottom],
+                };
+                if (edges[b]) segs.push(edges[b]);
+            }
+        }
+        return segs;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < COLS; i++) {
+            const threshold = -1 + (i / (COLS - 1)) * 2;
+            const alpha = 0.12 + (i / COLS) * 0.28;
+            // Shift from dark amber to gold
+            const r = 140 + Math.round(i / COLS * 76);
+            const g = 100 + Math.round(i / COLS * 68);
+            const b = 40  + Math.round(i / COLS * 20);
+
+            ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+
+            const segs = marchingSquares(threshold);
+            segs.forEach(([a, b]) => {
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(b.x, b.y);
+            });
+            ctx.stroke();
+        }
+        t += 0.012;
+    }
+
+    function loop() {
+        draw();
+        rafId = requestAnimationFrame(loop);
+    }
+
+    // Pause when games section not visible
+    const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                resize();
+                if (!rafId) loop();
+            } else {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+        });
+    }, { threshold: 0.05 });
+
+    const section = document.getElementById('games');
+    if (section) obs.observe(section);
+
+    window.addEventListener('resize', resize);
+    resize();
+})();
+// ══════════════════════════════════════════════
+(function(){
+    document.querySelectorAll('.section-header').forEach(header => {
+        const section = header.closest('section');
+        if (!section) return;
+        const body = section.querySelector('.section-body');
+        if (!body) return;
+
+        header.addEventListener('click', () => {
+            const isCollapsed = body.classList.toggle('collapsed');
+            header.classList.toggle('collapsed-header', isCollapsed);
+            // Pause/resume videos inside to save resources
+            body.querySelectorAll('video').forEach(v => {
+                isCollapsed ? v.pause() : v.play().catch(()=>{});
+            });
+            // Pause/resume p5 viz if it's the interactive section
+            if (section.id === 'interactive' && window._vizP5) {
+                isCollapsed ? window._vizP5.noLoop() : window._vizP5.loop();
+            }
+        });
+    });
+})();
+(function(){
     let focused = null;
+    let expanded = null;
+    const overlay = document.getElementById('game-expand-overlay');
+    const exitBtn = document.getElementById('game-exit-btn');
+    const isMobile = () => window.innerWidth < 768;
+
+    function expandGame(tile) {
+        if (expanded) collapseGame();
+        expanded = tile;
+        tile.classList.add('expanded', 'focused');
+        overlay.classList.add('visible');
+        exitBtn.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function collapseGame() {
+        if (!expanded) return;
+        expanded.classList.remove('expanded', 'focused');
+        overlay.classList.remove('visible');
+        exitBtn.classList.remove('visible');
+        document.body.style.overflow = '';
+        expanded = null;
+        focused = null;
+    }
 
     document.querySelectorAll('.game-tile').forEach(tile => {
         const shield = tile.querySelector('.game-click-shield');
-
-        // Click shield = not yet focused → focus it
         shield.addEventListener('click', () => {
-            if (focused && focused !== tile) {
-                focused.classList.remove('focused');
+            if (isMobile()) {
+                expandGame(tile);
+            } else {
+                if (focused && focused !== tile) focused.classList.remove('focused');
+                tile.classList.add('focused');
+                focused = tile;
             }
-            tile.classList.add('focused');
-            focused = tile;
         });
     });
 
-    // Click anywhere outside a focused tile → unfocus
-    document.addEventListener('click', e => {
-        if (focused && !focused.contains(e.target)) {
-            focused.classList.remove('focused');
-            focused = null;
+    exitBtn.addEventListener('click', collapseGame);
+    overlay.addEventListener('click', collapseGame);
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            collapseGame();
+            if (focused && !expanded) { focused.classList.remove('focused'); focused = null; }
         }
     });
 
-    // ESC to unfocus
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && focused) {
+    document.addEventListener('click', e => {
+        if (focused && !expanded && !focused.contains(e.target)) {
             focused.classList.remove('focused');
             focused = null;
         }
@@ -1442,7 +1754,15 @@ document.querySelectorAll('.wave-word').forEach(word => {
         // Vehicle class
         class Vehicle {
             constructor() {
-                this.pos = p.createVector(p.random(p.width), p.random(p.height));
+                // Spawn within a confined radius around the logo center so they
+                // converge quickly on any screen size instead of flying in from edges
+                const spawnRadius = Math.min(p.width, p.height) * 0.45;
+                const angle = p.random(p.TWO_PI);
+                const dist  = p.random(0, spawnRadius);
+                this.pos = p.createVector(
+                    logoCenter.x + Math.cos(angle) * dist,
+                    logoCenter.y + Math.sin(angle) * dist
+                );
                 this.vel = p.createVector(0,0);
                 this.acc = p.createVector(0,0);
                 this.r = p.random(1.5, 3.5);
