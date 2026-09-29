@@ -56,7 +56,7 @@ const PAGES = {
   play(slug) {
     const s = sectionOf('play');
     if (slug) {
-      const it = PLAY.find(x => x.slug === slug);
+      const it = PLAY.find(x => x.slug === slug || x.aliases?.includes(slug));
       if (!it) return missing();
       return `<div class="wrap">${crumbs(link('play', 'Play'), esc(it.title))}
         <h2 class="title">${esc(it.title)}</h2><p class="lede">${esc(it.blurb)}</p>
