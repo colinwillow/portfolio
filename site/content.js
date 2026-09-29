@@ -105,7 +105,8 @@ export const WEB = [
     blurb: 'A friend\'s company I ended up helping build.' },
   { slug: 'unknown', title: 'Unknown — SS25', url: GH + 'unknown/', role: 'Storefront',
     blurb: 'Product drops for my clothing label.' },
-  { slug: 'faith', title: 'Faith', url: '', role: 'Personal site', blurb: 'Link coming.' },
+  { slug: 'faith', title: 'Faith Udall', url: 'https://faithudall.com', role: 'Personal site',
+    blurb: 'A personal site for Faith.' },
 ];
 
 export const STUDIOS = [
