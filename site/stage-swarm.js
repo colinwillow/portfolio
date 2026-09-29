@@ -11,7 +11,7 @@ import { createSwarm } from './swarm.js';
 import { OBJECTS, fit, sampleSurface, sampleText } from './shapes.js';
 
 const SHAPE = { home: 'orb', play: 'controller', assets: 'zap', motion: 'camera', scripts: 'code',
-  writing: 'book', web: 'browser', studios: 'studios', workbench: 'tools', about: 'orb' };
+  writing: 'book', web: 'browser', studios: 'studios', workbench: 'tools', audio: 'speaker', about: 'orb' };
 
 export function createStage({ canvas }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });

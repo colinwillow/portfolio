@@ -27,6 +27,7 @@ export const SECTIONS = [
   { key: 'motion',    label: 'Motion',    tier: 2, lat:   8, lon: -120, blurb: 'CGI loops, logo reveals, character tests.' },
   { key: 'studios',   label: 'Studios',   tier: 2, lat:  52, lon:  -70, blurb: 'SeaWillow, Majia and Unknown.' },
   { key: 'writing',   label: 'Writing',   tier: 2, lat:  30, lon:  165, blurb: 'Essays about art and making, read aloud.' },
+  { key: 'audio',     label: 'Audio',     tier: 2, lat: -30, lon:  -95, blurb: 'Game soundtracks, and free sound effects to download.' },
   { key: 'workbench', label: 'Workbench', tier: 3, lat: -55, lon:  -30, blurb: 'Illustration, logos, and everything made by hand.' },
   { key: 'about',     label: 'About',     tier: 3, lat:  -8, lon: -170, blurb: 'Who made this.' },
 ];
@@ -166,4 +167,35 @@ export const WORKBENCH = {
   logos: LOGOS.map(f => ({ src: 'logos/' + f, title: f.replace(/^logo_|_512px.*$/g, '').replace(/_/g, ' ') })),
   // Crafts with nothing uploaded yet. Shown as a quiet list, not empty tiles.
   soon: ['Ceramics', 'Laser cutting', '3D-printed figures (STL downloads)', 'Photography', 'Branding'],
+};
+
+// Songs stream from the games' own repos, so there is one copy of each file.
+export const SONGS = [
+  { title: 'Robits Theme', from: 'Robits', src: GH + 'robits/audio/robits_theme_song.mp3.mp3' },
+  { title: 'Overdrive', from: 'Robits', src: GH + 'robits/audio/robits_song_overdrive.mp3.mp3' },
+  { title: 'Robits III', from: 'Robits', src: GH + 'robits/audio/robits_song_03.mp3' },
+  { title: 'Plutopia I', from: 'Plutopia', src: GH + 'plutopia/audio/plutopia_song_01.mp3' },
+  { title: 'Plutopia II', from: 'Plutopia', src: GH + 'plutopia/audio/plutopia_song_02.mp3' },
+  { title: 'Plutopia III', from: 'Plutopia', src: GH + 'plutopia/audio/plutopia_song_03.mp3' },
+  { title: 'Plutopia IV', from: 'Plutopia', src: GH + 'plutopia/audio/plutopia_song_04.mp3' },
+  { title: 'Plutopia at Night', from: 'Plutopia', src: GH + 'plutopia/audio/plutopia_song_nighttime_01.mp3' },
+  { title: 'Plutopia at Night II', from: 'Plutopia', src: GH + 'plutopia/audio/plutopia_song_nighttime_02.mp3' },
+  { title: 'Shredworld I', from: 'Shredworld', src: GH + 'city/audio/songs/shredworld_song_01.mp3' },
+  { title: 'Shredworld II', from: 'Shredworld', src: GH + 'city/audio/songs/shredworld_song_02.mp3' },
+  { title: 'Yoga Pants', from: 'Portfolio', src: 'audio/Yoga_Pants.mp3' },
+];
+
+// Sound effects: audio/sfx/index.json lists them (built from the games' audio).
+export const SFX = { index: 'audio/sfx/index.json', zip: 'audio/sfx/colin-willow-sfx.zip',
+  license: 'Free to use in anything, commercial included. No credit needed (appreciated though).' };
+
+// About. The web of things around his head; each goes somewhere real.
+export const ABOUT = {
+  lede: "I design and build games, rigged 3D characters, tools, motion and brands, and most of it ends up running in a browser on somebody's phone.",
+  more: "I run a couple of studios: SeaWillow, a holding company and design studio, and Majia, a game studio. There's also Unknown, a clothing label. Away from the screen it's ceramics, laser cutting and 3D-printed figures.",
+  web: [
+    ['Games', 'play'], ['3D characters', 'assets'], ['Motion', 'motion'], ['Illustration', 'workbench'],
+    ['Branding', 'workbench'], ['Web', 'web'], ['Tools', 'scripts'], ['Sound', 'audio'], ['Essays', 'writing'],
+    ['Ceramics', 'workbench'], ['Laser cutting', 'workbench'], ['3D printing', 'workbench'], ['Studios', 'studios'],
+  ],
 };

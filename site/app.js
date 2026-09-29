@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD } from './content.js';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme } from './palette.js';
 
 const BASE = window.BASE || '/';
@@ -17,6 +17,8 @@ function go(path, push = true) {
   render();
 }
 document.addEventListener('click', e => {
+  const song = e.target.closest('[data-song]');
+  if (song) { music.play(+song.dataset.song); return; }
   const a = e.target.closest('a[data-link]');
   if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
   const u = new URL(a.href);
@@ -73,6 +75,8 @@ const PAGES = {
       ${shelf('writing', `<div class="rail">${essays.join('')}</div>`)}
       ${shelf('web', rail(sites.map(it => (it.url ? ext : (h, i, c) => `<div class="${c}">${i}</div>`)(it.url, `${cover(it)}
         <div class="tile-meta"><b>${esc(it.title)}</b><span>${esc(it.role || it.blurb)}</span></div>`, 'tile')).join('')), { more: 'Sites and studios' })}
+      ${shelf('audio', rail(SONGS.slice(0, 8).map((t, i) => `<button class="tile song" data-song="${i}"><div class="song-art"><span>▶</span></div>
+        <div class="tile-meta"><b>${esc(t.title)}</b><span>${esc(t.from)}</span></div></button>`).join('')), { more: 'Songs and free SFX' })}
       ${shelf('scripts', rail(SCRIPTS.map(it => link('scripts/' + it.slug, `<div class="glyph">&lt;/&gt;</div>
         <div class="tile-meta"><b>${esc(it.title)}</b><span>${esc(it.app)} · ${STATUS[it.status]}</span></div>`, 'tile script')).join('')))}
       ${shelf('workbench', `<div class="rail strip">${WORKBENCH.illustration.map(m => `<img src="${esc(m.src)}" alt="${esc(m.title)}" loading="lazy">`).join('')}</div>
@@ -190,18 +194,45 @@ const PAGES = {
       <h3 class="sub">On the way</h3><ul class="soon">${WORKBENCH.soon.map(x => `<li>${esc(x)}</li>`).join('')}</ul>${foot()}</div>`;
   },
 
+  // About: him, big, talking -- with the web of what he does orbiting his head.
   about() {
-    const s = sectionOf('about');
+    after = () => mountAbout();
+    return `<div class="wrap about">
+      <div id="about-hero"><div class="about-orbit back"><svg class="about-web"></svg></div><div class="about-orbit front">${ABOUT.web.map(([t, k]) =>
+        `<a class="orb-chip" href="${k}" data-link>${esc(t)}</a>`).join('')}</div>
+        <div class="about-slot"></div>
+        <button class="btn accent about-talk">Talk to me</button></div>
+      <h2 class="title">Hi, I'm Colin.</h2>
+      <p class="lede">${esc(ABOUT.lede)}</p><p class="about-more">${esc(ABOUT.more)}</p>
+      <h3 class="sub">Thoughts</h3>
+      <p class="soon">Essays on art, making and whatever else — read them, or let me read them to you.</p>
+      <div class="thoughts">${WRITING.map(w => `<div class="thought"><b>${esc(w.title)}</b><q>${esc(w.excerpt || '')}</q>
+        <div class="row">${w.reading ? `<button class="btn accent listen" data-slug="${esc(w.slug)}">▶ Listen</button>` : ''}
+        ${link('writing/' + w.slug, 'Read', 'btn ghost')}</div></div>`).join('')}</div>
+      ${foot()}</div>`;
+  },
+
+  audio() {
+    const s = sectionOf('audio');
+    after = () => mountAudio();
     return `<div class="wrap">${head(s)}
-      <p>I make games, rigged characters, tools, motion and brands — and most of it ends up running in a browser on a phone.</p>
-      <p class="soon">A talking mini-me who can show you around is being moved in. For now: ${ext(SITE.github, 'GitHub')}.</p>${foot()}</div>`;
+      <div class="player-big"><button class="pb-play" aria-label="Play">▶</button>
+        <div class="pb-body"><div class="pb-now"><b>Pick a track</b><span></span></div><canvas class="pb-bars"></canvas>
+          <div class="pbar"><i></i></div></div></div>
+      <ol class="tracks">${SONGS.map((t, i) => `<li><button data-i="${i}"><i>${String(i + 1).padStart(2, '0')}</i><b>${esc(t.title)}</b><span>${esc(t.from)}</span></button></li>`).join('')}</ol>
+      <h3 class="sub">Sound effects</h3>
+      <p class="lede">Made or sourced for my games. ${esc(SFX.license)} Tap to hear, arrow to download.</p>
+      <div class="row"><a class="btn" href="${esc(SFX.zip)}" download>Download all (.zip, 3.3 MB)</a></div>
+      <div class="sfx-filters row"></div><div class="sfx-grid"></div>${foot()}</div>`;
   },
 };
 const missing = () => `<div class="wrap">${crumbs('Not found')}<h2 class="title">Nothing here</h2>
   <p class="lede">That link points at something that has moved or does not exist yet.</p><div class="row">${link('./', 'Back to the globe', 'btn')}</div></div>`;
 
 // ---- render ---------------------------------------------------------------
-let globe = null, mounted = null, after = null;
+let globe = null, mounted = null, after = null, colin = null;
+const colinWait = [];
+const withColin = f => (colin ? f(colin) : colinWait.push(f));
 // The stage behind everything: the particle swarm, or the old globe with ?globe.
 const USE_SWARM = !new URLSearchParams(location.search).has('globe');
 if (USE_SWARM) document.body.classList.add('swarm');
@@ -276,20 +307,32 @@ const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).
 const pushColors = () => globe?.setColors({ ink: css(USE_SWARM ? '--ink' : '--globe-ink'), accent: css('--accent'), deep: css('--accent-deep') });
 onAccent(() => pushColors());
 
-// Music drives the globe: loudness swells the ribbons and the dots.
-const sound = { el: null, an: null, buf: null };
-$('#sound').onclick = async () => {
-  const btn = $('#sound');
-  if (!sound.el) {
-    sound.el = new Audio('audio/Yoga_Pants.mp3'); sound.el.loop = true; sound.el.crossOrigin = 'anonymous';
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const src = ctx.createMediaElementSource(sound.el);
-    sound.an = ctx.createAnalyser(); sound.an.fftSize = 256; sound.buf = new Uint8Array(sound.an.frequencyBinCount);
-    src.connect(sound.an); sound.an.connect(ctx.destination); sound.ctx = ctx;
-  }
-  if (sound.el.paused) { await sound.ctx.resume(); sound.el.play(); btn.setAttribute('aria-pressed', 'true'); }
-  else { sound.el.pause(); btn.setAttribute('aria-pressed', 'false'); }
+// ONE music player for the whole site: the ♪ key, the Audio page and the
+// stage all share it, so whatever is playing is what the swarm dances to.
+const music = {
+  el: null, an: null, buf: null, ctx: null, i: SONGS.length - 1, subs: new Set(),
+  init() {
+    if (this.el) return;
+    this.el = new Audio(); this.el.crossOrigin = 'anonymous'; this.el.preload = 'none';
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = this.ctx.createMediaElementSource(this.el);
+    this.an = this.ctx.createAnalyser(); this.an.fftSize = 256; this.buf = new Uint8Array(this.an.frequencyBinCount);
+    src.connect(this.an); this.an.connect(this.ctx.destination);
+    this.el.onended = () => this.play(this.i + 1);
+    ['play', 'pause', 'timeupdate'].forEach(ev => this.el.addEventListener(ev, () => this.emit()));
+  },
+  async play(i = this.i) {
+    this.init(); this.i = (i + SONGS.length) % SONGS.length;
+    const src = new URL(SONGS[this.i].src, document.baseURI).href;
+    if (this.el.src !== src) this.el.src = src;
+    await this.ctx.resume(); this.el.play().catch(() => {}); this.emit();
+  },
+  toggle() { if (!this.el || this.el.paused) this.play(); else this.el.pause(); },
+  get playing() { return !!this.el && !this.el.paused; },
+  emit() { $('#sound').setAttribute('aria-pressed', String(this.playing)); this.subs.forEach(f => f()); },
 };
+$('#sound').onclick = () => music.toggle();
+const sound = { get el() { return music.el; }, get an() { return music.an; }, get buf() { return music.buf; } };
 let lvl = 0;
 (function meter() {
   requestAnimationFrame(meter);
@@ -303,6 +346,101 @@ let lvl = 0;
   lvl += (v - lvl) * 0.25;
   globe.setLevel(lvl);
 })();
+
+// ---- About: adopt mini-Colin, orbit the web round his head -------------------
+function mountAbout() {
+  // Two layers, one behind him and one in front: a chip moves between them as it
+  // crosses his far side, so the orbit actually goes AROUND his head.
+  const hero = $('#about-hero'), slot = hero.querySelector('.about-slot');
+  const back = hero.querySelector('.about-orbit.back'), orbit = hero.querySelector('.about-orbit.front');
+  const chips = [...orbit.querySelectorAll('.orb-chip')], svg = back.querySelector('svg');
+  let dead = false, t0 = performance.now(), paused = false, spin = 0, last = t0;
+  hero.addEventListener('pointerover', e => { paused = !!e.target.closest('.orb-chip'); });
+  withColin(c => { if (!dead) c.adopt(slot); });
+  hero.querySelector('.about-talk').onclick = () => withColin(c => { if (!c.awake) c.wake(); });
+  document.querySelectorAll('.listen').forEach(b => b.onclick = async () => {
+    const w = WRITING.find(x => x.slug === b.dataset.slug);
+    const { speakParts, hush } = await import('./speech.js');
+    if (b.dataset.on) { hush(); b.textContent = '▶ Listen'; delete b.dataset.on; return; }
+    const j = await fetch(w.reading).then(r => r.json()), base = new URL(w.reading, document.baseURI);
+    b.dataset.on = 1; b.textContent = '❚❚ Stop';
+    speakParts(j.parts.map(p => ({ ...p, src: new URL(p.audio, base).href })), { who: 'colin',
+      onEnd: () => { b.textContent = '▶ Listen'; delete b.dataset.on; } });
+  });
+  (function loop(now) {
+    if (dead || !hero.isConnected) return;
+    requestAnimationFrame(loop);
+    const dt = (now - last) / 1000; last = now; if (!paused) spin += dt * 0.14;
+    const r = hero.getBoundingClientRect(), hs = colin?.headScreen?.();
+    const cx = hs && hs.w > 50 ? hs.x - r.left : r.width / 2, cy = hs && hs.w > 50 ? hs.y - r.top : r.height * 0.28;
+    const rx = Math.min(r.width * 0.44, 340), ry = rx * 0.34;
+    let lines = '';
+    chips.forEach((ch, i) => {
+      const a = spin + i / chips.length * Math.PI * 2, depth = Math.sin(a);
+      const x = cx + Math.cos(a) * rx, y = cy + depth * ry - 8 + Math.sin(a * 2 + now / 1400) * 6;
+      const k = 0.72 + 0.32 * (depth + 1) / 2;
+      ch.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0) translate(-50%,-50%) scale(${k.toFixed(3)})`;
+      ch.style.opacity = (0.35 + 0.65 * (depth + 1) / 2).toFixed(2);
+      const want = depth > -0.05 ? orbit : back; if (ch.parentElement !== want) want.appendChild(ch);
+      lines += `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" style="opacity:${(0.08 + 0.3 * (depth + 1) / 2).toFixed(2)}"/>`;
+    });
+    svg.innerHTML = lines;
+  })(t0);
+  mounted = { destroy() { dead = true; colin?.release(); } };
+}
+
+// ---- Audio: the shared player, bars, and the sound-effects pads ----------------
+function mountAudio() {
+  const view$ = s => view.querySelector(s);
+  const btn = view$('.pb-play'), now = view$('.pb-now'), bar = view$('.pbar i'), cv = view$('.pb-bars'), g = cv.getContext('2d');
+  const sync = () => {
+    const t = SONGS[music.i];
+    now.innerHTML = music.el ? `<b>${esc(t.title)}</b><span>${esc(t.from)}</span>` : '<b>Pick a track</b><span></span>';
+    btn.textContent = music.playing ? '❚❚' : '▶';
+    view.querySelectorAll('.tracks button').forEach(b => b.classList.toggle('on', +b.dataset.i === music.i && !!music.el));
+    if (music.el?.duration) bar.style.width = (100 * music.el.currentTime / music.el.duration).toFixed(2) + '%';
+  };
+  music.subs.add(sync); sync();
+  btn.onclick = () => music.toggle();
+  view.querySelectorAll('.tracks button').forEach(b => b.onclick = () => (+b.dataset.i === music.i && music.playing ? music.el.pause() : music.play(+b.dataset.i)));
+  let dead = false;
+  (function draw() {
+    if (dead || !cv.isConnected) return;
+    requestAnimationFrame(draw);
+    const w = cv.clientWidth * devicePixelRatio, h = cv.clientHeight * devicePixelRatio;
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    g.clearRect(0, 0, w, h);
+    const n = 48, acc = css('--accent');
+    g.fillStyle = acc;
+    for (let i = 0; i < n; i++) {
+      let v = 0.04;
+      if (music.playing) { music.an.getByteFrequencyData(music.buf); v = Math.max(0.04, music.buf[Math.floor(i * 1.6)] / 255); }
+      const bw = w / n * 0.62, x = i * w / n, bh = v * h;
+      g.fillRect(x, h - bh, bw, bh);
+    }
+  })();
+  // pads
+  fetch(SFX.index).then(r => r.json()).then(list => {
+    const cats = ['All', ...new Set(list.map(x => x.cat))];
+    const nice = s => s.replace(/gound/g, 'ground').replace(/\bamo\b/g, 'ammo').replace(/ sound$/i, '').replace(/^RPG/, 'RPG');
+    let cur = 'All';
+    const filters = view$('.sfx-filters'), grid = view$('.sfx-grid');
+    const paint = () => {
+      filters.innerHTML = cats.map(c => `<button class="pill ${c === cur ? 'hot' : ''}" data-c="${esc(c)}">${esc(c)}</button>`).join('');
+      grid.innerHTML = list.filter(x => cur === 'All' || x.cat === cur).map(x => `<div class="pad"><button class="pad-play" data-f="${esc(x.file)}">
+        <b>${esc(nice(x.name))}</b><span>${esc(x.cat)}</span></button>
+        <a class="pad-dl" href="audio/sfx/${esc(x.file)}" download aria-label="Download ${esc(x.name)}">↓</a></div>`).join('');
+    };
+    paint();
+    filters.onclick = e => { const b = e.target.closest('button'); if (b) { cur = b.dataset.c; paint(); } };
+    grid.onclick = e => {
+      const b = e.target.closest('.pad-play'); if (!b) return;
+      const a = new Audio('audio/sfx/' + b.dataset.f); a.play().catch(() => {});
+      b.parentElement.classList.remove('hit'); void b.offsetWidth; b.parentElement.classList.add('hit');
+    };
+  });
+  mounted = { destroy() { dead = true; music.subs.delete(sync); } };
+}
 
 // ---- boot -----------------------------------------------------------------
 render();
@@ -340,5 +478,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js').then(m => m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') })))
+  import('./colin.js').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

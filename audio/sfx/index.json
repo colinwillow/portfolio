@@ -1,0 +1,488 @@
+[
+{
+"file": "RPG_sound.mp3",
+"name": "RPG sound",
+"cat": "Weapons",
+"kb": 93
+},
+{
+"file": "alien_orc_grunt_01.mp3",
+"name": "alien orc grunt 01",
+"cat": "Creatures",
+"kb": 26
+},
+{
+"file": "alien_orc_grunt_02.mp3",
+"name": "alien orc grunt 02",
+"cat": "Creatures",
+"kb": 31
+},
+{
+"file": "alien_orc_grunt_03.mp3",
+"name": "alien orc grunt 03",
+"cat": "Creatures",
+"kb": 22
+},
+{
+"file": "alien_orc_grunt_04.mp3",
+"name": "alien orc grunt 04",
+"cat": "Creatures",
+"kb": 28
+},
+{
+"file": "alien_orc_grunt_05.mp3",
+"name": "alien orc grunt 05",
+"cat": "Creatures",
+"kb": 28
+},
+{
+"file": "alien_orc_grunt_06.mp3",
+"name": "alien orc grunt 06",
+"cat": "Creatures",
+"kb": 24
+},
+{
+"file": "alien_orc_grunt_07.mp3",
+"name": "alien orc grunt 07",
+"cat": "Creatures",
+"kb": 23
+},
+{
+"file": "bamboo_01.mp3",
+"name": "bamboo 01",
+"cat": "Impacts",
+"kb": 15
+},
+{
+"file": "bamboo_02.mp3",
+"name": "bamboo 02",
+"cat": "Impacts",
+"kb": 15
+},
+{
+"file": "beam_01.mp3",
+"name": "beam 01",
+"cat": "Weapons",
+"kb": 73
+},
+{
+"file": "blaster_sound_01.mp3",
+"name": "blaster sound 01",
+"cat": "Weapons",
+"kb": 32
+},
+{
+"file": "blaster_sound_02.mp3",
+"name": "blaster sound 02",
+"cat": "Weapons",
+"kb": 29
+},
+{
+"file": "box_break_01.mp3",
+"name": "box break 01",
+"cat": "Impacts",
+"kb": 30
+},
+{
+"file": "box_break_02.mp3",
+"name": "box break 02",
+"cat": "Impacts",
+"kb": 37
+},
+{
+"file": "creature_noise_01.mp3",
+"name": "creature noise 01",
+"cat": "Creatures",
+"kb": 20
+},
+{
+"file": "creature_noise_02.mp3",
+"name": "creature noise 02",
+"cat": "Creatures",
+"kb": 23
+},
+{
+"file": "creature_noise_03.mp3",
+"name": "creature noise 03",
+"cat": "Creatures",
+"kb": 23
+},
+{
+"file": "creature_noise_04.mp3",
+"name": "creature noise 04",
+"cat": "Creatures",
+"kb": 25
+},
+{
+"file": "creature_noise_05.mp3",
+"name": "creature noise 05",
+"cat": "Creatures",
+"kb": 31
+},
+{
+"file": "creature_noise_06.mp3",
+"name": "creature noise 06",
+"cat": "Creatures",
+"kb": 28
+},
+{
+"file": "creature_noise_07.mp3",
+"name": "creature noise 07",
+"cat": "Creatures",
+"kb": 28
+},
+{
+"file": "electricity_beam_01.mp3",
+"name": "electricity beam 01",
+"cat": "Weapons",
+"kb": 172
+},
+{
+"file": "empty_jetpack.mp3",
+"name": "empty jetpack",
+"cat": "Movement",
+"kb": 19
+},
+{
+"file": "explosion_large.mp3",
+"name": "explosion large",
+"cat": "Impacts",
+"kb": 139
+},
+{
+"file": "explosion_medium.mp3",
+"name": "explosion medium",
+"cat": "Impacts",
+"kb": 75
+},
+{
+"file": "explosion_small.mp3",
+"name": "explosion small",
+"cat": "Impacts",
+"kb": 37
+},
+{
+"file": "fire_burn_01.mp3",
+"name": "fire burn 01",
+"cat": "Impacts",
+"kb": 47
+},
+{
+"file": "flame_thrower_01.mp3",
+"name": "flame thrower 01",
+"cat": "Weapons",
+"kb": 113
+},
+{
+"file": "footstep_2_l.mp3",
+"name": "footstep 2 l",
+"cat": "Movement",
+"kb": 16
+},
+{
+"file": "footstep_2_r.mp3",
+"name": "footstep 2 r",
+"cat": "Movement",
+"kb": 16
+},
+{
+"file": "footstep_l.mp3",
+"name": "footstep l",
+"cat": "Movement",
+"kb": 15
+},
+{
+"file": "footstep_r.mp3",
+"name": "footstep r",
+"cat": "Movement",
+"kb": 15
+},
+{
+"file": "footsteps_sound_01.mp3",
+"name": "footsteps sound 01",
+"cat": "Movement",
+"kb": 158
+},
+{
+"file": "grenade_launcher_sound.mp3",
+"name": "grenade launcher sound",
+"cat": "Weapons",
+"kb": 23
+},
+{
+"file": "helix_blaster_air.mp3",
+"name": "helix blaster air",
+"cat": "Weapons",
+"kb": 32
+},
+{
+"file": "helix_blaster_shot.mp3",
+"name": "helix blaster shot",
+"cat": "Weapons",
+"kb": 25
+},
+{
+"file": "hit_sound_01.mp3",
+"name": "hit sound 01",
+"cat": "Impacts",
+"kb": 20
+},
+{
+"file": "hit_sound_02.mp3",
+"name": "hit sound 02",
+"cat": "Impacts",
+"kb": 18
+},
+{
+"file": "hit_sound_03.mp3",
+"name": "hit sound 03",
+"cat": "Impacts",
+"kb": 19
+},
+{
+"file": "hit_sound_gound_01.mp3",
+"name": "hit sound gound 01",
+"cat": "Impacts",
+"kb": 17
+},
+{
+"file": "hit_sound_ground_02.mp3",
+"name": "hit sound ground 02",
+"cat": "Impacts",
+"kb": 17
+},
+{
+"file": "hit_sound_plasma_01.mp3",
+"name": "hit sound plasma 01",
+"cat": "Weapons",
+"kb": 28
+},
+{
+"file": "hit_sound_plasma_02.mp3",
+"name": "hit sound plasma 02",
+"cat": "Weapons",
+"kb": 26
+},
+{
+"file": "jetpack_bwd.mp3",
+"name": "jetpack bwd",
+"cat": "Movement",
+"kb": 101
+},
+{
+"file": "jetpack_combust.mp3",
+"name": "jetpack combust",
+"cat": "Movement",
+"kb": 32
+},
+{
+"file": "jetpack_fwd.mp3",
+"name": "jetpack fwd",
+"cat": "Movement",
+"kb": 100
+},
+{
+"file": "jetpack_ongoing.mp3",
+"name": "jetpack ongoing",
+"cat": "Movement",
+"kb": 166
+},
+{
+"file": "jetpack_release.mp3",
+"name": "jetpack release",
+"cat": "Movement",
+"kb": 32
+},
+{
+"file": "jewel_noise_01.mp3",
+"name": "jewel noise 01",
+"cat": "Pickups & UI",
+"kb": 49
+},
+{
+"file": "laser_01.mp3",
+"name": "laser 01",
+"cat": "Weapons",
+"kb": 25
+},
+{
+"file": "laser_02.mp3",
+"name": "laser 02",
+"cat": "Weapons",
+"kb": 19
+},
+{
+"file": "metal_clang_01.mp3",
+"name": "metal clang 01",
+"cat": "Impacts",
+"kb": 25
+},
+{
+"file": "metal_clang_02.mp3",
+"name": "metal clang 02",
+"cat": "Impacts",
+"kb": 26
+},
+{
+"file": "metal_clang_03.mp3",
+"name": "metal clang 03",
+"cat": "Impacts",
+"kb": 30
+},
+{
+"file": "metal_clang_04.mp3",
+"name": "metal clang 04",
+"cat": "Impacts",
+"kb": 27
+},
+{
+"file": "metal_ping_01.mp3",
+"name": "metal ping 01",
+"cat": "Impacts",
+"kb": 29
+},
+{
+"file": "phase_warp_01.mp3",
+"name": "phase warp 01",
+"cat": "Pickups & UI",
+"kb": 54
+},
+{
+"file": "plasma_01.mp3",
+"name": "plasma 01",
+"cat": "Weapons",
+"kb": 30
+},
+{
+"file": "plasma_02.mp3",
+"name": "plasma 02",
+"cat": "Weapons",
+"kb": 29
+},
+{
+"file": "plasma_03.mp3",
+"name": "plasma 03",
+"cat": "Weapons",
+"kb": 30
+},
+{
+"file": "plasma_04.mp3",
+"name": "plasma 04",
+"cat": "Weapons",
+"kb": 24
+},
+{
+"file": "plasma_05.mp3",
+"name": "plasma 05",
+"cat": "Weapons",
+"kb": 23
+},
+{
+"file": "plasma_06.mp3",
+"name": "plasma 06",
+"cat": "Weapons",
+"kb": 20
+},
+{
+"file": "plasma_canon.mp3",
+"name": "plasma canon",
+"cat": "Weapons",
+"kb": 49
+},
+{
+"file": "plasma_hit.mp3",
+"name": "plasma hit",
+"cat": "Weapons",
+"kb": 30
+},
+{
+"file": "powerup_01.mp3",
+"name": "powerup 01",
+"cat": "Pickups & UI",
+"kb": 46
+},
+{
+"file": "reload_amo_01.mp3",
+"name": "reload amo 01",
+"cat": "Weapons",
+"kb": 23
+},
+{
+"file": "rocket_01.mp3",
+"name": "rocket 01",
+"cat": "Weapons",
+"kb": 109
+},
+{
+"file": "rocket_02.mp3",
+"name": "rocket 02",
+"cat": "Weapons",
+"kb": 186
+},
+{
+"file": "rocket_03.mp3",
+"name": "rocket 03",
+"cat": "Weapons",
+"kb": 118
+},
+{
+"file": "skateboarding_ollie.mp3",
+"name": "skateboarding ollie",
+"cat": "Movement",
+"kb": 14
+},
+{
+"file": "skateboarding_start.mp3",
+"name": "skateboarding start",
+"cat": "Movement",
+"kb": 20
+},
+{
+"file": "smg_sound.mp3",
+"name": "smg sound",
+"cat": "Weapons",
+"kb": 14
+},
+{
+"file": "sniper_sound_01.mp3",
+"name": "sniper sound 01",
+"cat": "Weapons",
+"kb": 68
+},
+{
+"file": "swoosh_01.mp3",
+"name": "swoosh 01",
+"cat": "Movement",
+"kb": 17
+},
+{
+"file": "swoosh_02.mp3",
+"name": "swoosh 02",
+"cat": "Movement",
+"kb": 17
+},
+{
+"file": "swoosh_03.mp3",
+"name": "swoosh 03",
+"cat": "Movement",
+"kb": 17
+},
+{
+"file": "swoosh_04.mp3",
+"name": "swoosh 04",
+"cat": "Movement",
+"kb": 18
+},
+{
+"file": "swoosh_05.mp3",
+"name": "swoosh 05",
+"cat": "Movement",
+"kb": 15
+},
+{
+"file": "swoosh_06.mp3",
+"name": "swoosh 06",
+"cat": "Movement",
+"kb": 19
+}
+]

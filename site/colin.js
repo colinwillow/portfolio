@@ -122,6 +122,13 @@ export function createMiniColin({ go, known, items, pageOf }) {
   let ch = null, head = null, face = [], idle = null, blinkT = 2, blink = 0, dead = false;
   const look = new THREE.Vector2(), lookNow = new THREE.Vector2();
   const headBase = new THREE.Quaternion(), glance = new THREE.Quaternion(), eul = new THREE.Euler();
+  // Talking gestures. The rig ships no gesture clips, so the arms are moved in
+  // code while he speaks. The axes were MEASURED on colin.glb (which rotation
+  // takes each hand forward and up), not guessed: forearm/arm about local Z,
+  // +Z on his left, -Z on his right. Same take-it-off-before-the-mixer rule as
+  // the head glance, or the offsets would stack every frame.
+  const gest = []; let gAmt = 0, gBeat = 0, lastShape = 'rest';
+  const Z = new THREE.Vector3(0, 0, 1), X = new THREE.Vector3(1, 0, 0);
   addEventListener('pointermove', e => {
     const r = canvas.getBoundingClientRect();
     look.set(Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / innerWidth * 2)),
@@ -143,7 +150,21 @@ export function createMiniColin({ go, known, items, pageOf }) {
     // Take last frame's glance OFF before the mixer runs: if the idle has no
     // head track, nothing else would, and the offset would stack every frame.
     if (head) head.quaternion.copy(headBase);
+    for (const g of gest) g.bone.quaternion.copy(g.base);
     ch.mixer.update(dt);
+    // gestures: ease in while he talks, with a little beat on each open vowel
+    const talking = mouth.talking && mouth.who === 'colin';
+    gAmt += ((talking ? 1 : 0) - gAmt) * (1 - Math.exp(-3 * dt));
+    if (talking && mouth.shape !== lastShape && (mouth.shape === 'AI' || mouth.shape === 'O')) gBeat = 1;
+    lastShape = mouth.shape; gBeat *= Math.exp(-5 * dt);
+    const tt = performance.now() / 1000;
+    for (const g of gest) {
+      g.base.copy(g.bone.quaternion);
+      if (gAmt < 0.002) continue;
+      const n = Math.sin(tt * 1.3 + g.seed) * 0.6 + Math.sin(tt * 2.9 + g.seed * 2) * 0.4;      // -1..1, per arm
+      if (g.fore) g.bone.rotateOnAxis(Z, g.side * gAmt * (0.55 + 0.35 * n + 0.25 * gBeat));
+      else { g.bone.rotateOnAxis(Z, g.side * gAmt * (0.14 + 0.1 * n)); g.bone.rotateOnAxis(X, -gAmt * 0.08 * (1 + n)); }
+    }
     // look toward the pointer, on top of whatever the clip did to the head
     lookNow.lerp(look, 1 - Math.exp(-4 * dt));
     if (head) {
@@ -184,6 +205,8 @@ export function createMiniColin({ go, known, items, pageOf }) {
       if (o.morphTargetDictionary) face.push({ infl: o.morphTargetInfluences,
         index: new Map(Object.entries(o.morphTargetDictionary).map(([n, i]) => [canon(n), i])) });
       if (o.isBone && /head$/i.test(o.name) && !head) { head = o; headBase.copy(o.quaternion); }
+      const m = o.isBone && o.name.match(/(Left|Right)(ForeArm|Arm)$/);
+      if (m) gest.push({ bone: o, side: m[1] === 'Left' ? 1 : -1, fore: m[2] === 'ForeArm', base: o.quaternion.clone(), seed: Math.random() * 10 });
     });
     scene.add(c.model);
     idle = pickClip(c.clips, 'idle_neutral', 'neutral_idle');
@@ -341,5 +364,17 @@ export function createMiniColin({ go, known, items, pageOf }) {
   form.onsubmit = e => { e.preventDefault(); const t = input.value; input.value = ''; if (state === 'off') wake().then(() => ask(t)); else ask(t); };
   setState('off');
 
-  return { act, ask, wake, sleep };
+  // Hero mode: the About page borrows him, big, in its own frame.
+  const home = { parent: document.body, next: null };
+  function adopt(host) { if (!host) return; host.appendChild(dock); dock.classList.add('hero'); size(); }
+  function release() { if (dock.parentElement !== document.body) { document.body.appendChild(dock); dock.classList.remove('hero'); size(); } }
+  /** Where his head is on screen (client px), for things that orbit it. */
+  const hv = new THREE.Vector3();
+  function headScreen() {
+    if (!head) return null;
+    head.getWorldPosition(hv); hv.y += 0.06; hv.project(camera);
+    const r = canvas.getBoundingClientRect();
+    return { x: r.left + (hv.x * 0.5 + 0.5) * r.width, y: r.top + (-hv.y * 0.5 + 0.5) * r.height, w: r.width, h: r.height };
+  }
+  return { act, ask, wake, sleep, adopt, release, headScreen, get awake() { return state !== 'off'; } };
 }
