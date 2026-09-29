@@ -149,7 +149,7 @@ const PAGES = {
   motion() {
     const s = sectionOf('motion');
     return `<div class="wrap">${head(s)}<div class="wall">${MOTION.map(m =>
-      `<figure><video data-src="${esc(m.src)}" muted loop playsinline preload="none"></video><figcaption>${esc(m.title)}</figcaption></figure>`).join('')}</div>${foot()}</div>`;
+      `<figure><video data-src="${esc(m.src)}" poster="${esc(m.poster)}" muted loop playsinline preload="none"></video><figcaption>${esc(m.title)}</figcaption></figure>`).join('')}</div>${foot()}</div>`;
   },
 
   workbench() {

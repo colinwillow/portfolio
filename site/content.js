@@ -93,7 +93,7 @@ export const ASSETS = [
     notes: ['Hit reactions, knock-down and get-up', 'In-air pose for launches'] },
   { slug: 'clancy', title: 'Clancy', from: 'Weirdport', glb: 'models/assets/clancy.glb', mb: 1.5,
     tris: 11035, joints: 27, clips: 36, prefer: ['clancy_idle_01'],
-    notes: ['Mutant attack set', 'Fall, roll and hard-landing clips'] },
+    notes: ['Zap\'s alien dog sidekick', 'Attack, fall, roll and hard-landing clips'] },
   { slug: 'construction-worker', title: 'Construction Worker', from: 'Weirdport', glb: 'models/assets/contruction_worker.glb', mb: 1.7,
     tris: 10894, joints: 68, clips: 16, prefer: ['idle'],
     notes: ['Tool swings, vehicle enter/exit, knock-downs', 'Weapon mount for tools'] },
@@ -146,7 +146,9 @@ const MOTION_FILES = [
   '20_motion_xbox',
 ];
 const pretty = f => f.replace(/^\d+_(motion|illl?ustration)_/, '').replace(/_/g, ' ');
-export const MOTION = MOTION_FILES.map(f => ({ src: 'motion/' + f + '.mp4', title: pretty(f) }));
+// motion/web/ holds 720px, silent, fast-start copies (54 MB -> 8 MB); the
+// originals stay in motion/ because classic.html links them.
+export const MOTION = MOTION_FILES.map(f => ({ src: 'motion/web/' + f + '.mp4', poster: 'motion/posters/' + f + '.webp', title: pretty(f) }));
 
 const ILLUS = ['1_illlustration_faith.JPG', '2_illlustration_megan.jpg', '3_illustration_colin_graffiti.jpg',
   '4_illustration_buck.jpg', '6_illustration_bobcat.jpg', '9_illustration_owl.jpg', '10_illustration_faith_dress.jpg',

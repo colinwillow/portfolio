@@ -5,6 +5,13 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js';
 
+function facing(model) {
+  const toes = [], v = new THREE.Vector3(), w = new THREE.Vector3(), sum = new THREE.Vector3();
+  model.traverse(o => { if (o.isBone && /toe/i.test(o.name) && !/end|top/i.test(o.name) && o.parent?.isBone) toes.push(o); });
+  for (const t of toes) { t.getWorldPosition(v); t.parent.getWorldPosition(w); v.sub(w); v.y = 0; if (v.lengthSq() > 1e-10) sum.add(v.normalize()); }
+  return sum.lengthSq() > 1e-6 ? sum.normalize() : new THREE.Vector3(0, 0, 1);
+}
+
 const pretty = n => n.replace(/[_.]+/g, ' ').replace(/\s+/g, ' ').trim();
 
 export function mountViewer(host, { url, prefer = [] }) {
@@ -54,8 +61,8 @@ export function mountViewer(host, { url, prefer = [] }) {
   const ro = new ResizeObserver(size); ro.observe(canvas.parentElement); size();
 
   // Drag to turn, wheel/pinch to zoom.
-  const ptrs = new Map(); let pinch0 = 0, dist0 = 0;
-  canvas.addEventListener('pointerdown', e => { ptrs.set(e.pointerId, e); canvas.setPointerCapture(e.pointerId); orbit.auto = false;
+  const ptrs = new Map(); let pinch0 = 0, dist0 = 0, touched = false;
+  canvas.addEventListener('pointerdown', e => { ptrs.set(e.pointerId, e); canvas.setPointerCapture(e.pointerId); orbit.auto = false; touched = true;
     if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); dist0 = orbit.dist; } });
   canvas.addEventListener('pointermove', e => {
     const p = ptrs.get(e.pointerId); if (!p) return;
@@ -105,6 +112,12 @@ export function mountViewer(host, { url, prefer = [] }) {
     const cx = (box.min.x + box.max.x) / 2, cz = (box.min.z + box.max.z) / 2;
     c.model.position.x -= cx; c.model.position.z -= cz;
     orbit.h = h; orbit.target.set(0, h * 0.52, 0);
+    // Open on his FRONT, three-quarter. Which way a rig faces is measured, not
+    // assumed: a foot points forwards, so toe-minus-foot, averaged over both feet
+    // (which cancels the splay), is the facing. Fallback is glTF-ish +Z.
+    const f = facing(c.model);
+    orbit.yaw = Math.atan2(f.x, f.z) + 0.45;
+    orbit.auto = false; setTimeout(() => { if (!ptrs.size && !touched) orbit.auto = true; }, 2600);
     disc.scale.setScalar(h * 0.42);
     status.remove();
 
