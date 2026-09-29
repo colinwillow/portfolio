@@ -44,7 +44,7 @@ export const PLAY = [
     blurb: 'Neon robot arena shooter with wall-crawling and crazy gravity. The first Majia title.' },
   { slug: 'weirdport', aliases: ['melee'], shot: 'weirdport', gallery: ['weirdport-key', 'weirdport-zap'],
     title: 'Weirdport', kind: 'Game', status: 'dev', thumb: 'weirdport',
-    url: GH + 'melee/', tags: ['three.js', 'twin-stick', 'open city'],
+    url: GH + 'weirdport/', tags: ['three.js', 'twin-stick', 'open city'],
     blurb: 'Zap and his alien dog Clancy loose in a toon Portland: blaster, hammer, a DNA gun that turns you into whoever you shoot, skateboarding and buildings that come apart.' },
   { slug: 'big-don', shot: 'big-don', title: 'Big Don', kind: 'Game', status: 'dev', thumb: 'bigdon',
     url: GH + 'BigDon/', tags: ['three.js', 'twin-stick'],
