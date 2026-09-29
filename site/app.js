@@ -7,7 +7,7 @@ const BUILD = new URL(import.meta.url).searchParams.get('v') || 'dev';
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const view = $('#view');
-$('#tagline').textContent = SITE.tagline;
+{ const t = $('#tagline'); if (t) t.textContent = SITE.tagline; }
 
 // ---- routing ------------------------------------------------------------
 // Every section and item has a real URL, so a tutorial can link straight to
@@ -312,38 +312,41 @@ const pushColors = () => globe?.setColors({ ink: css(USE_SWARM ? '--ink' : '--gl
 onAccent(() => pushColors());
 
 // ---- the hero: the real Glorb, and the navigation is swiping him ------------
-// He lives in his own repo and is embedded whole (glorp/?embed), so the flee and
-// the formations are HIS tuned ones rather than a copy. Swipe him and he spells
-// the next section; tap him (or the name under him) and the page goes there.
-const GLORB = {
-  words: { play: 'GAMES', assets: 'CHARACTERS', scripts: 'SCRIPTS', web: 'WEBSITES', motion: 'MOTION',
-           studios: 'STUDIOS', writing: 'ESSAYS', audio: 'AUDIO', workbench: 'WORKBENCH', about: 'ABOUT' },
-  i: -1, frame: null, ready: false, win: null,
-};
+// He lives in his own repo and is embedded whole (glorp/?embed), so the flee,
+// the ring and the music visualiser are HIS tuned ones rather than a copy. He
+// plays himself a silent song so he is always alive; when the ♪ player is on he
+// gets the real one. Swipe him and he becomes the next section's shape; tap him
+// (or its name) and the page goes there.
+const GLORB = { i: -1, frame: null, ready: false, send: () => {} };
+const mixHex = (a, b, t) => '#' + [0, 2, 4].map(k => Math.round(parseInt(a.slice(1 + k, 3 + k), 16) * (1 - t) +
+  parseInt(b.slice(1 + k, 3 + k), 16) * t).toString(16).padStart(2, '0')).join('');
+function glorbPalette() {
+  const dark = document.documentElement.dataset.theme === 'dark', acc = css('--accent');
+  return { rim: acc, core: dark ? mixHex(acc, '#ffffff', 0.72) : css('--accent-deep') };
+}
 if (GLORB_ON) {
   document.body.classList.add('has-glorb');
   const f = document.createElement('iframe');
-  const bg = () => css('--bg').replace('#', '');
+  const hex = v => v.replace('#', '');
   const th = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
-  // same origin on github.io (and colinwillow.com, which serves the same account)
-  const src = (BASE === '/portfolio/' ? '/glorp/' : 'https://colinwillow.github.io/glorp/') + `?embed&theme=${th()}&bg=${bg()}`;
-  Object.assign(f, { src, title: 'Glorb', loading: 'eager' });
-  f.setAttribute('allow', 'autoplay');
+  const pal = glorbPalette();
+  // same origin on github.io, and colinwillow.com serves the same account
+  const src = (BASE === '/portfolio/' ? '/glorp/' : 'https://colinwillow.github.io/glorp/') +
+    `?embed&theme=${th()}&bg=${hex(css('--bg'))}&rim=${hex(pal.rim)}&core=${hex(pal.core)}`;
+  Object.assign(f, { src, title: 'Glorb — swipe to browse the sections' });
   $('#glorb').append(f);
   GLORB.frame = f;
-  const send = m => { try { f.contentWindow.postMessage(m, '*'); } catch {} };
-  GLORB.send = send;
+  GLORB.send = m => { try { f.contentWindow.postMessage(m, '*'); } catch {} };
+  const sendLook = () => { GLORB.send({ glorb: 'theme', theme: th(), bg: css('--bg') }); GLORB.send({ glorb: 'palette', ...glorbPalette() }); };
   addEventListener('message', e => {
     if (e.source !== f.contentWindow) return;
     const d = e.data || {};
     if (d.glorb === 'ready') { GLORB.ready = true; if (GLORB.i >= 0) glorbShow(); }
     else if (d.glorb === 'swipe') { if (d.dir === 'up') glorbDown(); else glorbStep(d.dir); }
-    else if (d.glorb === 'tap' && GLORB.i >= 0) glorbGo();
+    else if (d.glorb === 'tap') { if (GLORB.i >= 0) glorbGo(); else glorbStep(1); }
   });
-  new MutationObserver(() => send({ glorb: 'theme', theme: th(), bg: bg() }))
-    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-  const dots = $('.pg-dots');
-  dots.innerHTML = SECTIONS.map(() => '<i></i>').join('');
+  new MutationObserver(sendLook).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  onAccent(() => sendLook());
   $('.pg-prev').onclick = () => glorbStep(-1);
   $('.pg-next').onclick = () => glorbStep(1);
   $('.pg-now').onclick = () => (GLORB.i >= 0 ? glorbGo() : glorbStep(1));
@@ -358,14 +361,18 @@ function glorbStep(dir) {
   GLORB.i = GLORB.i < 0 ? (dir > 0 ? 0 : n - 1) : (GLORB.i + dir + n) % n;
   glorbShow();
 }
-function glorbShow() {
-  const s = SECTIONS[GLORB.i];
+let glorbTurn = 0;
+async function glorbShow() {
+  const s = SECTIONS[GLORB.i], my = ++glorbTurn;
   const now = $('.pg-now');
-  now.innerHTML = `<b>${esc(s.label)}</b><i>${esc(s.blurb)}</i>`;
+  now.innerHTML = `<b>${esc(s.label)}</b><i>${String(GLORB.i + 1).padStart(2, '0')} / ${SECTIONS.length}</i>`;
   now.classList.remove('flip'); void now.offsetWidth; now.classList.add('flip');
-  $('.pg-dots').querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k === GLORB.i));
   document.body.classList.add('picked');
-  if (GLORB.ready) GLORB.send({ glorb: 'text', text: GLORB.words[s.key] || s.label, share: 0.62, fs: 0.3 });
+  if (!GLORB.ready) return;
+  const { glorbPoints } = await import('./glorb-shapes.js?v=0107854f');
+  const pts = await glorbPoints(s.key);
+  if (my !== glorbTurn || !pts) return;
+  GLORB.send({ glorb: 'points', points: pts, flat: true, share: 0.6, fs: 0.31 });
 }
 function glorbGo() {
   const key = SECTIONS[GLORB.i].key, shelf = document.getElementById('shelf-' + key);
@@ -385,6 +392,9 @@ const music = {
     const src = this.ctx.createMediaElementSource(this.el);
     this.an = this.ctx.createAnalyser(); this.an.fftSize = 256; this.buf = new Uint8Array(this.an.frequencyBinCount);
     src.connect(this.an); this.an.connect(this.ctx.destination);
+    // Glorb reads the song through his own analysis, which is built for a 2048 FFT
+    this.an2 = this.ctx.createAnalyser(); this.an2.fftSize = 2048; this.an2.smoothingTimeConstant = 0.5; src.connect(this.an2);
+    this.f2 = new Uint8Array(1024); this.t2 = new Float32Array(2048);
     this.el.onended = () => this.play(this.i + 1);
     ['play', 'pause', 'timeupdate'].forEach(ev => this.el.addEventListener(ev, () => this.emit()));
   },
@@ -403,6 +413,11 @@ const sound = { get el() { return music.el; }, get an() { return music.an; }, ge
 let lvl = 0;
 (function meter() {
   requestAnimationFrame(meter);
+  // the real song to Glorb while he is on screen; he falls back to his ghost one when it stops
+  if (GLORB.ready && music.playing && music.an2 && !route().length && scrollY < innerHeight) {
+    music.an2.getByteFrequencyData(music.f2); music.an2.getFloatTimeDomainData(music.t2);
+    GLORB.send({ glorb: 'audio', f: music.f2, t: music.t2 });
+  }
   if (!globe) return;
   let v = 0;
   if (sound.el && !sound.el.paused) {
