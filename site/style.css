@@ -327,3 +327,10 @@ a.card.media:hover .cover { transform: scale(1.03); }
 .about-shelf a { text-decoration: none; }
 .about-shelf h3 { margin: 0 0 8px; font: 700 clamp(26px, 4.5vw, 44px)/1 var(--ui); letter-spacing: -.03em; }
 .about-shelf p { max-width: 58ch; color: var(--muted); font-size: 17px; }
+
+/* ---- the swarm stage: the aisle floats over it --------------------------------- */
+body.swarm #labels { display: none; }
+body.swarm #globe { cursor: default; }
+body.swarm.at-home #view { background: transparent; border-top-color: transparent; box-shadow: none; }
+body.swarm.at-home .shelf-figures { background: linear-gradient(to bottom, transparent 55%, color-mix(in srgb, var(--accent-soft) 45%, transparent)); }
+@media (min-aspect-ratio: 6/5) { body.swarm.at-home .aisle { margin-right: 26vw; } body.swarm.at-home .shelf .wall { max-width: none; } }

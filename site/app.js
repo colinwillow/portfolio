@@ -202,6 +202,9 @@ const missing = () => `<div class="wrap">${crumbs('Not found')}<h2 class="title"
 
 // ---- render ---------------------------------------------------------------
 let globe = null, mounted = null, after = null;
+// The stage behind everything: the particle swarm, or the old globe with ?globe.
+const USE_SWARM = !new URLSearchParams(location.search).has('globe');
+if (USE_SWARM) document.body.classList.add('swarm');
 function render() {
   mounted?.destroy(); mounted = null; after = null;
   const [sec, slug] = route();
@@ -212,7 +215,7 @@ function render() {
   const s = sectionOf(sec);
   document.title = s ? `${slug ? (slug + ' · ') : ''}${s.label} — ${SITE.name}` : SITE.name;
   if (sec) scrollTo(0, 0);
-  globe?.setMode(sec && s ? 'section' : 'home', s ? sec : null);
+  globe?.setMode(sec && s ? 'section' : 'home', s ? sec : null); aisleKey = null;
   wireVideos();
   after?.();
 }
@@ -236,7 +239,27 @@ addEventListener('scroll', () => {
   const y = scrollY;
   document.body.classList.toggle('scrolled', y > 40);
   if (Math.abs(y - lastY) > 12) { document.body.classList.toggle('reading', y > lastY && y > 200); lastY = y; }
+  aisleSync();
 }, { passive: true });
+
+// Walking the aisle: whichever shelf is across the middle of the screen is what
+// the swarm becomes. Back up at the hero it is the orb again.
+let aisleKey = null;
+function aisleSync() {
+  if (!USE_SWARM || !globe || route().length) return;
+  let key = 'home';
+  if (scrollY > innerHeight * 0.45) {
+    const mid = innerHeight * 0.5;
+    for (const el of document.querySelectorAll('.shelf[id^="shelf-"]')) {
+      const r = el.getBoundingClientRect();
+      if (r.top <= mid && r.bottom >= mid) { key = el.id.slice(6); break; }
+    }
+    if (key === 'home') key = aisleKey && aisleKey !== 'home' ? aisleKey : 'play';
+  }
+  if (key === aisleKey) return;
+  aisleKey = key;
+  globe.setMode(key === 'home' ? 'home' : 'aisle', key === 'home' ? null : key);
+}
 
 // ---- tools: theme, accent, sound -------------------------------------------
 initTheme();
@@ -250,7 +273,7 @@ $('#theme').onclick = () => setTheme(document.documentElement.dataset.theme === 
 }
 
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const pushColors = () => globe?.setColors({ ink: css('--globe-ink'), accent: css('--accent'), deep: css('--accent-deep') });
+const pushColors = () => globe?.setColors({ ink: css(USE_SWARM ? '--ink' : '--globe-ink'), accent: css('--accent'), deep: css('--accent-deep') });
 onAccent(() => pushColors());
 
 // Music drives the globe: loudness swells the ribbons and the dots.
@@ -289,8 +312,8 @@ let seen = false; try { seen = !!sessionStorage.getItem('cw.intro'); } catch {}
 const wantIntro = !route().length && !q.has('nointro') && (q.has('intro') || (!seen && !reduced));
 
 // The globe loads after the page is already usable, and a failure leaves the page working.
-const globeReady = import('./globe.js').then(({ createGlobe }) => {
-  globe = createGlobe({ canvas: $('#globe'), labelLayer: $('#labels'), sections: SECTIONS });
+const globeReady = (USE_SWARM ? import('./stage-swarm.js').then(m => m.createStage) : import('./globe.js').then(m => m.createGlobe)).then(make => {
+  globe = make({ canvas: $('#globe'), labelLayer: $('#labels'), sections: SECTIONS });
   pushColors();
   const [sec] = route();
   globe.setMode(sec && sectionOf(sec) ? 'section' : 'home', sec || null);
