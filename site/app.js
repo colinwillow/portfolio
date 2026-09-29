@@ -238,6 +238,7 @@ const withColin = f => (colin ? f(colin) : colinWait.push(f));
 // The stage behind everything: the particle swarm, or the old globe with ?globe.
 const USE_SWARM = !new URLSearchParams(location.search).has('globe');
 if (USE_SWARM) document.body.classList.add('swarm');
+const GLORB_ON = !new URLSearchParams(location.search).has('noglorb');
 function render() {
   mounted?.destroy(); mounted = null; after = null;
   const [sec, slug] = route();
@@ -249,6 +250,7 @@ function render() {
   document.title = s ? `${slug ? (slug + ' · ') : ''}${s.label} — ${SITE.name}` : SITE.name;
   if (sec) scrollTo(0, 0);
   globe?.setMode(sec && s ? 'section' : 'home', s ? sec : null); aisleKey = null;
+  globe?.pause?.(!sec && GLORB_ON);   // at home Glorb is the stage
   wireVideos();
   after?.();
 }
@@ -279,7 +281,7 @@ addEventListener('scroll', () => {
 // the swarm becomes. Back up at the hero it is the orb again.
 let aisleKey = null;
 function aisleSync() {
-  if (!USE_SWARM || !globe || route().length) return;
+  if (!USE_SWARM || !globe || route().length || GLORB_ON) return;
   let key = 'home';
   if (scrollY > innerHeight * 0.45) {
     const mid = innerHeight * 0.5;
@@ -308,6 +310,69 @@ $('#theme').onclick = () => setTheme(document.documentElement.dataset.theme === 
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const pushColors = () => globe?.setColors({ ink: css(USE_SWARM ? '--ink' : '--globe-ink'), accent: css('--accent'), deep: css('--accent-deep') });
 onAccent(() => pushColors());
+
+// ---- the hero: the real Glorb, and the navigation is swiping him ------------
+// He lives in his own repo and is embedded whole (glorp/?embed), so the flee and
+// the formations are HIS tuned ones rather than a copy. Swipe him and he spells
+// the next section; tap him (or the name under him) and the page goes there.
+const GLORB = {
+  words: { play: 'GAMES', assets: 'CHARACTERS', scripts: 'SCRIPTS', web: 'WEBSITES', motion: 'MOTION',
+           studios: 'STUDIOS', writing: 'ESSAYS', audio: 'AUDIO', workbench: 'WORKBENCH', about: 'ABOUT' },
+  i: -1, frame: null, ready: false, win: null,
+};
+if (GLORB_ON) {
+  document.body.classList.add('has-glorb');
+  const f = document.createElement('iframe');
+  const bg = () => css('--bg').replace('#', '');
+  const th = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+  // same origin on github.io (and colinwillow.com, which serves the same account)
+  const src = (BASE === '/portfolio/' ? '/glorp/' : 'https://colinwillow.github.io/glorp/') + `?embed&theme=${th()}&bg=${bg()}`;
+  Object.assign(f, { src, title: 'Glorb', loading: 'eager' });
+  f.setAttribute('allow', 'autoplay');
+  $('#glorb').append(f);
+  GLORB.frame = f;
+  const send = m => { try { f.contentWindow.postMessage(m, '*'); } catch {} };
+  GLORB.send = send;
+  addEventListener('message', e => {
+    if (e.source !== f.contentWindow) return;
+    const d = e.data || {};
+    if (d.glorb === 'ready') { GLORB.ready = true; if (GLORB.i >= 0) glorbShow(); }
+    else if (d.glorb === 'swipe') { if (d.dir === 'up') glorbDown(); else glorbStep(d.dir); }
+    else if (d.glorb === 'tap' && GLORB.i >= 0) glorbGo();
+  });
+  new MutationObserver(() => send({ glorb: 'theme', theme: th(), bg: bg() }))
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  const dots = $('.pg-dots');
+  dots.innerHTML = SECTIONS.map(() => '<i></i>').join('');
+  $('.pg-prev').onclick = () => glorbStep(-1);
+  $('.pg-next').onclick = () => glorbStep(1);
+  $('.pg-now').onclick = () => (GLORB.i >= 0 ? glorbGo() : glorbStep(1));
+  addEventListener('keydown', e => {
+    if (route().length || scrollY > innerHeight * 0.5 || e.target.closest?.('input,textarea')) return;
+    if (e.key === 'ArrowRight') glorbStep(1); else if (e.key === 'ArrowLeft') glorbStep(-1);
+    else if (e.key === 'Enter' && GLORB.i >= 0 && e.target === document.body) glorbGo();
+  });
+}
+function glorbStep(dir) {
+  const n = SECTIONS.length;
+  GLORB.i = GLORB.i < 0 ? (dir > 0 ? 0 : n - 1) : (GLORB.i + dir + n) % n;
+  glorbShow();
+}
+function glorbShow() {
+  const s = SECTIONS[GLORB.i];
+  const now = $('.pg-now');
+  now.innerHTML = `<b>${esc(s.label)}</b><i>${esc(s.blurb)}</i>`;
+  now.classList.remove('flip'); void now.offsetWidth; now.classList.add('flip');
+  $('.pg-dots').querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k === GLORB.i));
+  document.body.classList.add('picked');
+  if (GLORB.ready) GLORB.send({ glorb: 'text', text: GLORB.words[s.key] || s.label, share: 0.62, fs: 0.3 });
+}
+function glorbGo() {
+  const key = SECTIONS[GLORB.i].key, shelf = document.getElementById('shelf-' + key);
+  if (!route().length && shelf) shelf.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  else go(key);
+}
+function glorbDown() { const v = $('#view'); if (v) scrollTo({ top: v.offsetTop - 10, behavior: 'smooth' }); }
 
 // ONE music player for the whole site: the ♪ key, the Audio page and the
 // stage all share it, so whatever is playing is what the swarm dances to.
@@ -452,11 +517,12 @@ let seen = false; try { seen = !!sessionStorage.getItem('cw.intro'); } catch {}
 const wantIntro = !route().length && !q.has('nointro') && (q.has('intro') || (!seen && !reduced));
 
 // The globe loads after the page is already usable, and a failure leaves the page working.
-const globeReady = (USE_SWARM ? import('./stage-swarm.js?v=32b94234').then(m => m.createStage) : import('./globe.js?v=8a9c02ed').then(m => m.createGlobe)).then(make => {
+const globeReady = (USE_SWARM ? import('./stage-swarm.js?v=d68adea6').then(m => m.createStage) : import('./globe.js?v=8a9c02ed').then(m => m.createGlobe)).then(make => {
   globe = make({ canvas: $('#globe'), labelLayer: $('#labels'), sections: SECTIONS });
   pushColors();
   const [sec] = route();
   globe.setMode(sec && sectionOf(sec) ? 'section' : 'home', sec || null);
+  globe.pause?.(!sec && GLORB_ON);
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
@@ -471,7 +537,7 @@ const KNOWN = [
   `Games: ${PLAY.filter(p => p.kind === 'Game').map(p => p.title).join(', ')}. Apps: ${PLAY.filter(p => p.kind !== 'Game').map(p => p.title).join(', ')}.`,
   `Characters for sale or download (coming to Gumroad): ${ASSETS.map(a => `${a.title} (${a.clips} animations, ${a.tris} triangles)`).join(', ')}. All are rigged, animated, draco-compressed and made for three.js games on phones.`,
   `Scripts: ${SCRIPTS.map(s => s.title).join(', ')}. Essays: ${WRITING.map(w => w.title).join(', ')}. Studios: SeaWillow (holding company and design studio), Majia (game studio), Unknown (clothing label).`,
-  `When they ask to go somewhere on the site the page moves there by itself; just say something short and natural about what they will find. Keep replies short.`,
+  `When they ask to go somewhere on the site the page moves there by itself: answer in ONE short casual sentence and never describe, list or tour what is on the page. Never narrate the site unprompted. Every reply is at most two short sentences, spoken like conversation, with no lists.`,
 ].join(' ').slice(0, 2900);
 const ITEMS = [
   ...PLAY.map(p => ({ title: p.title, path: 'play/' + p.slug })),
@@ -480,5 +546,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=3026fc61').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=ca34e73e').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="site/style.css?v=4da0d91a">
+<link rel="stylesheet" href="site/style.css?v=4b459ddd">
 </head>
 <body class="at-home">
   <div id="stage" aria-hidden="false">
@@ -34,8 +34,10 @@
     <nav id="labels" aria-label="Sections"></nav>
   </div>
 
+  <div id="glorb"></div>
+
   <header id="hud">
-    <a class="mark" href="./" data-link>COLIN<b>WILLOW</b></a>
+    <a class="mark" href="./" data-link><svg class="logo" role="img" aria-label="Colin Willow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 379.35"> <g> <path fill="currentColor" d="M302.76,177.22c-32.37,0-58.71-26.22-58.71-58.45s26.34-58.71,58.71-58.71c15.67,0,30.39,6.1,41.44,17.17,11.05,11.07,17.14,25.83,17.14,41.54,0,32.23-26.28,58.45-58.58,58.45ZM302.76,82.44c-20.03,0-36.33,16.3-36.33,36.33s16.3,36.07,36.33,36.07,36.07-16.18,36.07-36.07-16.18-36.33-36.07-36.33Z"/> <polygon fill="currentColor" points="379.19 177.22 379.19 60.06 402.34 60.06 402.34 154.08 469.49 154.08 469.49 177.22 379.19 177.22"/> <rect fill="currentColor" x="487.34" y="60.06" width="23.15" height="117.17"/> <polygon fill="currentColor" points="620.49 177.22 551.47 100.66 551.47 177.22 528.33 177.22 528.33 60.06 546.15 60.06 615.16 136.62 615.16 60.06 638.31 60.06 638.31 177.22 620.49 177.22"/> </g> <g> <rect fill="currentColor" x="487.33" y="201.96" width="23.15" height="117.18"/> <polygon fill="currentColor" points="528.35 319.13 528.35 201.95 551.49 201.95 551.49 295.99 618.66 295.99 618.66 319.13 528.35 319.13"/> <polygon fill="currentColor" points="638.31 319.13 638.31 201.95 661.46 201.95 661.46 295.99 728.63 295.99 728.63 319.13 638.31 319.13"/> <path fill="currentColor" d="M788.98,319.13c-32.38,0-58.72-26.23-58.72-58.46s26.34-58.72,58.72-58.72c15.67,0,30.39,6.1,41.45,17.17,11.05,11.08,17.14,25.83,17.14,41.55,0,32.24-26.28,58.46-58.59,58.46ZM788.98,224.34c-20.03,0-36.33,16.3-36.33,36.33s16.3,36.08,36.33,36.08,36.08-16.18,36.08-36.08-16.18-36.33-36.08-36.33Z"/> <polygon fill="currentColor" points="962.31 319.14 935.21 245.4 908.22 319.14 891.47 319.14 847.57 201.96 872.28 201.96 899.62 275.8 926.66 201.96 944 201.96 970.91 275.75 998.24 201.96 1022.93 201.96 979.19 319.14 962.31 319.14"/> <polygon fill="currentColor" points="408.87 319.14 381.77 245.4 354.78 319.14 338.03 319.14 294.13 201.96 318.84 201.96 346.18 275.8 373.22 201.96 390.56 201.96 417.47 275.75 444.8 201.96 469.49 201.96 425.75 319.14 408.87 319.14"/> </g> <path fill="currentColor" d="M180.78,267.96c-46.46,0-71.01-27-71.01-78.07s24.56-78.66,71.01-78.66h38.95c1.79-19.88,10.57-37.77,23.88-51.18h-62.83c-75.37,0-122.19,49.75-122.19,129.84,0,40.14,11.74,73.3,33.96,95.9,21.46,21.82,51.96,33.35,88.23,33.35h132.57l-19.23-51.18h-113.35Z"/> <rect fill="none" stroke="currentColor" stroke-width="2.79" class="frame" x="5.67" y="7.23" width="1068.02" height="364.46" rx="25.67" ry="25.67"/> </svg></a>
     <div class="tools">
       <button id="sound" class="tool" aria-label="Play music (the globe reacts to it)" title="Music">♪</button>
       <button id="theme" class="tool" aria-label="Toggle light and dark" title="Light / dark">◐</button>
@@ -44,7 +46,13 @@
   </header>
 
   <div id="hero">
-    <h1>Colin Willow</h1>
+    <h1><svg class="logo big" role="img" aria-label="Colin Willow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 379.35"> <g> <path fill="currentColor" d="M302.76,177.22c-32.37,0-58.71-26.22-58.71-58.45s26.34-58.71,58.71-58.71c15.67,0,30.39,6.1,41.44,17.17,11.05,11.07,17.14,25.83,17.14,41.54,0,32.23-26.28,58.45-58.58,58.45ZM302.76,82.44c-20.03,0-36.33,16.3-36.33,36.33s16.3,36.07,36.33,36.07,36.07-16.18,36.07-36.07-16.18-36.33-36.07-36.33Z"/> <polygon fill="currentColor" points="379.19 177.22 379.19 60.06 402.34 60.06 402.34 154.08 469.49 154.08 469.49 177.22 379.19 177.22"/> <rect fill="currentColor" x="487.34" y="60.06" width="23.15" height="117.17"/> <polygon fill="currentColor" points="620.49 177.22 551.47 100.66 551.47 177.22 528.33 177.22 528.33 60.06 546.15 60.06 615.16 136.62 615.16 60.06 638.31 60.06 638.31 177.22 620.49 177.22"/> </g> <g> <rect fill="currentColor" x="487.33" y="201.96" width="23.15" height="117.18"/> <polygon fill="currentColor" points="528.35 319.13 528.35 201.95 551.49 201.95 551.49 295.99 618.66 295.99 618.66 319.13 528.35 319.13"/> <polygon fill="currentColor" points="638.31 319.13 638.31 201.95 661.46 201.95 661.46 295.99 728.63 295.99 728.63 319.13 638.31 319.13"/> <path fill="currentColor" d="M788.98,319.13c-32.38,0-58.72-26.23-58.72-58.46s26.34-58.72,58.72-58.72c15.67,0,30.39,6.1,41.45,17.17,11.05,11.08,17.14,25.83,17.14,41.55,0,32.24-26.28,58.46-58.59,58.46ZM788.98,224.34c-20.03,0-36.33,16.3-36.33,36.33s16.3,36.08,36.33,36.08,36.08-16.18,36.08-36.08-16.18-36.33-36.08-36.33Z"/> <polygon fill="currentColor" points="962.31 319.14 935.21 245.4 908.22 319.14 891.47 319.14 847.57 201.96 872.28 201.96 899.62 275.8 926.66 201.96 944 201.96 970.91 275.75 998.24 201.96 1022.93 201.96 979.19 319.14 962.31 319.14"/> <polygon fill="currentColor" points="408.87 319.14 381.77 245.4 354.78 319.14 338.03 319.14 294.13 201.96 318.84 201.96 346.18 275.8 373.22 201.96 390.56 201.96 417.47 275.75 444.8 201.96 469.49 201.96 425.75 319.14 408.87 319.14"/> </g> <path fill="currentColor" d="M180.78,267.96c-46.46,0-71.01-27-71.01-78.07s24.56-78.66,71.01-78.66h38.95c1.79-19.88,10.57-37.77,23.88-51.18h-62.83c-75.37,0-122.19,49.75-122.19,129.84,0,40.14,11.74,73.3,33.96,95.9,21.46,21.82,51.96,33.35,88.23,33.35h132.57l-19.23-51.18h-113.35Z"/> <rect fill="none" stroke="currentColor" stroke-width="2.79" class="frame" x="5.67" y="7.23" width="1068.02" height="364.46" rx="25.67" ry="25.67"/> </svg></h1>
+    <nav id="pager" aria-label="Sections">
+      <button class="pg-prev" aria-label="Previous section">‹</button>
+      <button class="pg-now"><b>Swipe Glorb</b><i>or tap an arrow</i></button>
+      <button class="pg-next" aria-label="Next section">›</button>
+    </nav>
+    <div class="pg-dots" aria-hidden="true"></div>
     <p id="tagline"></p>
     <a class="scroll-cue" href="#index">Walk the aisle ↓</a>
   </div>
@@ -52,6 +60,6 @@
   <main id="view" tabindex="-1"></main>
 
   <noscript><p style="padding:2rem">This site needs JavaScript. The <a href="classic.html">previous portfolio</a> works without it.</p></noscript>
-  <script type="module" src="site/app.js?v=90082502"></script>
+  <script type="module" src="site/app.js?v=8d8b0399"></script>
 </body>
 </html>

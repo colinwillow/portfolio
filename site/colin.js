@@ -280,22 +280,32 @@ export function createMiniColin({ go, known, items, pageOf }) {
     stopListening(); setState('thinking'); log('you', text);
     const path = routeFor(text, items);
     if (path !== null) { go(path); act('wave'); }
-    const sp = speaker(my); let spoken = 0;
+    const sp = speaker(my); let spoken = 0, said = 0;
     const line = log('him', '…');
+    /* He was WORDY: asked to go somewhere, he went and then narrated the whole
+       section unprompted. The page moving IS the answer, so a navigation turn
+       gets one sentence and everything else gets three -- asked for in the
+       prompt, and enforced here, because a model asked for brevity is not a
+       model that is brief. Whatever runs past the cap is neither said nor shown. */
+    const cap = path !== null ? 1 : 3;
+    const clip = t => { const m = t.match(SENT) || []; let n = 0, out = '';
+      for (const s2 of m) { if (n++ >= cap) break; out += s2; } return n > cap || m.length >= cap ? out.trim() : t; };
     try {
       const { reply, show } = await brain.ask(
-        path !== null ? `${text}\n(The page has just taken them to /${path || ''}.)` : text, pageOf(),
+        path !== null
+          ? `${text}\n(The page has just taken them to /${path || ''}. Reply with ONE short casual sentence, under twelve words. Do not describe or list what is there.)`
+          : `${text}\n(Keep it short: two sentences at most, like talking, no lists.)`, pageOf(),
         t => {
           if (my !== turn) return;
-          line.textContent = t;
+          line.textContent = clip(t);
           // hand each finished sentence to the voice as soon as it exists
           const done = t.slice(spoken).match(SENT);
-          if (done) for (const s2 of done) { sp.add(s2.trim()); spoken += s2.length; }
+          if (done) for (const s2 of done) { if (said < cap) { sp.add(s2.trim()); said++; } spoken += s2.length; }
         });
       if (my !== turn) return;
       const rest = reply.slice(spoken).trim();
-      if (rest) sp.add(rest);
-      line.textContent = reply;
+      if (rest && said < cap) sp.add(rest);
+      line.textContent = clip(reply);
       if (show?.act) act(show.act);
       if (show?.pages && path === null) go('');
       await sp.finished();

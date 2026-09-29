@@ -90,7 +90,8 @@ export function createStage({ canvas }) {
     swarm.uniforms.uHush.value = st.hush; swarm.uniforms.uLevel.value = st.level;
     renderer.render(scene, camera);
   }
-  const start = () => { if (!running) { running = true; last = performance.now(); renderer.setAnimationLoop(frame); } };
+  let paused = false;
+  const start = () => { if (!running && !paused) { running = true; last = performance.now(); renderer.setAnimationLoop(frame); } };
   document.addEventListener('visibilitychange', () => { if (document.hidden) { running = false; renderer.setAnimationLoop(null); } else start(); });
   addEventListener('resize', layout);
   addEventListener('pointermove', e => { swarm.uniforms.uPtr.value.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight * 2 - 1)); swarm.uniforms.uPtrOn.value = 1; }, { passive: true });
@@ -102,6 +103,8 @@ export function createStage({ canvas }) {
     setMode,
     pulse(v = 1) { swarm.uniforms.uBlast.value = 0; },
     setLevel(v) { st.level = v; },
+    // off entirely (not just hidden) while something else owns the screen
+    pause(p) { paused = !!p; if (paused) { running = false; renderer.setAnimationLoop(null); } else start(); },
     setColors({ ink, accent }) { swarm.uniforms.uInk.value.set(ink); swarm.uniforms.uAccent.value.set(accent); },
   };
 }

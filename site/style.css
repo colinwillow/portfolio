@@ -383,3 +383,49 @@ body.swarm.at-home .shelf-figures { background: linear-gradient(to bottom, trans
 #mini.hero { transform: none !important; right: auto; bottom: auto; }
 #mini.hero[data-state="off"] .mini-tag { display: none; }
 #mini [hidden] { display: none !important; }
+
+/* ---- the logo (his SVG, recoloured by the theme) ---------------------------- */
+.logo { display: block; height: 30px; width: auto; color: var(--ink); }
+.logo .frame { display: none; }
+.logo.big { height: auto; width: min(78vw, 460px); margin: 0 auto; }
+.logo.big .frame { display: inline; }
+#hero h1 { line-height: 0; }
+
+/* ---- the hero is Glorb: the real one, embedded, and swiping him is the nav --- */
+#glorb { display: none; }
+body.has-glorb #glorb { display: block; position: fixed; left: 0; right: 0; top: 0; height: 66svh; z-index: 1;
+  transition: opacity .5s; }
+body.has-glorb:not(.at-home) #glorb { display: none; }
+body.has-glorb.scrolled #glorb { opacity: .35; }
+#glorb iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
+body.has-glorb.at-home #stage { display: none; }
+/* the aisle is a solid sheet again: content floating over particles was the mess */
+body.has-glorb.at-home #view { background: var(--sheet); border-top-color: var(--line); box-shadow: 0 -30px 60px -40px rgba(0,0,0,.25); }
+@media (min-aspect-ratio: 6/5) { body.has-glorb.at-home .aisle { margin-right: 0; } }
+body.has-glorb.at-home .shelf-figures { background: none; }
+body.has-glorb #hero { top: 66svh; bottom: auto; padding-bottom: 0; display: flex; flex-direction: column; align-items: center; }
+body.has-glorb #pager { order: 1; width: 100%; } body.has-glorb .pg-dots { order: 2; }
+body.has-glorb .scroll-cue { order: 4; }
+body.has-glorb #hero .logo.big { width: min(44vw, 240px); margin-bottom: 8px; }
+body.has-glorb #hero h1 { order: 3; margin-top: 12px; opacity: .9; }
+@media (max-width: 640px) { body.has-glorb.at-home #hero { padding-bottom: 0; } }
+
+#pager { display: none; }
+body.has-glorb #pager { pointer-events: auto; display: flex; align-items: center; justify-content: center; gap: 10px;
+  max-width: 560px; margin: 0 auto; }
+#pager button { border: 0; background: none; cursor: pointer; touch-action: manipulation; padding: 0; }
+.pg-prev, .pg-next { flex: none; width: 42px; height: 42px; border-radius: 50%; font-size: 26px; line-height: 1;
+  border: 1px solid var(--line) !important; color: var(--accent-ink); display: grid; place-items: center; }
+.pg-prev:active, .pg-next:active { background: var(--accent-soft) !important; }
+.pg-now { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pg-now b { font: 700 clamp(18px, 3.2vw, 24px)/1.1 var(--ui); letter-spacing: -.01em; }
+.pg-now i { font-style: normal; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; max-width: 100%; }
+body.picked .pg-now b::after { content: ' →'; color: var(--accent-ink); }
+.pg-now.flip { animation: pgflip .45s cubic-bezier(.2,.8,.2,1); }
+@keyframes pgflip { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.pg-dots { display: none; }
+body.has-glorb .pg-dots { display: flex; justify-content: center; gap: 6px; margin: 10px 0 4px; }
+.pg-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--line); transition: background .2s, transform .2s; }
+.pg-dots i.on { background: var(--accent); transform: scale(1.5); }
+body.has-glorb #hero #tagline { display: none; }
