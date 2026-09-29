@@ -33,37 +33,37 @@ export const SECTIONS = [
 
 // status: 'live' | 'dev' (playable but in development) | 'soon'
 export const PLAY = [
-  { slug: 'shredworld', title: 'Shredworld', kind: 'Game', status: 'dev', thumb: 'shredworld',
+  { slug: 'shredworld', shot: 'shredworld', gallery: ['shredworld', 'shredworld-key'], title: 'Shredworld', kind: 'Game', status: 'dev', thumb: 'shredworld',
     url: GH + 'city/', tags: ['three.js', 'mobile', 'open world'],
     blurb: 'Skate an open low-poly city. Board tricks, grinds, ladders, a jetpack, a blaster, the police, and a ship you can fly off a rooftop.' },
-  { slug: 'plutopia', title: 'Plutopia', kind: 'Game', status: 'dev', thumb: 'plutopia',
+  { slug: 'plutopia', shot: 'plutopia', gallery: ['plutopia', 'plutopia-key'], title: 'Plutopia', kind: 'Game', status: 'dev', thumb: 'plutopia',
     url: GH + 'plutopia/', tags: ['three.js', 'mobile'],
     blurb: 'A tiny painted planet with a toon alien, a flyable ship with articulated jets and landing gear, and a claw.' },
-  { slug: 'robits', title: 'Robits Neon Blast', kind: 'Game', status: 'dev', thumb: 'robits',
+  { slug: 'robits', shot: 'robits', title: 'Robits Neon Blast', kind: 'Game', status: 'dev', thumb: 'robits',
     url: GH + 'robits/', tags: ['three.js', 'twin-stick'],
     blurb: 'Neon robot arena shooter with wall-crawling and crazy gravity. The first Majia title.' },
-  { slug: 'melee', title: 'Melee', kind: 'Game', status: 'dev', thumb: 'melee',
+  { slug: 'melee', shot: 'melee', title: 'Melee', kind: 'Game', status: 'dev', thumb: 'melee',
     url: GH + 'melee/', tags: ['three.js', 'twin-stick'],
     blurb: 'Twin-stick action in a toon city: blaster, hammer, a DNA gun that turns you into whoever you shoot, and breakable buildings.' },
-  { slug: 'big-don', title: 'Big Don', kind: 'Game', status: 'dev', thumb: 'bigdon',
+  { slug: 'big-don', shot: 'big-don', title: 'Big Don', kind: 'Game', status: 'dev', thumb: 'bigdon',
     url: GH + 'BigDon/', tags: ['three.js', 'twin-stick'],
     blurb: 'Toon-shaded action with ledge hangs, cover, long jumps and mirrored strike combos. Two thumbs, no buttons.' },
-  { slug: 'peggy', title: 'Peggy', kind: 'Game', status: 'dev', thumb: 'peggy',
+  { slug: 'peggy', shot: 'peggy', title: 'Peggy', kind: 'Game', status: 'dev', thumb: 'peggy',
     url: GH + 'peggy/', tags: ['three.js', 'adventure'],
     blurb: 'A cyclops-octopus pirate with a hook for a hand and a peg for a leg — and a game built around both.' },
-  { slug: 'rollergirl', title: 'Rollergirl', kind: 'Game', status: 'dev',
+  { slug: 'rollergirl', shot: 'rollergirl', title: 'Rollergirl', kind: 'Game', status: 'dev',
     url: GH + 'rollergirl/', tags: ['three.js', 'skate park'],
     blurb: 'Rollerblading in a procedural park: half pipes, a bowl, kickers and real transition physics.' },
-  { slug: 'portland', title: 'Portland', kind: 'Game', status: 'dev',
+  { slug: 'portland', shot: 'portland', title: 'Portland', kind: 'Game', status: 'dev',
     url: GH + 'portland/', tags: ['three.js', 'open data'],
     blurb: 'A walkable Portland built from open map data — streets, bridges, crowds, traffic and boats on the Willamette.' },
-  { slug: 'sky', title: 'Sky', kind: 'Game', status: 'dev',
+  { slug: 'sky', shot: 'sky', title: 'Sky', kind: 'Game', status: 'dev',
     url: GH + 'sky/', tags: ['three.js', 'planets'],
     blurb: 'Procedural planets you can walk on and fly between, with a scattered-light sky.' },
-  { slug: 'colin', title: 'Talk to Colin', kind: 'App', status: 'dev',
+  { slug: 'colin', shot: 'colin', title: 'Talk to Colin', kind: 'App', status: 'dev',
     url: GH + 'colin/', tags: ['voice', 'AI'],
     blurb: 'A rigged mini-me in a baked kitchen. Push to talk and he answers in my voice, lip-synced.' },
-  { slug: 'glorb', title: 'Glorb', kind: 'App', status: 'live', thumb: 'glorb',
+  { slug: 'glorb', shot: 'glorb', title: 'Glorb', kind: 'App', status: 'live', thumb: 'glorb',
     url: GH + 'glorp/', tags: ['audio', 'voice'],
     blurb: 'An audio-reactive particle orb you can talk to.' },
   { slug: 'eye', title: 'Eye', kind: 'App', status: 'live', thumb: 'eye',
@@ -123,9 +123,9 @@ export const SCRIPTS = [
 ];
 
 export const WEB = [
-  { slug: 'thatswassupps', title: 'Thatswassupps', url: 'https://thatswassupps.com', role: 'Site and brand work',
+  { slug: 'thatswassupps', logo: 'logos/thatswassupps_logo_512px.jpg.jpg', title: 'Thatswassupps', url: 'https://thatswassupps.com', role: 'Site and brand work',
     blurb: 'A friend\'s company I ended up helping build.' },
-  { slug: 'unknown', title: 'Unknown — SS25', url: GH + 'unknown/', role: 'Storefront',
+  { slug: 'unknown', shot: 'web-unknown', title: 'Unknown — SS25', url: GH + 'unknown/', role: 'Storefront',
     blurb: 'Product drops for my clothing label.' },
   { slug: 'faith', title: 'Faith Udall', url: 'https://faithudall.com', role: 'Personal site',
     blurb: 'A personal site for Faith.' },
@@ -133,8 +133,8 @@ export const WEB = [
 
 export const STUDIOS = [
   { slug: 'seawillow', title: 'SeaWillow', url: GH + 'seawillow/', blurb: 'Holding company and design studio.' },
-  { slug: 'majia', title: 'Majia', url: GH + 'majia/', thumb: 'majia', blurb: 'Game studio. Makers of Robits.' },
-  { slug: 'unknown', title: 'Unknown', url: GH + 'unknown/', blurb: 'Clothing label.' },
+  { slug: 'majia', shot: 'studio-majia', title: 'Majia', url: GH + 'majia/', thumb: 'majia', blurb: 'Game studio. Makers of Robits.' },
+  { slug: 'unknown', shot: 'unknown-look', title: 'Unknown', url: GH + 'unknown/', blurb: 'Clothing label.' },
 ];
 
 const MOTION_FILES = [

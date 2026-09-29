@@ -32,6 +32,12 @@ const ext = (href, inner, cls = '') => `<a href="${esc(href)}" target="_blank" r
 const thumb = it => it.thumb
   ? `<img class="thumb" src="site/thumbs/${esc(it.thumb)}.png" alt="" loading="lazy" width="64" height="64">`
   : `<div class="mono" aria-hidden="true">${esc(it.title[0])}</div>`;
+// Covers are 16:10 WebP in site/shots/. A logo-only entry shows its logo on a
+// quiet panel; an entry with neither falls back to its initial.
+const cover = it => it.shot
+  ? `<img class="cover" src="site/shots/${esc(it.shot)}.webp" alt="" loading="lazy" width="1200" height="750">`
+  : it.logo ? `<div class="cover logo"><img src="${esc(it.logo)}" alt="" loading="lazy"></div>`
+  : `<div class="cover blank" aria-hidden="true">${esc(it.title[0])}</div>`;
 const STATUS = { live: 'Live', dev: 'In development', soon: 'Coming soon' };
 const sectionOf = k => SECTIONS.find(s => s.key === k);
 const crumbs = (...parts) => `<nav class="crumbs">${[link('./', 'Home'), ...parts].join(' / ')}</nav>`;
@@ -57,10 +63,12 @@ const PAGES = {
         <div class="row">${ext(it.url, 'Open ' + esc(it.title) + ' ↗', 'btn accent')}
           <span class="pill ${it.status === 'live' ? 'hot' : ''}">${STATUS[it.status]}</span>
           ${it.tags.map(t => `<span class="pill">${esc(t)}</span>`).join('')}</div>
-        <p class="soon">Screenshots, clips and store badges go here once there are some.</p>${foot()}</div>`;
+        ${(it.gallery || (it.shot ? [it.shot] : [])).length ? `<div class="gallery">${(it.gallery || [it.shot]).map(g =>
+          `<img src="site/shots/${esc(g)}.webp" alt="${esc(it.title)}" loading="lazy">`).join('')}</div>` : ''}
+        <p class="soon">App Store and Google Play badges go here when it ships.</p>${foot()}</div>`;
     }
-    const card = it => link('play/' + it.slug, `${thumb(it)}<h4>${esc(it.title)}</h4><p>${esc(it.blurb)}</p>
-      <div class="meta"><span class="pill ${it.status === 'live' ? 'hot' : ''}">${STATUS[it.status]}</span>${it.tags.map(t => `<span class="pill">${esc(t)}</span>`).join('')}</div>`, 'card');
+    const card = it => link('play/' + it.slug, `${cover(it)}<div class="card-head">${thumb(it)}<h4>${esc(it.title)}</h4></div><p>${esc(it.blurb)}</p>
+      <div class="meta"><span class="pill ${it.status === 'live' ? 'hot' : ''}">${STATUS[it.status]}</span>${it.tags.map(t => `<span class="pill">${esc(t)}</span>`).join('')}</div>`, 'card media');
     return `<div class="wrap">${head(s)}
       <h3 class="sub">Games</h3><div class="grid">${PLAY.filter(x => x.kind === 'Game').map(card).join('')}</div>
       <h3 class="sub">Apps</h3><div class="grid">${PLAY.filter(x => x.kind !== 'Game').map(card).join('')}</div>${foot()}</div>`;
@@ -127,15 +135,15 @@ const PAGES = {
   web() {
     const s = sectionOf('web');
     return `<div class="wrap">${head(s)}<div class="grid">${WEB.map(it => {
-      const inner = `<div class="mono">${esc(it.title[0])}</div><h4>${esc(it.title)}</h4><p>${esc(it.blurb)}</p><div class="meta"><span class="pill">${esc(it.role)}</span></div>`;
-      return it.url ? ext(it.url, inner, 'card') : `<div class="card">${inner}</div>`;
+      const inner = `${cover(it)}<h4>${esc(it.title)}</h4><p>${esc(it.blurb)}</p><div class="meta"><span class="pill">${esc(it.role)}</span></div>`;
+      return it.url ? ext(it.url, inner, 'card media') : `<div class="card media">${inner}</div>`;
     }).join('')}</div>${foot()}</div>`;
   },
 
   studios() {
     const s = sectionOf('studios');
     return `<div class="wrap">${head(s)}<div class="grid">${STUDIOS.map(it => ext(it.url,
-      `${thumb(it)}<h4>${esc(it.title)}</h4><p>${esc(it.blurb)}</p>`, 'card')).join('')}</div>${foot()}</div>`;
+      `${cover(it)}<div class="card-head">${thumb(it)}<h4>${esc(it.title)}</h4></div><p>${esc(it.blurb)}</p>`, 'card media')).join('')}</div>${foot()}</div>`;
   },
 
   motion() {

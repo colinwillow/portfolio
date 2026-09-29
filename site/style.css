@@ -131,7 +131,7 @@ a.card:hover { border-color: var(--accent); transform: translateY(-2px); }
 .btn.accent { background: var(--accent); color: #fff; }
 .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
 .btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
-.row { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 20px 0; }
 
 /* the motion wall: three columns of autoplaying loops, like the old site */
 .wall { columns: 3 220px; column-gap: 10px; }
@@ -235,3 +235,20 @@ body.no-globe.at-home #view { margin-top: 60svh; }
 body.reading #mini:not(.open) { transform: translateY(calc(100% + 20px)); }
 @media (min-width: 900px) { body:not(.at-home) #view { padding-right: max(var(--gut), 190px); } }
 @media (max-width: 640px) { body:not(.at-home) .mini-body { width: 84px; height: 120px; } }
+
+/* ---- covers ----------------------------------------------------------------- */
+.card.media { padding: 0; overflow: hidden; }
+.card.media > :not(.cover) { margin-left: 16px; margin-right: 16px; }
+.card.media > .meta { margin-bottom: 16px; }
+.card.media > p:last-child { margin-bottom: 16px; }
+.card .cover { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; background: var(--accent-soft); margin-bottom: 14px;
+  transition: transform .5s cubic-bezier(.2,.8,.2,1); }
+a.card.media:hover .cover { transform: scale(1.03); }
+.card .cover.logo { display: grid; place-items: center; background: var(--bg); }
+.card .cover.logo img { width: 42%; border-radius: 12px; }
+.card .cover.blank { display: grid; place-items: center; font: 700 64px var(--ui); color: var(--accent-ink); }
+.card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.card-head .thumb, .card-head .mono { width: 34px; height: 34px; border-radius: 9px; margin: 0; font-size: 15px; flex: none; }
+.card-head h4 { margin: 0; }
+.gallery { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin: 22px 0; }
+.gallery img { width: 100%; border-radius: var(--r); border: 1px solid var(--line); }
