@@ -47,10 +47,39 @@ const foot = () => `<footer class="foot"><span>© ${new Date().getFullYear()} ${
 
 // ---- pages ----------------------------------------------------------------
 const PAGES = {
+  // THE AISLE. Nothing on the home page is hidden behind a click: every section
+  // is a shelf, laid out so you can walk past it and see what's on it. The
+  // section pages still exist (deep links, "see all") but you never NEED them.
   home() {
-    return `<div class="wrap" id="index"><ul class="index">${SECTIONS.map((s, i) =>
-      `<li>${link(s.key, `<i>${String(i + 1).padStart(2, '0')}</i><b>${esc(s.label)}</b><span>${esc(s.blurb)}</span>`)}</li>`).join('')}
-      </ul>${foot()}</div>`;
+    const shelf = (key, body, { more = '', cls = '' } = {}) => {
+      const s = sectionOf(key), n = String(SECTIONS.indexOf(s) + 1).padStart(2, '0');
+      return `<section class="shelf ${cls}" id="shelf-${key}">
+        <header class="shelf-head">${link(key, `<i>${n}</i><h3>${esc(s.label)}</h3>`)}<p>${esc(s.blurb)}</p>
+          ${link(key, (more || 'See all') + ' →', 'shelf-more')}</header>${body}</section>`;
+    };
+    const rail = inner => `<div class="rail" tabindex="0">${inner}</div>`;
+    const games = PLAY.map(it => link('play/' + it.slug, `${cover(it)}
+      <div class="tile-meta"><b>${esc(it.title)}</b><span>${esc(it.kind)} · ${STATUS[it.status]}</span></div>`, 'tile game'));
+    const figs = ASSETS.map(it => link('assets/' + it.slug, `<img src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy">
+      <div class="tile-meta"><b>${esc(it.title)}</b><span>${it.clips} clips · ${(it.tris / 1000).toFixed(1)}k tris</span></div>`, 'figure'));
+    const clips = MOTION.slice(0, 9).map(m => `<figure><video data-src="${esc(m.src)}" poster="${esc(m.poster)}" muted loop playsinline preload="none"></video><figcaption>${esc(m.title)}</figcaption></figure>`);
+    const essays = WRITING.map(w => link('writing/' + w.slug, `<span class="kicker">${w.reading ? '▶ ' + esc(w.voice || 'Listen') : 'Read'}</span>
+      <b>${esc(w.title)}</b><q>${esc(w.excerpt || '')}</q>`, 'essay-card'));
+    const sites = [...WEB, ...STUDIOS.filter(s => s.slug !== 'unknown')];
+    return `<div class="aisle" id="index">
+      ${shelf('play', rail(games.join('')), { more: 'All games' })}
+      ${shelf('assets', `<div class="rail figures">${figs.join('')}</div>`, { more: 'All characters', cls: 'shelf-figures' })}
+      ${shelf('motion', `<div class="wall">${clips.join('')}</div>`, { more: `All ${MOTION.length} clips` })}
+      ${shelf('writing', `<div class="rail">${essays.join('')}</div>`)}
+      ${shelf('web', rail(sites.map(it => (it.url ? ext : (h, i, c) => `<div class="${c}">${i}</div>`)(it.url, `${cover(it)}
+        <div class="tile-meta"><b>${esc(it.title)}</b><span>${esc(it.role || it.blurb)}</span></div>`, 'tile')).join('')), { more: 'Sites and studios' })}
+      ${shelf('scripts', rail(SCRIPTS.map(it => link('scripts/' + it.slug, `<div class="glyph">&lt;/&gt;</div>
+        <div class="tile-meta"><b>${esc(it.title)}</b><span>${esc(it.app)} · ${STATUS[it.status]}</span></div>`, 'tile script')).join('')))}
+      ${shelf('workbench', `<div class="rail strip">${WORKBENCH.illustration.map(m => `<img src="${esc(m.src)}" alt="${esc(m.title)}" loading="lazy">`).join('')}</div>
+        <div class="marquee" aria-hidden="true"><div>${[...WORKBENCH.logos, ...WORKBENCH.logos].map(m => `<img src="${esc(m.src)}" alt="" loading="lazy">`).join('')}</div></div>`)}
+      <section class="shelf about-shelf">${link('about', '<h3>Who made this</h3>')}
+        <p>I make games, rigged characters, tools, motion and brands — most of it running in a browser on a phone. Tap the little me in the corner and ask.</p></section>
+      <div class="wrap">${foot()}</div></div>`;
   },
 
   play(slug) {

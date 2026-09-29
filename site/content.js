@@ -112,7 +112,8 @@ export const ASSETS = [
 // See writing/README.md for how a reading is made.
 export const WRITING = [
   { slug: 'art-has-two-lives', title: 'Art Has Two Lives', text: 'writing/art-has-two-lives.md',
-    reading: 'writing/art-has-two-lives.json', voice: 'Read by Colin', note: 'A short opening; the full essay is on its way.' },
+    reading: 'writing/art-has-two-lives.json', voice: 'Read by Colin',
+    excerpt: 'Most criticism of AI in art misses one thing: art has two lives.', note: 'A short opening; the full essay is on its way.' },
 ];
 
 // Scripts. Slugs exist before the files do so tutorial links can go out early.
