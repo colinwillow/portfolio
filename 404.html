@@ -7,7 +7,8 @@
   // GitHub Pages has no rewrites, so a deep link like /play/shredworld lands
   // here. Hand the path to index.html, which puts it back in the address bar.
   // A path that is a real file (classic.html, a video) never reaches this.
-  var base = location.hostname.endsWith('github.io') ? '/' + location.pathname.split('/')[1] + '/' : '/';
+  // Same rule as index.html: by the path, never the host.
+  var base = location.pathname.split('/')[1] === 'portfolio' ? '/portfolio/' : '/';
   var rest = location.pathname.slice(base.length);
   var q = location.search ? '&' + location.search.slice(1) : '';
   location.replace(base + '?p=' + encodeURIComponent(rest) + q + location.hash);

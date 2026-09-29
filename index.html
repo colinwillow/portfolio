@@ -9,7 +9,9 @@
   // One page serves every URL (colinwillow.com/play/shredworld, ...). The base
   // is the repo subpath on github.io and the root on a custom domain; writing
   // it into <base> keeps every relative asset right however deep the URL is.
-  window.BASE = location.hostname.endsWith('github.io') ? '/' + location.pathname.split('/')[1] + '/' : '/';
+  // Served from /portfolio/ (colinwillow.github.io/portfolio or colinwillow.com/portfolio)
+  // or from a domain's root. Decide by the path, never the host.
+  window.BASE = location.pathname.split('/')[1] === 'portfolio' ? '/portfolio/' : '/';
   document.write('<base href="' + window.BASE + '">');
   // 404.html bounces deep links here as ?p=...; put the real path back.
   (function () {
