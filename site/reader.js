@@ -1,7 +1,7 @@
 // An essay: the text, set to be read, and -- when there is a reading -- a player
 // that follows along word by word while mini-Colin (if he is on screen) says it.
 
-import { speakParts, hush } from './speech.js';
+import { speakParts, hush } from './speech.js?v=d7e94a3c';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 

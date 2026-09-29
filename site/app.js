@@ -1,7 +1,9 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js';
-import { onAccent, nextPreset, randomAccent, initTheme, setTheme } from './palette.js';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=43f714e7';
+import { onAccent, nextPreset, randomAccent, initTheme, setTheme } from './palette.js?v=54c082b8';
 
 const BASE = window.BASE || '/';
+// Which build this is (the content hash npm run bump stamped on app.js) -- in the footer, so a phone can say.
+const BUILD = new URL(import.meta.url).searchParams.get('v') || 'dev';
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const view = $('#view');
@@ -45,7 +47,7 @@ const sectionOf = k => SECTIONS.find(s => s.key === k);
 const crumbs = (...parts) => `<nav class="crumbs">${[link('./', 'Home'), ...parts].join(' / ')}</nav>`;
 const head = (s, extra = '') => `${crumbs(esc(s.label))}<h2 class="title">${esc(s.label)}</h2><p class="lede">${esc(s.blurb)}${extra}</p>`;
 const foot = () => `<footer class="foot"><span>© ${new Date().getFullYear()} ${esc(SITE.name)}</span>
-  <span>${ext(SITE.github, 'GitHub')} · <a href="classic.html">Previous portfolio</a></span></footer>`;
+  <span>${ext(SITE.github, 'GitHub')} · <a href="classic.html">Previous portfolio</a> · build ${esc(BUILD)}</span></footer>`;
 
 // ---- pages ----------------------------------------------------------------
 const PAGES = {
@@ -119,7 +121,7 @@ const PAGES = {
     if (slug) {
       const it = ASSETS.find(x => x.slug === slug);
       if (!it) return missing();
-      after = () => import('./viewer.js').then(m => { mounted = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer }); });
+      after = () => import('./viewer.js?v=728192eb').then(m => { mounted = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer }); });
       return `<div class="wrap">${crumbs(link('assets', 'Assets'), esc(it.title))}
         <h2 class="title">${esc(it.title)}</h2>
         <p class="lede">From ${esc(it.from)}. ${it.notes.map(esc).join(' · ')}.</p>
@@ -155,7 +157,7 @@ const PAGES = {
     if (slug) {
       const it = WRITING.find(x => x.slug === slug);
       if (!it) return missing();
-      after = () => import('./reader.js').then(async m => { mounted = await m.mountReader($('#essay'), it); });
+      after = () => import('./reader.js?v=d5e74f37').then(async m => { mounted = await m.mountReader($('#essay'), it); });
       return `<div class="wrap narrow">${crumbs(link('writing', 'Writing'), esc(it.title))}
         <h2 class="title">${esc(it.title)}</h2>${it.note ? `<p class="lede">${esc(it.note)}</p>` : ''}
         <div id="essay"><p class="soon">Loading…</p></div>${foot()}</div>`;
@@ -360,7 +362,7 @@ function mountAbout() {
   hero.querySelector('.about-talk').onclick = () => withColin(c => { if (!c.awake) c.wake(); });
   document.querySelectorAll('.listen').forEach(b => b.onclick = async () => {
     const w = WRITING.find(x => x.slug === b.dataset.slug);
-    const { speakParts, hush } = await import('./speech.js');
+    const { speakParts, hush } = await import('./speech.js?v=d7e94a3c');
     if (b.dataset.on) { hush(); b.textContent = '▶ Listen'; delete b.dataset.on; return; }
     const j = await fetch(w.reading).then(r => r.json()), base = new URL(w.reading, document.baseURI);
     b.dataset.on = 1; b.textContent = '❚❚ Stop';
@@ -450,7 +452,7 @@ let seen = false; try { seen = !!sessionStorage.getItem('cw.intro'); } catch {}
 const wantIntro = !route().length && !q.has('nointro') && (q.has('intro') || (!seen && !reduced));
 
 // The globe loads after the page is already usable, and a failure leaves the page working.
-const globeReady = (USE_SWARM ? import('./stage-swarm.js').then(m => m.createStage) : import('./globe.js').then(m => m.createGlobe)).then(make => {
+const globeReady = (USE_SWARM ? import('./stage-swarm.js?v=32b94234').then(m => m.createStage) : import('./globe.js?v=8a9c02ed').then(m => m.createGlobe)).then(make => {
   globe = make({ canvas: $('#globe'), labelLayer: $('#labels'), sections: SECTIONS });
   pushColors();
   const [sec] = route();
@@ -458,7 +460,7 @@ const globeReady = (USE_SWARM ? import('./stage-swarm.js').then(m => m.createSta
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? import('./intro.js').then(m => m.playIntro({ accent: css('--accent'), ink: css('--ink'), bg: css('--bg') }))
+  ? import('./intro.js?v=9b0ed354').then(m => m.playIntro({ accent: css('--accent'), ink: css('--ink'), bg: css('--bg') }))
       .then(() => { try { sessionStorage.setItem('cw.intro', '1'); } catch {} globeReady.then(() => globe?.pulse(1.6)); })
       .catch(() => {})
   : Promise.resolve();
@@ -478,5 +480,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=3026fc61').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

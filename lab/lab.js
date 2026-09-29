@@ -6,10 +6,10 @@
 // every section still has its ordinary page, and "enter" goes there.
 
 import * as THREE from '../vendor/three.module.min.js';
-import { createSwarm } from '../site/swarm.js';
-import { OBJECTS, fit, sampleSurface, sampleText, sampleSkinned } from '../site/shapes.js';
-import { loadCharacter, pickClip, play } from '../site/rig.js';
-import { onAccent, oklchHex } from '../site/palette.js';
+import { createSwarm } from '../site/swarm.js?v=a192b303';
+import { OBJECTS, fit, sampleSurface, sampleText, sampleSkinned } from '../site/shapes.js?v=aac1b012';
+import { loadCharacter, pickClip, play } from '../site/rig.js?v=0090c5af';
+import { onAccent, oklchHex } from '../site/palette.js?v=54c082b8';
 
 const SLIDES = [
   { key: '',        label: 'COLIN WILLOW', sub: 'Games, characters, tools and strange little worlds.', shape: 'orb' },

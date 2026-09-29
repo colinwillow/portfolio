@@ -13,8 +13,8 @@
 // here, the page moves at once, and he talks about it while it does.
 
 import * as THREE from '../vendor/three.module.min.js';
-import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js';
-import { mouth, speakBuffer, hush, VISEME, JAW } from './speech.js';
+import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=0090c5af';
+import { mouth, speakBuffer, hush, VISEME, JAW } from './speech.js?v=d7e94a3c';
 
 export const BRAIN = 'https://orb-brain.colinwillowtree.workers.dev';
 const canon = n => n.toLowerCase().replace(/[^a-z]/g, '').replace(/mix$/, '');

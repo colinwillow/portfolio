@@ -1,0 +1,9 @@
+{
+  "name": "portfolio",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bump": "node tools/bump.mjs",
+    "check": "for f in site/*.js lab/*.js; do node --check $f || exit 1; done && echo syntax ok"
+  }
+}

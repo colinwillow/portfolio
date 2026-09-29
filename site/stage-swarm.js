@@ -7,8 +7,8 @@
 // as that section's shape.
 
 import * as THREE from '../vendor/three.module.min.js';
-import { createSwarm } from './swarm.js';
-import { OBJECTS, fit, sampleSurface, sampleText } from './shapes.js';
+import { createSwarm } from './swarm.js?v=a192b303';
+import { OBJECTS, fit, sampleSurface, sampleText } from './shapes.js?v=aac1b012';
 
 const SHAPE = { home: 'orb', play: 'controller', assets: 'zap', motion: 'camera', scripts: 'code',
   writing: 'book', web: 'browser', studios: 'studios', workbench: 'tools', audio: 'speaker', about: 'orb' };

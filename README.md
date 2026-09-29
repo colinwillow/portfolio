@@ -19,3 +19,6 @@ Colin Willow's portfolio. No build step: `index.html` + native ES modules in
 
 Run locally: `python3 -m http.server` in this folder. (Deep links need Pages'
 404 fallback; locally use `/?p=scripts/arp-to-mixamo`.)
+
+**Before every push: `npm run bump`.** It stamps each script/stylesheet URL with a hash of its contents,
+so a phone never runs a new page against an old cached module. The footer shows the build.
