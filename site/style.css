@@ -232,7 +232,7 @@ body.no-globe.at-home #view { margin-top: 60svh; }
 @media (min-width: 900px) { .mini-body { width: 160px; height: 230px; } }
 @media (max-width: 640px) { body.at-home #hero { padding-bottom: calc(150px + env(safe-area-inset-bottom)); } }
 #mini { transition: opacity .6s, transform .45s cubic-bezier(.2,.8,.2,1); }
-body.reading #mini:not(.open) { transform: translateY(calc(100% + 20px)); }
+body.reading #mini:not(.on) { transform: translateY(calc(100% + 20px)); }
 @media (min-width: 900px) { body:not(.at-home) #view { padding-right: max(var(--gut), 190px); } }
 @media (max-width: 640px) { body:not(.at-home) .mini-body { width: 84px; height: 120px; } }
 
@@ -252,3 +252,19 @@ a.card.media:hover .cover { transform: scale(1.03); }
 .card-head h4 { margin: 0; }
 .gallery { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin: 22px 0; }
 .gallery img { width: 100%; border-radius: var(--r); border: 1px solid var(--line); }
+
+/* ---- mini-Colin as a hands-free agent -------------------------------------- */
+.mini-cap { max-width: min(300px, calc(100vw - 150px)); background: var(--card); border: 1px solid var(--line); border-radius: 14px 14px 4px 14px;
+  padding: 9px 12px; font-size: 14px; line-height: 1.4; box-shadow: 0 12px 30px -16px rgba(0,0,0,.35); }
+.mini-tools { display: flex; gap: 6px; }
+.mini-tools button { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--sheet); cursor: pointer;
+  font: 600 11px var(--mono); color: var(--muted); }
+.mini-tools button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-ink); }
+.mini-ask button[type="submit"] { color: var(--accent-ink); font-weight: 700; }
+#mini[data-state="listening"] .mini-tag { background: var(--accent); color: #fff; border-color: transparent; }
+#mini[data-state="listening"] .mini-tag::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: #fff; margin-right: 6px; vertical-align: 1px; animation: breathe 1.2s ease-in-out infinite; }
+#mini[data-state="thinking"] .mini-tag { opacity: .75; }
+#mini[data-state="speaking"] .mini-tag { background: var(--ink); color: var(--sheet); border-color: transparent; }
+#mini.on .mini-body::after { content: ''; position: absolute; inset: auto 10% 0; height: 14px; border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 55%, transparent), transparent); z-index: -1; }

@@ -103,3 +103,32 @@ export function speakParts(parts, { who = 'reading', onTick, onEnd } = {}) {
   next(0); loop();
   return ctl;
 }
+
+/**
+ * Play a decoded AudioBuffer through an AudioContext that was unlocked by a tap.
+ * This is how anything that arrives AFTER a network round trip has to play on
+ * iOS: an <audio>.play() started outside the tap's call stack is refused, and
+ * refused silently, so the mouth moves and nothing comes out. A context resumed
+ * inside the tap stays unlocked for the whole session.
+ * Returns a controller whose `done` resolves when it finishes or is stopped.
+ */
+export function speakBuffer(ctx, buffer, marks, text, { who = 'colin' } = {}) {
+  hush();
+  const src = ctx.createBufferSource(); src.buffer = buffer; src.connect(ctx.destination);
+  const spans = marks ? timelineFromMarks(marks) : timelineFromText(text, buffer.duration);
+  const t0 = ctx.currentTime + 0.03; src.start(t0);
+  let stopped = false, raf = 0, resolve;
+  const ctl = {
+    done: new Promise(r => { resolve = r; }),
+    stop() {
+      if (stopped) return; stopped = true;
+      try { src.stop(); } catch {}
+      cancelAnimationFrame(raf); mouth.shape = 'rest'; mouth.talking = false;
+      emit('end', { who }); if (current === ctl) current = null; resolve();
+    },
+  };
+  src.onended = () => ctl.stop();
+  const loop = () => { if (stopped) return; raf = requestAnimationFrame(loop); mouth.shape = shapeAt(spans, ctx.currentTime - t0); };
+  current = ctl; mouth.talking = true; mouth.who = who; emit('start', { who }); loop();
+  return ctl;
+}

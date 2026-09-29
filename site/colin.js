@@ -14,7 +14,7 @@
 
 import * as THREE from '../vendor/three.module.min.js';
 import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js';
-import { mouth, speakParts, hush, VISEME, JAW } from './speech.js';
+import { mouth, speakBuffer, hush, VISEME, JAW } from './speech.js';
 
 export const BRAIN = 'https://orb-brain.colinwillowtree.workers.dev';
 const canon = n => n.toLowerCase().replace(/[^a-z]/g, '').replace(/mix$/, '');
@@ -74,13 +74,13 @@ function createBrain(known) {
   };
 }
 
-async function voice(text) {
+async function voice(text, prev, next) {
   const res = await fetch(BRAIN + '/speak', { method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ text, persona: 'colin', marks: 1 }) });
+    body: JSON.stringify({ text, persona: 'colin', marks: 1, prev, next }) });
   if (!res.ok) throw new Error('speak ' + res.status);
   const j = await res.json();
-  const bin = Uint8Array.from(atob(j.audio_base64), c => c.charCodeAt(0));
-  return { src: URL.createObjectURL(new Blob([bin], { type: 'audio/mpeg' })), marks: j.normalized_alignment || j.alignment || null, text };
+  const bytes = Uint8Array.from(atob(j.audio_base64), c => c.charCodeAt(0));
+  return { bytes: bytes.buffer, marks: j.normalized_alignment || j.alignment || null, text };
 }
 
 // --- the body --------------------------------------------------------------------
@@ -92,19 +92,24 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const dock = document.createElement('div');
   dock.id = 'mini'; dock.className = 'loading';
   dock.innerHTML = `
+    <div class="mini-cap" hidden aria-live="polite"></div>
     <div class="mini-panel" hidden>
-      <div class="mini-log" aria-live="polite"></div>
+      <div class="mini-log"></div>
       <form class="mini-ask">
-        <input type="text" placeholder="Ask me anything, or say where to go" aria-label="Talk to Colin" autocomplete="off">
-        <button type="button" class="mini-mic" aria-label="Hold to talk" title="Hold to talk">●</button>
-        <button type="button" class="mini-mute" aria-label="Voice on" title="Voice on/off">🔊</button>
+        <input type="text" placeholder="Type to Colin" aria-label="Type to Colin" autocomplete="off">
+        <button type="submit" aria-label="Send">↑</button>
       </form>
     </div>
-    <button class="mini-body" aria-label="Talk to mini Colin"><canvas></canvas><span class="mini-tag">Colin</span></button>`;
+    <div class="mini-tools" hidden>
+      <button class="mini-cc" aria-pressed="false" title="Show what he says">CC</button>
+      <button class="mini-kb" aria-pressed="false" title="Type instead">⌨</button>
+      <button class="mini-off" title="Stop listening">✕</button>
+    </div>
+    <button class="mini-body" aria-label="Talk to Colin"><canvas></canvas><span class="mini-tag">Tap to talk</span></button>`;
   document.body.appendChild(dock);
-  const canvas = dock.querySelector('canvas'), panel = dock.querySelector('.mini-panel'),
-        logEl = dock.querySelector('.mini-log'), form = dock.querySelector('form'),
-        input = form.querySelector('input'), mic = dock.querySelector('.mini-mic'), mute = dock.querySelector('.mini-mute');
+  const $d = s => dock.querySelector(s);
+  const canvas = $d('canvas'), panel = $d('.mini-panel'), logEl = $d('.mini-log'), form = $d('form'),
+        input = $d('form input'), cap = $d('.mini-cap'), tools = $d('.mini-tools'), tag = $d('.mini-tag');
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
@@ -198,66 +203,143 @@ export function createMiniColin({ go, known, items, pageOf }) {
     if (clip && clip !== idle) play(ch.mixer, clip, { once: true, back: idle, fade: 0.3 });
   }
 
-  // --- conversation ------------------------------------------------------------
+  // --- conversation -------------------------------------------------------------
+  // Tap him once and he is ON: he listens, answers out loud, and moves the page
+  // himself. Text stays hidden unless you ask for it (CC), and typing is there
+  // for when talking isn't an option (the keyboard button).
   const brain = createBrain(known);
-  let voiceOn = true, greeted = false, busy = false;
-  const say = (who, text) => {
-    const p = document.createElement('p'); p.className = who; p.textContent = text;
-    logEl.appendChild(p); while (logEl.children.length > 8) logEl.firstChild.remove();
-    logEl.scrollTop = logEl.scrollHeight; return p;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let ctx = null, state = 'off', rec = null, heard = '', gapT = 0, cc = false, turn = 0;
+  const setState = s2 => { state = s2; dock.dataset.state = s2;
+    tag.textContent = { off: 'Tap to talk', listening: 'Listening', thinking: 'Thinking', speaking: 'Talking' }[s2]; };
+  const log = (who, text) => { const p = document.createElement('p'); p.className = who; p.textContent = text;
+    logEl.appendChild(p); while (logEl.children.length > 10) logEl.firstChild.remove(); logEl.scrollTop = 1e6; return p; };
+  let capT = 0;
+  const caption = (text, force = false) => {
+    if (!cc && !force) return;
+    cap.textContent = text; cap.hidden = !text; clearTimeout(capT);
+    if (text) capT = setTimeout(() => { if (state !== 'speaking') cap.hidden = true; }, 6000);
   };
-  function open() {
-    panel.hidden = false; dock.classList.add('open');
-    if (!greeted) {
-      greeted = true;
-      const hi = "Hey, I'm Colin. Well, a small one. Ask me anything, or tell me where you want to go.";
-      say('him', hi); brain.remember('assistant', hi); act('wave');
+
+  // Every reply is spoken a sentence at a time, so he starts talking on the
+  // first sentence instead of waiting for the whole answer. The sentences are
+  // FETCHED in parallel and PLAYED in order.
+  function speaker(myTurn) {
+    const queue = []; let said = '', idx = 0, active = false, running = Promise.resolve();
+    async function run() {
+      active = true;
+      while (idx < queue.length) {       // re-checked every pass: sentences keep arriving while he talks
+        const job = queue[idx++];
+        if (myTurn !== turn) break;
+        let v; try { v = await job; } catch (err) { console.warn('speak', err); continue; }
+        if (myTurn !== turn || !v) break;
+        const buf = await ctx.decodeAudioData(v.bytes.slice(0));
+        if (myTurn !== turn) break;
+        setState('speaking'); caption(v.text);
+        await speakBuffer(ctx, buf, v.marks, v.text).done;
+      }
+      active = false;
     }
-    setTimeout(() => input.focus({ preventScroll: true }), 50);
+    return {
+      add(sentence) {
+        const prev = said.slice(-300); said += ' ' + sentence;
+        const job = voice(sentence, prev); job.catch(() => {}); queue.push(job);
+        if (!active) running = run();
+      },
+      finished: () => running,
+    };
   }
-  dock.querySelector('.mini-body').onclick = () => (panel.hidden ? open() : (panel.hidden = true, dock.classList.remove('open')));
-  mute.onclick = () => { voiceOn = !voiceOn; mute.textContent = voiceOn ? '🔊' : '🔇'; if (!voiceOn) hush(); };
+  const SENT = /[^.!?\n]+[.!?]+["')\]]*\s+|[^.!?\n]+\n+/g;
 
   async function ask(text) {
-    text = text.trim(); if (!text || busy) return;
-    busy = true; say('you', text); hush();
+    text = text.trim(); if (!text) return;
+    const my = ++turn; hush();
+    stopListening(); setState('thinking'); log('you', text);
     const path = routeFor(text, items);
     if (path !== null) { go(path); act('wave'); }
-    const line = say('him thinking', '…');
+    const sp = speaker(my); let spoken = 0;
+    const line = log('him', '…');
     try {
       const { reply, show } = await brain.ask(
-        path !== null ? `${text}\n(The page has just taken them to /${path || ''}.)` : text,
-        pageOf(), t => { if (t) { line.textContent = t; line.classList.remove('thinking'); } });
-      line.textContent = reply || '…'; line.classList.remove('thinking');
+        path !== null ? `${text}\n(The page has just taken them to /${path || ''}.)` : text, pageOf(),
+        t => {
+          if (my !== turn) return;
+          line.textContent = t;
+          // hand each finished sentence to the voice as soon as it exists
+          const done = t.slice(spoken).match(SENT);
+          if (done) for (const s2 of done) { sp.add(s2.trim()); spoken += s2.length; }
+        });
+      if (my !== turn) return;
+      const rest = reply.slice(spoken).trim();
+      if (rest) sp.add(rest);
+      line.textContent = reply;
       if (show?.act) act(show.act);
       if (show?.pages && path === null) go('');
-      if (voiceOn && reply) { const v = await voice(reply); speakParts([v], { who: 'colin', onEnd: () => URL.revokeObjectURL(v.src) }); }
+      await sp.finished();
     } catch (err) {
       console.warn('colin', err);
-      line.classList.remove('thinking');
-      line.textContent = location.hostname.endsWith('github.io')
+      const msg = location.hostname.endsWith('github.io')
         ? "I can't reach my brain right now. Try me again in a minute."
-        : "I can only talk on colinwillow.github.io for now — my brain doesn't take calls from here yet.";
-    } finally { busy = false; }
+        : "I can only talk on colinwillow.github.io for now.";
+      line.textContent = msg; caption(msg, true);
+    }
+    if (my === turn && state !== 'off') { setState('listening'); setTimeout(listen, 350); }
   }
-  form.onsubmit = e => { e.preventDefault(); const t = input.value; input.value = ''; ask(t); };
 
-  // Hold to talk, through the browser's own speech recognition (no key).
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) mic.remove();
-  else {
-    let rec = null, heard = '';
-    const start = e => {
-      e.preventDefault(); hush(); heard = ''; mic.classList.add('on');
-      rec = new SR(); rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true;
-      rec.onresult = ev => { heard = [...ev.results].map(r => r[0].transcript).join(' '); input.value = heard; };
-      rec.onerror = () => {}; rec.start();
+  // Hands-free listening. The sentence is over when the words stop CHANGING
+  // for a beat (a room with a fridge in it is never quiet enough for the
+  // recogniser's own end-of-speech). He never listens while he is talking,
+  // or he would hear himself.
+  function listen() {
+    if (!SR || state !== 'listening' || rec) return;
+    heard = '';
+    rec = new SR(); rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true;
+    rec.onresult = ev => {
+      heard = [...ev.results].map(r => r[0].transcript).join(' ').trim();
+      if (cc) caption('“' + heard + '”');
+      clearTimeout(gapT);
+      gapT = setTimeout(() => { const h = heard; if (h) ask(h); }, 750);
     };
-    const stop = () => { if (!rec) return; mic.classList.remove('on'); const r = rec; rec = null;
-      setTimeout(() => { r.stop(); if (heard.trim()) { input.value = ''; ask(heard); } }, 350); };
-    mic.addEventListener('pointerdown', start);
-    mic.addEventListener('pointerup', stop); mic.addEventListener('pointerleave', stop); mic.addEventListener('pointercancel', stop);
+    rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { caption("I need the microphone to hear you. You can type instead.", true); openKeys(true); } };
+    rec.onend = () => { rec = null; if (state === 'listening') setTimeout(listen, 250); };  // Safari drops sessions; pick it back up
+    try { rec.start(); } catch { rec = null; }
+  }
+  function stopListening() { clearTimeout(gapT); if (rec) { const r = rec; rec = null; r.onend = null; try { r.abort(); } catch {} } }
+
+  async function wake() {
+    // Everything that must happen INSIDE the tap happens here, first.
+    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    await ctx.resume();
+    const blip = ctx.createBufferSource(); blip.buffer = ctx.createBuffer(1, 1, 22050); blip.connect(ctx.destination); blip.start();
+    dock.classList.add('on'); tools.hidden = false; act('wave');
+    const my = ++turn, sp = speaker(my);
+    const hi = SR ? "Hey, I'm Colin. Well, a small one. Just talk to me, or tell me where you want to go."
+                  : "Hey, I'm Colin. Type to me down here, or tell me where you want to go.";
+    brain.remember('assistant', hi); log('him', hi);
+    setState('speaking');
+    sp.add(hi);
+    if (!SR) openKeys(true);
+    await sp.finished().catch(() => {});
+    if (my === turn) { setState('listening'); listen(); }
+  }
+  function sleep() {
+    turn++; stopListening(); hush(); setState('off'); dock.classList.remove('on');
+    tools.hidden = true; panel.hidden = true; cap.hidden = true;
+  }
+  function openKeys(on) {
+    panel.hidden = !on; $d('.mini-kb').setAttribute('aria-pressed', String(on));
+    if (on) setTimeout(() => input.focus({ preventScroll: true }), 50);
   }
 
-  return { act, open, ask };
+  $d('.mini-body').onclick = () => {
+    if (state === 'off') wake();
+    else if (state === 'speaking') { turn++; hush(); setState('listening'); listen(); }   // tap to interrupt him
+  };
+  $d('.mini-off').onclick = sleep;
+  $d('.mini-cc').onclick = function () { cc = !cc; this.setAttribute('aria-pressed', String(cc)); if (!cc) cap.hidden = true; };
+  $d('.mini-kb').onclick = () => openKeys(panel.hidden);
+  form.onsubmit = e => { e.preventDefault(); const t = input.value; input.value = ''; if (state === 'off') wake().then(() => ask(t)); else ask(t); };
+  setState('off');
+
+  return { act, ask, wake, sleep };
 }
