@@ -10,6 +10,11 @@ Colin Willow's portfolio. No build step: `index.html` + native ES modules in
 - `site/globe.js` — the three.js stage (globe, ribbons, section labels).
 - `site/palette.js` — the procedural accent. `?accent=teal`, `?hue=200`, or the
   dot top-right (tap cycles presets, hold = random).
+- `site/intro.js` — the particle portal intro (the old portal's strands, no p5). Once per session; `?intro` / `?nointro`.
+- `site/viewer.js` + `site/rig.js` — the asset turntable. Previews live in `models/assets/` (copies from the game repos).
+- `site/colin.js` — mini-Colin (`models/colin.glb`). Brain + voice are the `orb-brain` Worker, cast `colin`.
+  Its `ALLOWED_ORIGIN` is `https://colinwillow.github.io`, so he only talks there until the Worker also allows colinwillow.com.
+- `site/reader.js` + `site/speech.js` + `writing/` — essays with optional recorded readings (see `writing/README.md`).
 - `404.html` — lets deep links like `/scripts/arp-to-mixamo` work on Pages.
 
 Run locally: `python3 -m http.server` in this folder. (Deep links need Pages'

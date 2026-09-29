@@ -50,7 +50,7 @@ const FACING_FS = (round) => /* glsl */`
   varying float vF;
   void main() {
     ${round ? 'if (length(gl_PointCoord - 0.5) > 0.5) discard;' : ''}
-    gl_FragColor = vec4(uColor, mix(uA0, uA1, smoothstep(-0.25, 0.55, vF)));
+    gl_FragColor = linearToOutputTexel(vec4(uColor, mix(uA0, uA1, smoothstep(-0.25, 0.55, vF))));
   }`;
 
 function facingMat(color, a0, a1, points = false, size = 0) {
@@ -109,11 +109,11 @@ function ribbonMat(U) {
       uniform vec3 uAccent; uniform vec3 uDeep;
       varying float vF; varying float vT; varying float vS;
       void main() {
-        vec3 col = mix(uDeep, uAccent, 0.35 + 0.65 * pow(vF, 0.6));
-        if (!gl_FrontFacing) col = mix(uDeep, col, 0.6);
+        vec3 col = mix(uDeep, uAccent, 0.45 + 0.55 * vF);
+        if (!gl_FrontFacing) col = mix(uDeep, col, 0.7);
         // fine engraved hatching along the length, like the reference's ribbons
         col *= 0.9 + 0.1 * step(0.5, fract(vT * 260.0));
-        gl_FragColor = vec4(col, 1.0);
+        gl_FragColor = linearToOutputTexel(vec4(col, 1.0));
       }`,
   });
 }
@@ -339,6 +339,7 @@ export function createGlobe({ canvas, labelLayer, sections }) {
 
   return {
     setMode,
+    pulse(v = 1) { if (!st.reduced) st.pulse = v; },
     setLevel(v) { st.level = v; },
     setColors({ ink: i, accent: a, deep: d }) {
       ink.set(i); acc.set(a); deep.set(d);

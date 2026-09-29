@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, GUMROAD } from './content.js';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD } from './content.js';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme } from './palette.js';
 
 const BASE = window.BASE || '/';
@@ -69,26 +69,27 @@ const PAGES = {
   assets(slug) {
     const s = sectionOf('assets');
     const specs = it => `<dl class="specs">
-      ${it.tris ? `<dt>Tris</dt><dd>${esc(it.tris)}</dd>` : ''}
+      <dt>Tris</dt><dd>${it.tris.toLocaleString()}</dd>
       <dt>Joints</dt><dd>${esc(it.joints)}</dd><dt>Clips</dt><dd>${esc(it.clips)}</dd>
-      <dt>From</dt><dd>${esc(it.from)}</dd></dl>`;
-    const buy = it => {
-      const href = it.gumroad || '';
-      return href ? ext(href, (it.price ? esc(it.price) + ' · ' : '') + 'Get it on Gumroad ↗', 'btn accent')
-                  : `<span class="btn accent" aria-disabled="true">Coming to Gumroad</span>`;
-    };
+      <dt>File</dt><dd>${it.mb} MB</dd></dl>`;
+    const buy = it => it.gumroad
+      ? ext(it.gumroad, (it.price ? esc(it.price) + ' · ' : '') + 'Get it on Gumroad ↗', 'btn accent')
+      : `<span class="btn accent" aria-disabled="true">Coming to Gumroad</span>`;
     if (slug) {
       const it = ASSETS.find(x => x.slug === slug);
       if (!it) return missing();
+      after = () => import('./viewer.js').then(m => { mounted = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer }); });
       return `<div class="wrap">${crumbs(link('assets', 'Assets'), esc(it.title))}
-        <h2 class="title">${esc(it.title)}</h2>${specs(it)}
-        <ul class="soon">${it.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
+        <h2 class="title">${esc(it.title)}</h2>
+        <p class="lede">From ${esc(it.from)}. ${it.notes.map(esc).join(' · ')}.</p>
+        <div id="viewer" class="viewer"></div>
         <div class="row">${buy(it)}</div>
-        <p class="soon">A live 3D preview with a clip picker lands here next.</p>${foot()}</div>`;
+        <p class="soon">Rigged to a Mixamo-style skeleton, faces +Z, draco-compressed geometry with WebP textures —
+          drops straight into three.js with GLTFLoader + DRACOLoader.</p>${foot()}</div>`;
     }
-    return `<div class="wrap">${head(s, ' Every number is measured off the file: triangles, joints, clips, texture size. Optimised, animated and tested in real three.js games on phones.')}
+    return `<div class="wrap">${head(s, ' Every number is read off the file: triangles, joints, clips, size. Optimised, animated and running in real three.js games on phones.')}
       <div class="grid">${ASSETS.map(it => link('assets/' + it.slug, `<div class="mono">${esc(it.title[0])}</div>
-        <h4>${esc(it.title)}</h4>${specs(it)}<div class="meta">${it.notes.slice(0, 2).map(n => `<span class="pill">${esc(n)}</span>`).join('')}</div>`, 'card')).join('')}</div>
+        <h4>${esc(it.title)}</h4>${specs(it)}<div class="meta"><span class="pill">${esc(it.from)}</span>${it.gumroad ? '<span class="pill hot">On Gumroad</span>' : ''}</div>`, 'card')).join('')}</div>
       <h3 class="sub">Also coming</h3><ul class="soon"><li>3D-printable figures (STL)</li><li>Texture packs</li></ul>
       ${GUMROAD ? `<div class="row">${ext(GUMROAD, 'Whole store on Gumroad ↗', 'btn ghost')}</div>` : ''}${foot()}</div>`;
   },
@@ -106,6 +107,21 @@ const PAGES = {
     }
     return `<div class="wrap">${head(s)}<div class="grid">${SCRIPTS.map(it => link('scripts/' + it.slug,
       `<h4>${esc(it.title)}</h4><p>${esc(it.blurb)}</p><div class="meta"><span class="pill">${esc(it.app)}</span><span class="pill">${STATUS[it.status]}</span></div>`, 'card')).join('')}</div>${foot()}</div>`;
+  },
+
+  writing(slug) {
+    const s = sectionOf('writing');
+    if (slug) {
+      const it = WRITING.find(x => x.slug === slug);
+      if (!it) return missing();
+      after = () => import('./reader.js').then(async m => { mounted = await m.mountReader($('#essay'), it); });
+      return `<div class="wrap narrow">${crumbs(link('writing', 'Writing'), esc(it.title))}
+        <h2 class="title">${esc(it.title)}</h2>${it.note ? `<p class="lede">${esc(it.note)}</p>` : ''}
+        <div id="essay"><p class="soon">Loading…</p></div>${foot()}</div>`;
+    }
+    return `<div class="wrap">${head(s)}<ul class="index">${WRITING.map((it, i) =>
+      `<li>${link('writing/' + it.slug, `<i>${String(i + 1).padStart(2, '0')}</i><b>${esc(it.title)}</b><span>${it.reading ? '▶ ' + esc(it.voice || 'Listen') : 'Read'}</span>`)}</li>`).join('')}</ul>
+      <p class="soon">More essays on the way.</p>${foot()}</div>`;
   },
 
   web() {
@@ -148,8 +164,9 @@ const missing = () => `<div class="wrap">${crumbs('Not found')}<h2 class="title"
   <p class="lede">That link points at something that has moved or does not exist yet.</p><div class="row">${link('./', 'Back to the globe', 'btn')}</div></div>`;
 
 // ---- render ---------------------------------------------------------------
-let globe = null;
+let globe = null, mounted = null, after = null;
 function render() {
+  mounted?.destroy(); mounted = null; after = null;
   const [sec, slug] = route();
   const page = sec ? PAGES[sec] : PAGES.home;
   document.body.classList.toggle('at-home', !sec);
@@ -160,6 +177,7 @@ function render() {
   if (sec) scrollTo(0, 0);
   globe?.setMode(sec && s ? 'section' : 'home', s ? sec : null);
   wireVideos();
+  after?.();
 }
 
 // Loops only load and play while they are on screen -- 21 autoplaying videos
@@ -174,7 +192,14 @@ function wireVideos() {
   view.querySelectorAll('video[data-src]').forEach(v => io.observe(v));
 }
 
-addEventListener('scroll', () => document.body.classList.toggle('scrolled', scrollY > 40), { passive: true });
+// Mini-Colin ducks out of the way while you scroll down through content, and
+// comes back the moment you scroll up.
+let lastY = 0;
+addEventListener('scroll', () => {
+  const y = scrollY;
+  document.body.classList.toggle('scrolled', y > 40);
+  if (Math.abs(y - lastY) > 12) { document.body.classList.toggle('reading', y > lastY && y > 200); lastY = y; }
+}, { passive: true });
 
 // ---- tools: theme, accent, sound -------------------------------------------
 initTheme();
@@ -221,11 +246,39 @@ let lvl = 0;
 
 // ---- boot -----------------------------------------------------------------
 render();
+const q = new URLSearchParams(location.search);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let seen = false; try { seen = !!sessionStorage.getItem('cw.intro'); } catch {}
+const wantIntro = !route().length && !q.has('nointro') && (q.has('intro') || (!seen && !reduced));
+
 // The globe loads after the page is already usable, and a failure leaves the page working.
-import('./globe.js').then(({ createGlobe }) => {
+const globeReady = import('./globe.js').then(({ createGlobe }) => {
   globe = createGlobe({ canvas: $('#globe'), labelLayer: $('#labels'), sections: SECTIONS });
   pushColors();
   const [sec] = route();
   globe.setMode(sec && sectionOf(sec) ? 'section' : 'home', sec || null);
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
+const intro = wantIntro
+  ? import('./intro.js').then(m => m.playIntro({ accent: css('--accent'), ink: css('--ink'), bg: css('--bg') }))
+      .then(() => { try { sessionStorage.setItem('cw.intro', '1'); } catch {} globeReady.then(() => globe?.pulse(1.6)); })
+      .catch(() => {})
+  : Promise.resolve();
+
+// Mini-Colin: 8 MB of him, so he arrives once everything else has settled.
+const KNOWN = [
+  `The person is looking at Colin Willow's portfolio website, not the kitchen. It has these sections: ${SECTIONS.map(s => `${s.label} (${s.blurb})`).join('; ')}.`,
+  `Games: ${PLAY.filter(p => p.kind === 'Game').map(p => p.title).join(', ')}. Apps: ${PLAY.filter(p => p.kind !== 'Game').map(p => p.title).join(', ')}.`,
+  `Characters for sale or download (coming to Gumroad): ${ASSETS.map(a => `${a.title} (${a.clips} animations, ${a.tris} triangles)`).join(', ')}. All are rigged, animated, draco-compressed and made for three.js games on phones.`,
+  `Scripts: ${SCRIPTS.map(s => s.title).join(', ')}. Essays: ${WRITING.map(w => w.title).join(', ')}. Studios: SeaWillow (holding company and design studio), Majia (game studio), Unknown (clothing label).`,
+  `When they ask to go somewhere on the site the page moves there by itself; just say something short and natural about what they will find. Keep replies short.`,
+].join(' ').slice(0, 2900);
+const ITEMS = [
+  ...PLAY.map(p => ({ title: p.title, path: 'play/' + p.slug })),
+  ...ASSETS.map(a => ({ title: a.title, path: 'assets/' + a.slug })),
+  ...SCRIPTS.map(s => ({ title: s.title, path: 'scripts/' + s.slug })),
+  ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
+];
+if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
+  import('./colin.js').then(m => m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') })))
+  .catch(err => console.warn('mini colin unavailable', err));

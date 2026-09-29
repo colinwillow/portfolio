@@ -26,6 +26,7 @@ export const SECTIONS = [
   { key: 'web',       label: 'Web',       tier: 2, lat: -40, lon:  150, blurb: 'Sites built for brands and friends.' },
   { key: 'motion',    label: 'Motion',    tier: 2, lat:   8, lon: -120, blurb: 'CGI loops, logo reveals, character tests.' },
   { key: 'studios',   label: 'Studios',   tier: 2, lat:  52, lon:  -70, blurb: 'SeaWillow, Majia and Unknown.' },
+  { key: 'writing',   label: 'Writing',   tier: 2, lat:  30, lon:  165, blurb: 'Essays about art and making, read aloud.' },
   { key: 'workbench', label: 'Workbench', tier: 3, lat: -55, lon:  -30, blurb: 'Illustration, logos, and everything made by hand.' },
   { key: 'about',     label: 'About',     tier: 3, lat:  -8, lon: -170, blurb: 'Who made this.' },
 ];
@@ -70,26 +71,47 @@ export const PLAY = [
     blurb: 'Eye tracking off a phone\'s front camera. Calibrate, then paint with your eyes.' },
 ];
 
-// Characters. Numbers are measured off the files (see each game's notes),
-// never estimated. `price` is '' until it is decided; `gumroad` is the
-// product link once it exists.
+// Characters. Every number was read off the GLB itself (the viewer re-measures
+// it live in the browser). `glb` is the preview file in models/assets/; `price`
+// stays '' until decided; `gumroad` is the product link once it exists.
 export const ASSETS = [
-  { slug: 'zap', title: 'Zap', from: 'Melee', tris: '11,059', joints: '62 (Mixamo)', clips: 23,
-    notes: ['Two weapon mounts per hand', 'Faces +Z', 'Draco + WebP'], gumroad: '', price: '' },
-  { slug: 'alien-warrior', title: 'Alien Warrior', from: 'Melee', tris: '', joints: '59 (Mixamo)', clips: 52,
-    notes: ['Full melee combat set', 'Mace included, mount matched', 'Draco + WebP'], gumroad: '', price: '' },
-  { slug: 'alien-female', title: 'Purple Alien', from: 'Melee', tris: '10,966', joints: '193 (hair + tail chains)', clips: 3,
-    notes: ['Physics-ready hair and tail', 'Single 2K texture'], gumroad: '', price: '' },
-  { slug: 'hick', title: 'Skinny Hick', from: 'Melee', tris: '', joints: '65 (Mixamo)', clips: 23,
-    notes: ['Sober and drunk locomotion sets', 'Cigarette-tip joint for smoke'], gumroad: '', price: '' },
-  { slug: 'hobo', title: 'Hobo', from: 'Melee', tris: '', joints: '65 (Mixamo)', clips: 29,
-    notes: ['Hit reactions, knock-down, get-up', 'In-air pose for launches'], gumroad: '', price: '' },
-  { slug: 'clancy', title: 'Clancy', from: 'Melee', tris: '', joints: '27', clips: 37,
-    notes: ['Fall, roll and hard-landing clips'], gumroad: '', price: '' },
-  { slug: 'big-don', title: 'Big Don', from: 'Big Don', tris: '', joints: '65 (Mixamo)', clips: 54,
-    notes: ['Ledge, cover and strike sets', 'Mirrored left/right strikes', 'Draco'], gumroad: '', price: '' },
-  { slug: 'rollergirl', title: 'Rollergirl', from: 'Rollergirl', tris: '9,857', joints: '66 (Mixamo)', clips: 5,
-    notes: ['Skating and jump clips', 'Draco + WebP'], gumroad: '', price: '' },
+  { slug: 'zap', title: 'Zap', from: 'Melee', glb: 'models/assets/zap.glb', mb: 4.1,
+    tris: 11059, joints: 62, clips: 61, prefer: ['idle_01'],
+    notes: ['61 clips: parkour, ledges, melee, rifle, skateboard', 'Weapon mounts on both hands', 'Draco + WebP, one material'] },
+  { slug: 'alien-warrior', title: 'Alien Warrior', from: 'Melee', glb: 'models/assets/alien_warrior.glb', mb: 4.0,
+    tris: 11071, joints: 59, clips: 52, prefer: ['standing_idle'],
+    notes: ['Full melee combat set, blocks and hit reactions', 'Weapon mount for the mace', 'Draco + WebP'] },
+  { slug: 'purple-alien', title: 'Purple Alien', from: 'Melee', glb: 'models/assets/alien_female_purple.glb', mb: 1.4,
+    tris: 10966, joints: 193, clips: 3, prefer: ['idle_01'],
+    notes: ['Hair and tail chains, ready for secondary motion', 'Single 2K texture'] },
+  { slug: 'hick', title: 'Skinny Hick', from: 'Melee', glb: 'models/assets/hick_skinny.glb', mb: 2.1,
+    tris: 10785, joints: 66, clips: 23, prefer: ['drunk_idle'],
+    notes: ['Sober and drunk locomotion sets', 'Cigarette-tip joint for smoke'] },
+  { slug: 'hobo', title: 'Hobo', from: 'Melee', glb: 'models/assets/hobo_01.glb', mb: 2.5,
+    tris: 10318, joints: 65, clips: 29, prefer: ['drunk_idle'],
+    notes: ['Hit reactions, knock-down and get-up', 'In-air pose for launches'] },
+  { slug: 'clancy', title: 'Clancy', from: 'Melee', glb: 'models/assets/clancy.glb', mb: 1.5,
+    tris: 11035, joints: 27, clips: 36, prefer: ['clancy_idle_01'],
+    notes: ['Mutant attack set', 'Fall, roll and hard-landing clips'] },
+  { slug: 'construction-worker', title: 'Construction Worker', from: 'Melee', glb: 'models/assets/contruction_worker.glb', mb: 1.7,
+    tris: 10894, joints: 68, clips: 16, prefer: ['idle'],
+    notes: ['Tool swings, vehicle enter/exit, knock-downs', 'Weapon mount for tools'] },
+  { slug: 'roller-alien', title: 'Roller Alien', from: 'Melee', glb: 'models/assets/alien_rollerskate_blue.glb', mb: 1.2,
+    tris: 10000, joints: 65, clips: 12, prefer: ['idle'],
+    notes: ['Walk, run, strafe and turn set'] },
+  { slug: 'rollergirl', title: 'Rollergirl', from: 'Rollergirl', glb: 'models/assets/roller_girl.glb', mb: 1.4,
+    tris: 9857, joints: 66, clips: 5, prefer: ['coasting', 'idle'],
+    notes: ['Skating and jump clips', 'Draco + WebP'] },
+  { slug: 'big-don', title: 'Big Don', from: 'Big Don', glb: 'models/assets/big_donny.glb', mb: 10.3,
+    tris: 20573, joints: 58, clips: 54, prefer: ['idle_1'],
+    notes: ['Ledge, cover, crouch and strike sets', 'Mirrored left/right strikes'] },
+].map(a => ({ gumroad: '', price: '', ...a }));
+
+// Essays. `reading` is optional -- without one the page is just the text.
+// See writing/README.md for how a reading is made.
+export const WRITING = [
+  { slug: 'art-has-two-lives', title: 'Art Has Two Lives', text: 'writing/art-has-two-lives.md',
+    reading: 'writing/art-has-two-lives.json', voice: 'Read by Colin', note: 'A short opening; the full essay is on its way.' },
 ];
 
 // Scripts. Slugs exist before the files do so tutorial links can go out early.
