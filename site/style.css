@@ -566,3 +566,31 @@ body.stage-page .about-talk { left: auto; right: var(--gut); bottom: 22px; trans
 #glorb canvas.weave.light { mix-blend-mode: darken; }
 .key { justify-content: center; }   /* just the name now, no number above it */
 .tile.game .tile-meta { flex-direction: column; align-items: flex-start; gap: 3px; } .tile.game .tile-meta b { font-size: 15px; line-height: 1.15; } .tile.game .tile-meta span { text-align: left; font-size: 11px; }
+
+/* ---- a page change moves the CONTENT, never the stage ------------------------------
+   Glorb, the strip (with Colin standing on it) and the header each get their own
+   transition layer, shown live and not animated, so they stay exactly where they
+   are while Glorb re-forms; if the strip sits at a different height on the new
+   page it glides there. Only #view -- the content sheet -- pans or zooms. */
+#glorb { view-transition-name: glorb; }
+#deck { view-transition-name: deck; }
+#view { view-transition-name: view; }
+::view-transition-old(glorb), ::view-transition-old(deck) { display: none; }
+::view-transition-new(glorb), ::view-transition-new(deck) { animation: none; }
+::view-transition-group(glorb) { animation: none; z-index: 1; }
+::view-transition-group(deck) { z-index: 4; animation-duration: .5s; animation-timing-function: cubic-bezier(.3,.8,.2,1); }
+::view-transition-group(view) { z-index: 2; animation: none; }
+html[data-vt]::view-transition-old(root), html[data-vt]::view-transition-new(root) { animation: none; }
+::view-transition-old(view), ::view-transition-new(view) { animation-duration: .5s; animation-timing-function: cubic-bezier(.3,.8,.2,1); }
+html[data-vt="right"]::view-transition-old(view) { animation-name: vt-out-l; }
+html[data-vt="right"]::view-transition-new(view) { animation-name: vt-in-r; }
+html[data-vt="left"]::view-transition-old(view)  { animation-name: vt-out-r; }
+html[data-vt="left"]::view-transition-new(view)  { animation-name: vt-in-l; }
+html[data-vt="in"]::view-transition-old(view)    { animation-name: vt-past; }
+html[data-vt="in"]::view-transition-new(view)    { animation-name: vt-arrive; }
+html[data-vt="out"]::view-transition-old(view)   { animation-name: vt-shrink; }
+html[data-vt="out"]::view-transition-new(view)   { animation-name: vt-return; }
+#mini { view-transition-name: colin; }
+::view-transition-old(colin) { display: none; }
+::view-transition-new(colin) { animation: none; }
+::view-transition-group(colin) { z-index: 5; animation-duration: .6s; animation-timing-function: cubic-bezier(.3,.8,.2,1); }
