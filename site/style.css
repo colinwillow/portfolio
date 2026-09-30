@@ -539,3 +539,11 @@ body.has-glorb #stage { display: none; }
 /* his bubble floats above him and never pushes him about */
 #mini .mini-bubble { position: absolute; bottom: calc(100% + 4px); left: 0; width: 220px; margin: 0; }
 #mini.rside .mini-bubble { left: auto; right: 0; }
+
+/* ---- games wear their app icons ------------------------------------------------ */
+.tile.game { width: min(38vw, 180px); }
+.tile .cover.app, .card .cover.app { aspect-ratio: 1; object-fit: cover; border-radius: 22.5%; width: 100%; height: auto;
+  box-shadow: 0 10px 24px -14px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.06); }
+.cover.app.blank { display: grid; place-items: center; font: 700 56px var(--ui); color: var(--accent-ink); background: var(--accent-soft); }
+.card.media .cover.app { width: 46%; margin: 16px 16px 12px; }
+.grid:has(.cover.app) { grid-template-columns: repeat(auto-fill, minmax(min(46%, 260px), 1fr)); }

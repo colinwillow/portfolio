@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=94f1fc3b';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=b6882fb6';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -71,6 +71,13 @@ const cover = it => it.shot
   ? `<img class="cover" src="site/shots/${esc(it.shot)}.webp" alt="" loading="lazy" width="1200" height="750">`
   : it.logo ? `<div class="cover logo"><img src="${esc(it.logo)}" alt="" loading="lazy"></div>`
   : `<div class="cover blank" aria-hidden="true">${esc(it.title[0])}</div>`;
+/* A game's face is its APP ICON: they are phone games, and a wide screenshot
+   of a vertical game shows mostly nothing. Rounded like it would be on a home
+   screen. No icon yet: the screenshot, cropped square to match. */
+const appIcon = it => it.icon
+  ? `<img class="cover app" src="site/icons/${esc(it.icon)}.webp" alt="" loading="lazy" width="512" height="512">`
+  : it.shot ? `<img class="cover app crop" src="site/shots/${esc(it.shot)}.webp" alt="" loading="lazy" width="512" height="512">`
+  : `<div class="cover app blank" aria-hidden="true">${esc(it.title[0])}</div>`;
 const STATUS = { live: 'Live', dev: 'In development', soon: 'Coming soon' };
 const sectionOf = k => SECTIONS.find(s => s.key === k);
 const crumbs = (...parts) => `<nav class="crumbs">${[link('./', 'Home'), ...parts].join(' / ')}</nav>`;
@@ -91,7 +98,7 @@ const PAGES = {
           ${link(key, (more || 'See all') + ' →', 'shelf-more')}</header>${body}</section>`;
     };
     const rail = inner => `<div class="rail" tabindex="0">${inner}</div>`;
-    const games = PLAY.map(it => link('play/' + it.slug, `${cover(it)}
+    const games = PLAY.map(it => link('play/' + it.slug, `${appIcon(it)}
       <div class="tile-meta"><b>${esc(it.title)}</b><span>${esc(it.kind)} · ${STATUS[it.status]}</span></div>`, 'tile game'));
     const figs = ASSETS.map(it => link('assets/' + it.slug, `<img src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy">
       <div class="tile-meta"><b>${esc(it.title)}</b><span>${it.clips} clips · ${(it.tris / 1000).toFixed(1)}k tris</span></div>`, 'figure'));
@@ -131,7 +138,7 @@ const PAGES = {
           `<img src="site/shots/${esc(g)}.webp" alt="${esc(it.title)}" loading="lazy">`).join('')}</div>` : ''}
         <p class="soon">App Store and Google Play badges go here when it ships.</p>${foot()}</div>`;
     }
-    const card = it => link('play/' + it.slug, `${cover(it)}<div class="card-head">${thumb(it)}<h4>${esc(it.title)}</h4></div><p>${esc(it.blurb)}</p>
+    const card = it => link('play/' + it.slug, `${appIcon(it)}<div class="card-head"><h4>${esc(it.title)}</h4></div><p>${esc(it.blurb)}</p>
       <div class="meta"><span class="pill ${it.status === 'live' ? 'hot' : ''}">${STATUS[it.status]}</span>${it.tags.map(t => `<span class="pill">${esc(t)}</span>`).join('')}</div>`, 'card media');
     return `<div class="wrap">${head(s)}
       <h3 class="sub">Games</h3><div class="grid">${PLAY.filter(x => x.kind === 'Game').map(card).join('')}</div>
@@ -409,6 +416,58 @@ addEventListener('scroll', () => {
   api.pause(top < -R * 1.5);
 })();
 
+/* A NEW GLORB FOR EVERY PRESS. The particles are thrown out from his middle,
+   and while they fly his own settings -- the same ones his tune panel moves --
+   ease to a new variation: the ring's shape (a soft blend of his circle toward
+   one of his polygons or his star), how wide the cloud is, how big his core,
+   where the dark gap falls, and a turn of the colour wheel. His own physics
+   brings them home, so he bounces back into the new look rather than snapping.
+   Kept subtle on purpose: still him, a different mood. */
+const GVAR = { from: null, to: null, t: 1, last: -1 };
+const LOOKS = [
+  { shape: 0, bloom: 0.34, split: 0.44, coreR: 0.34, radius: 0.26, hue: 0 },     // himself
+  { shape: 0.3, bloom: 0.42, split: 0.40, coreR: 0.30, radius: 0.27, hue: 40 },
+  { shape: 4.15, bloom: 0.28, split: 0.47, coreR: 0.38, radius: 0.25, hue: -45 },
+  { shape: 5.3, bloom: 0.36, split: 0.42, coreR: 0.28, radius: 0.26, hue: 110 },
+  { shape: 6.25, bloom: 0.30, split: 0.46, coreR: 0.36, radius: 0.265, hue: -110 },
+  { shape: 0.15, bloom: 0.46, split: 0.38, coreR: 0.40, radius: 0.24, hue: 170 },
+  { shape: 3.8, bloom: 0.32, split: 0.45, coreR: 0.32, radius: 0.27, hue: 75 },
+];
+const hueHex = (hex, deg) => {       // rotate a hex colour round the wheel, keeping its lightness
+  let [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  let h = 0; const sat = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+  if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  h = ((h * 60 + deg) % 360 + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * sat, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+  [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return '#' + [r, g, b].map(v => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('');
+};
+function glorbShift() {
+  const api = GLORB.api; if (!api) return;
+  // a burst: every particle thrown outward from his middle, a little differently
+  const { px, py, vx, vy } = api.field, { x: cx, y: cy } = api.centre;
+  for (let i = 0; i < api.n; i++) {
+    const dx = px[i] - cx, dy = py[i] - cy, d = Math.hypot(dx, dy) || 1, k = 3 + Math.random() * 5;
+    vx[i] += dx / d * k + (Math.random() - 0.5) * 2; vy[i] += dy / d * k + (Math.random() - 0.5) * 2;
+  }
+  let pick; do { pick = (Math.random() * LOOKS.length) | 0; } while (pick === GVAR.last && LOOKS.length > 1);
+  GVAR.last = pick;
+  const c = api.cfg;
+  GVAR.from = { shape: c.shape, bloom: c.bloom, split: c.split, coreR: c.coreR, radius: c.radius, hue: GVAR.to ? GVAR.to.hue : 0 };
+  GVAR.to = LOOKS[pick]; GVAR.t = 0;
+}
+(function glorbVary() {
+  requestAnimationFrame(glorbVary);
+  const api = GLORB.api; if (!api || GVAR.t >= 1) return;
+  GVAR.t = Math.min(1, GVAR.t + 1 / 90);
+  const e = 1 - Math.pow(1 - GVAR.t, 3), f = GVAR.from, t = GVAR.to, c = api.cfg;
+  for (const k of ['shape', 'bloom', 'split', 'coreR', 'radius']) c[k] = f[k] + (t[k] - f[k]) * e;
+  const hue = f.hue + (t.hue - f.hue) * e;
+  if (Math.abs(hue) < 0.5) api.post({ glorb: 'palette' });
+  else api.post({ glorb: 'palette', rim: hueHex('#9a1cf0', hue), core: hueHex('#72ec5c', hue * 0.6) });
+})();
+
 // ---- the deck ---------------------------------------------------------------
 // The site's navigation is a row of push keys on a bar at the foot of the page,
 // like the transport keys on an old cassette deck: press one and it goes down
@@ -433,6 +492,7 @@ deck.addEventListener('click', e => {
   e.preventDefault();
   const key = a.dataset.key, shelf = document.getElementById('shelf-' + key);
   latch(key, false);
+  glorbShift();
   if (!route().length && shelf) {
     // the head stays put; the shelves slide up beneath it to this one
     const target = Math.max(0, shelf.getBoundingClientRect().top + scrollY - headRest() - deckH() - 8);
