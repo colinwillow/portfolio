@@ -288,6 +288,7 @@ function render() {
   if (sec) scrollTo(0, 0);
   globe?.setMode(sec && s ? 'section' : 'home', s ? sec : null); aisleKey = null;
   globe?.pause?.(!sec && GLORB_ON);   // at home Glorb is the stage
+  WEAVE?.set(sec || latched || 'home');
   pushColors();
   wireVideos();
   after?.();
@@ -364,6 +365,7 @@ onAccent(() => pushColors());
    whole), on one canvas that is the whole screen for the intro and the top of
    the home page after it. One field, every state: nothing is swapped. */
 const GLORB = { api: null, ready: false, send: () => {} };
+let WEAVE = null;   // the woven band pattern behind him, one per section (weave.js)
 const GLORB_DOT = 0.65;
 const glorbTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 if (GLORB_ON) document.body.classList.add('has-glorb');
@@ -372,7 +374,12 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
-  new MutationObserver(() => api.post({ glorb: 'theme', theme: glorbTheme(), bg: css('--bg') }))
+  import('./weave.js?v=374329ca').then(w => {
+    WEAVE = w.createWeave($('#glorb'));
+    WEAVE.theme(glorbTheme() === 'dark');
+    WEAVE.set(route()[0] || latched || 'home');
+  }).catch(err => console.warn('weave', err));
+  new MutationObserver(() => { api.post({ glorb: 'theme', theme: glorbTheme(), bg: css('--bg') }); WEAVE?.theme(glorbTheme() === 'dark'); })
     .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   return api;
 }).catch(err => { console.warn('glorb unavailable', err); return null; }) : Promise.resolve(null);
@@ -418,6 +425,7 @@ addEventListener('scroll', () => {
   api.setFloor(top - 1);
   api.setCentreY(Math.min(room * 0.5, top - R * 0.7));
   api.pause(top < -R * 1.5);
+  WEAVE?.pause(top < 0);
 })();
 
 /* A NEW GLORB FOR EVERY PRESS. The particles are thrown out from his middle,
@@ -484,6 +492,7 @@ let latched = null;
 function latch(key, show = true) {
   if (key === latched) return;
   latched = key;
+  if (!route().length) WEAVE?.set(key || 'home');   // at home the weave follows the shelf you are on
   deck.querySelectorAll('.key').forEach(k => k.classList.toggle('in', k.dataset.key === key));
   const k = key && deck.querySelector(`.key[data-key="${key}"]`);
   if (k && show) { const r = k.getBoundingClientRect(), d = deck.getBoundingClientRect();
