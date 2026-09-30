@@ -33,7 +33,7 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
        head projected every frame, so an arm swing is what shoves them. */
     const me = { ok: false, on: false, cv: Object.assign(document.createElement('canvas'), { className: 'intro-me' }) };
     document.body.appendChild(me.cv);   // outside the intro: he keeps walking after it has faded
-    import('./intro-me.js?v=02ba95bb').then(m => m.mountMe(me.cv)).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
+    import('./intro-me.js?v=bd2382ad').then(m => m.mountMe(me.cv)).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
     document.body.appendChild(el);
     const cv = el.querySelector('canvas'), g = cv.getContext('2d');
     const word = el.querySelector('.intro-word');
@@ -45,6 +45,7 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
     const px = new Float32Array(N), py = new Float32Array(N), vx = new Float32Array(N), vy = new Float32Array(N);
     const strand = new Uint8Array(N), tt = new Float32Array(N), spd = new Float32Array(N),
           maxV = new Float32Array(N), maxF = new Float32Array(N), rad = new Float32Array(N), hot = new Uint8Array(N);
+    const knock = new Float32Array(N);             // 1 just after he hit it, easing back to 0
     const DEF = [
       { la: 3, lb: 2, A: 120, B: 110 }, { la: 5, lb: 4, A: 130, B: 100 }, { la: 4, lb: 3, A: 110, B: 120 }, { la: 5, lb: 3, A: 120, B: 120 },
       { k: 3, R: 120 }, { k: 5, R: 110 }, { k: 4, R: 130 }, { k: 7, R: 100 },
@@ -85,15 +86,13 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
     }
 
     const tgt = [0, 0];
-    let meBody = [];
     function frame(now) {
       if (done) return;
       requestAnimationFrame(frame);
       const dt = Math.min(0.05, (now - last) / 1000), k = dt * 60; last = now; fc += k;
       if (me.on) {
-        meBody = me.api.body();
         // he has reached the logo: the particles leave for Glorb, he keeps walking
-        if (walking && me.api.progress() > 0.42) { walking = false; converge(); }
+        if (walking && me.api.progress() > 0.8) { walking = false; converge(); }   // he has walked through them; now they go
       }
       const wr = word.getBoundingClientRect(), rx = wr.width / 2 + 10, ry = wr.height / 2 + 8, wx = wr.left + wr.width / 2, wy = wr.top + wr.height / 2;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -125,15 +124,36 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
           const ex = px[i] - nx, ey = py[i] - ny, ed = Math.hypot(ex, ey);
           if (ed < 0.5) { const ox = px[i] - wx || 0.1, oy = py[i] - wy, om = Math.hypot(ox, oy); ax += ox / om * maxF[i] * 14; ay += oy / om * maxF[i] * 14; }
           else if (ed < 14) { ax += ex / ed * maxF[i] * 3.5 * (1 - ed / 14); ay += ey / ed * maxF[i] * 3.5 * (1 - ed / 14); }
-          // his body shoves them aside as he walks through
-          for (const b of meBody) {
-            const bx = px[i] - b.x, by = py[i] - b.y, bd = Math.hypot(bx, by);
-            if (bd < b.r && bd > 0) { const p = maxF[i] * 18 * (1 - bd / b.r); ax += bx / bd * p; ay += by / bd * p; }
-          }
+
           // flee the finger
           const fx = px[i] - mx, fy = py[i] - my, fd = Math.hypot(fx, fy);
           if (fd < 90 && fd > 0) { const p = maxF[i] * 6 * (1 - fd / 90); ax += fx / fd * p; ay += fy / fd * p; }
-          vx[i] = (vx[i] + ax * k) * Math.pow(0.95, k); vy[i] = (vy[i] + ay * k) * Math.pow(0.95, k);
+          // just knocked: the strand's pull comes back gently rather than at once
+          const back = 1 - 0.85 * knock[i];
+          vx[i] = (vx[i] + ax * back * k) * Math.pow(0.95, k); vy[i] = (vy[i] + ay * back * k) * Math.pow(0.95, k);
+          knock[i] *= Math.pow(0.975, k);
+          /* HIM. A particle that finds itself inside his silhouette is put back
+             on his surface and bounces off it: the part of its motion INTO him
+             (measured against his own walking speed, so a body arriving at a
+             particle hits it as hard as a particle arriving at a body) is sent
+             back out at a fraction, and the part ALONG the surface is kept --
+             that is what rolls them up his arm and over his shoulder. */
+          if (me.on) {
+            const hit = me.api.hit(px[i], py[i]);
+            if (hit && hit.d > 0.3) {
+              const push = (hit.d - 0.3) * 9;
+              px[i] += hit.nx * push; py[i] += hit.ny * push;
+              const rvx = vx[i] - hit.vx, rvy = vy[i];
+              const vn = rvx * hit.nx + rvy * hit.ny;
+              if (vn < 0) {
+                const e = 0.45 + Math.random() * 0.35;          // how springy, a little different each time
+                vx[i] -= (1 + e) * vn * hit.nx; vy[i] -= (1 + e) * vn * hit.ny;
+                // and a flick upward along him, so they climb rather than just slide
+                vy[i] -= Math.abs(vn) * 0.25;
+              }
+              knock[i] = 1;
+            }
+          }
         }
         px[i] += vx[i] * k; py[i] += vy[i] * k;
       }

@@ -48,6 +48,50 @@ export async function mountMe(cv) {
     span = tall * camera.aspect / 2 + h * 0.5;                    // just off either edge
     x0 = -span; x1 = span; dur = (x1 - x0) / speed;
   }
+  /* THE COLLIDER IS HIS SILHOUETTE. Each frame he is drawn a second time, flat
+     white on black, into a small render target (a quarter of the screen in each
+     direction), read back, and blurred twice into a smooth field: 1 deep inside
+     him, 0 well clear, and a soft ramp at his outline. The field's value says
+     how far into him a point is; its slope says which way is OUT of him at that
+     point -- the surface normal -- so a particle can bounce off an elbow or roll
+     up a shoulder rather than off a circle standing in for one. */
+  const DS = 4;
+  let mw = 1, mh = 1, rt = null, raw = null, fld = null, tmp = null, fresh = false;
+  const flat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  function maskSize() {
+    mw = Math.max(8, Math.round(W / DS)); mh = Math.max(8, Math.round(H / DS));
+    rt?.dispose(); rt = new THREE.WebGLRenderTarget(mw, mh);
+    raw = new Uint8Array(mw * mh * 4); fld = new Float32Array(mw * mh); tmp = new Float32Array(mw * mh);
+  }
+  function blur(a, b, r) {                        // separable box, a -> b -> a
+    for (let y = 0; y < mh; y++) { let acc = 0; const row = y * mw;
+      for (let x = -r; x < mw; x++) {
+        if (x + r < mw) acc += a[row + x + r];
+        if (x - r - 1 >= 0) acc -= a[row + x - r - 1];
+        if (x >= 0) b[row + x] = acc / (2 * r + 1);
+      } }
+    for (let x = 0; x < mw; x++) { let acc = 0;
+      for (let y = -r; y < mh; y++) {
+        if (y + r < mh) acc += b[(y + r) * mw + x];
+        if (y - r - 1 >= 0) acc -= b[(y - r - 1) * mw + x];
+        if (y >= 0) a[y * mw + x] = acc / (2 * r + 1);
+      } }
+  }
+  function silhouette() {
+    const bg = scene.background; scene.overrideMaterial = flat; scene.background = new THREE.Color(0);
+    renderer.setRenderTarget(rt); renderer.render(scene, camera); renderer.setRenderTarget(null);
+    scene.overrideMaterial = null; scene.background = bg;
+    renderer.readRenderTargetPixels(rt, 0, 0, mw, mh, raw);
+    // the target is stored bottom-up; flip into screen rows as it is copied
+    for (let y = 0; y < mh; y++) { const sr = (mh - 1 - y) * mw * 4, dr = y * mw;
+      for (let x = 0; x < mw; x++) fld[dr + x] = raw[sr + x * 4] > 60 ? 1 : 0; }
+    blur(fld, tmp, 2); blur(fld, tmp, 2);
+    fresh = true;
+  }
+  const at = (x, y) => { x = Math.max(0, Math.min(mw - 1.001, x)); y = Math.max(0, Math.min(mh - 1.001, y));
+    const i = x | 0, j = y | 0, fx = x - i, fy = y - j, o = j * mw + i;
+    return (fld[o] * (1 - fx) + fld[o + 1] * fx) * (1 - fy) + (fld[o + mw] * (1 - fx) + fld[o + mw + 1] * fx) * fy; };
+  let bodyVx = 0, lastX = 0;
   const scr = (o, lift = 0) => { o.getWorldPosition(v); v.y += lift; v.project(camera);
     return { x: (v.x * 0.5 + 0.5) * W, y: (-v.y * 0.5 + 0.5) * H }; };
   function frame() {
@@ -58,6 +102,9 @@ export async function mountMe(cv) {
     t += dt; c.model.position.x = x0 + (x1 - x0) * Math.min(1, t / dur);
     c.mixer.update(dt);
     renderer.render(scene, camera);
+    silhouette();
+    const sx = (c.model.position.x / (span * 2) + 0.5) * W;          // his screen speed, px per 60 Hz frame
+    bodyVx = dt > 0 ? (sx - lastX) / (dt * 60) : 0; lastX = sx;
     if (t > dur + 0.1) dispose();
   }
   function dispose() {
@@ -67,7 +114,16 @@ export async function mountMe(cv) {
   const pxM = () => H / (2 * camera.position.z * Math.tan(camera.fov * Math.PI / 360));
   frame();
   return {
-    start(w, hgt) { layout(w, hgt); t = 0; running = true; clock.getDelta(); cv.classList.add('on'); },
+    start(w, hgt) { layout(w, hgt); maskSize(); t = 0; running = true; clock.getDelta(); lastX = (x0 / (span * 2) + 0.5) * W; cv.classList.add('on'); },
+    /** where a screen point is against his body: depth (0 clear .. 1 deep inside) and the
+        outward normal, from the silhouette field. null while he is not on screen. */
+    hit(x, y) {
+      if (!running || !fresh) return null;
+      const u = x / DS, v2 = y / DS, d = at(u, v2);
+      if (d < 0.02) return null;
+      const gx = at(u + 1, v2) - at(u - 1, v2), gy = at(u, v2 + 1) - at(u, v2 - 1), g = Math.hypot(gx, gy) || 1;
+      return { d, nx: -gx / g, ny: -gy / g, vx: bodyVx };
+    },
     progress: () => Math.min(1, t / dur),
     body() {
       if (!running) return [];
