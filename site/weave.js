@@ -119,7 +119,7 @@ const MOTIFS = {
 // ground above and below is what lets it read as a textile rather than wallpaper.
 // `h` nudges the yarns' hue off the site's accent, so each section has its own
 // dye lot while all of them stay on brand.
-const LAYOUT = (main, hu = 1, o = {}) => [['stitch', 0.34], [main, hu, o], ['stitch', 0.34], ['stripe', 2.4, { col: 'g' }]];
+const LAYOUT = (main, hu = 1, o = {}) => [['stitch', 0.4], [main, hu * 0.9, o], ['stitch', 0.4], ['stripe', 1.4, { col: 'g' }]];
 const WEAVES = {
   home:      { h: 0,   bands: LAYOUT('arrows') },
   play:      { h: -25, bands: LAYOUT('zigzag', 1.2) },
@@ -168,7 +168,7 @@ export function createWeave(host) {
   const ctx = cv.getContext('2d');
   const dpr = Math.min(devicePixelRatio || 1, 1.5);
   const S = { key: null, dark: true, acc: { h: 352 }, cur: null, old: null, fade: 1, paused: false, t: 0, last: 0,
-              scroll: scrollY, par: 0 };
+              scroll: scrollY, par: 0, anchor: null };
   const cells = new Map();
   const PARALLAX = 0.35;
 
@@ -188,7 +188,9 @@ export function createWeave(host) {
       const b = { i, tile, y, h, w, n, sw: w / n, empty };
       y += h; return b;
     });
-    return { key, bands, H: y };
+    // the MAIN band is what sits behind Glorb, with open ground above and below it -- never the gap
+    const main = bands[1] || bands[0];
+    return { key, bands, H: y, mid: main.y + main.h / 2 };
   }
 
   function resize() {
@@ -220,10 +222,11 @@ export function createWeave(host) {
     for (const b of wv.bands) {
       if (b.empty) continue;
       // which repeats of the composition cover the screen, counted in absolute terms so a cell keeps its identity
-      const r0 = Math.floor((par - ch * 0.5 + wv.H * 0.5 - b.y - b.h) / wv.H) , r1 = Math.ceil((par + ch - ch * 0.5 + wv.H * 0.5 - b.y) / wv.H);
+      const ay = S.anchor != null ? S.anchor * dpr : ch * 0.5;   // Glorb's centre, when known
+      const r0 = Math.floor((par - ay + wv.mid - b.y - b.h) / wv.H), r1 = Math.ceil((par + ch - ay + wv.mid - b.y) / wv.H);
       const x0 = ((cw / 2 - b.w / 2) % b.w + b.w) % b.w - b.w;       // a motif centred on the screen
       for (let r = r0; r <= r1; r++) {
-        const yBase = ch * 0.5 - wv.H * 0.5 + r * wv.H + b.y - par;
+        const yBase = ay - wv.mid + r * wv.H + b.y - par;
         if (yBase > ch + 40 || yBase + b.h < -40) continue;
         for (let p = 0, x = x0; x < cw + b.w; p++, x += b.w) {
           for (let s = 0; s < b.n; s++) {
@@ -279,6 +282,8 @@ export function createWeave(host) {
       for (const [k, c] of cells) { const a = hash(k) * 6.28; c.vx += Math.cos(a) * 60 * amt * dpr; c.v += Math.sin(a) * 60 * amt * dpr; }
     },
     pause(p) { S.paused = !!p; },
+    /** where the main band should run (CSS px from the top): behind Glorb's centre */
+    anchor(y) { S.anchor = y; },
     WEAVES, MOTIFS,
   };
 }

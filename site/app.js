@@ -374,7 +374,7 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
-  import('./weave.js?v=90f6956d').then(w => {
+  import('./weave.js?v=756b653c').then(w => {
     WEAVE = w.createWeave($('#glorb'));
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent
@@ -436,6 +436,8 @@ addEventListener('scroll', () => {
   api.setCentreY(Math.min(room * 0.5, top - R * 0.5));
   api.pause(top < -R * 1.5);
   WEAVE?.pause(top < 0);
+  // the main band runs behind Glorb's resting centre (not his live one, so a squash does not drag the cloth)
+  WEAVE?.anchor(room * 0.5);
 })();
 
 /* A NEW GLORB FOR EVERY PRESS. The particles are thrown out from his middle,
