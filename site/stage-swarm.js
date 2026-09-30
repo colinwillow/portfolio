@@ -52,6 +52,9 @@ export function createStage({ canvas }) {
   let visH = 1, visW = 1;
   function layout() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
+    // hidden (display:none at home, where Glorb is the stage): 0/0 would make the
+    // aspect NaN, and a NaN scale eases toward nothing for ever
+    if (!w || !h) return;
     renderer.setSize(w, h, false); camera.aspect = w / h;
     camera.position.set(0, 0, 7); camera.updateProjectionMatrix(); swarm.resize(w, h);
     visH = 2 * 7 * Math.tan(THREE.MathUtils.degToRad(20)); visW = visH * camera.aspect;
@@ -104,7 +107,7 @@ export function createStage({ canvas }) {
     pulse(v = 1) { swarm.uniforms.uBlast.value = 0; },
     setLevel(v) { st.level = v; },
     // off entirely (not just hidden) while something else owns the screen
-    pause(p) { paused = !!p; if (paused) { running = false; renderer.setAnimationLoop(null); } else start(); },
+    pause(p) { paused = !!p; if (paused) { running = false; renderer.setAnimationLoop(null); } else { layout(); if (!Number.isFinite(st.s)) { st.s = st.tS; st.y = st.tY; st.x = st.tX; } start(); } },
     setColors({ ink, accent }) { swarm.uniforms.uInk.value.set(ink); swarm.uniforms.uAccent.value.set(accent); },
   };
 }

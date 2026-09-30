@@ -185,8 +185,27 @@ export function createMiniColin({ go, known, items, pageOf }) {
       LIFE.cur = null; play(ch.mixer, LIFE.clips[k], { once: true, back: LIFE.clips.idle, fade: 0.3 }); LIFE.cur = LIFE.clips.idle; }
     else lifeClip('idle');
   }
+  /* A page travel: the world pans under him, and he walks the way it goes --
+     a few steps' worth of screen, mostly treading while the page slides past,
+     which is what makes the pan read as the camera following him. */
+  function stroll(dir, ms) {
+    if (!ch || dock.classList.contains('hero') || state !== 'off') return;
+    if (LIFE.gone) { LIFE.gone = false; LIFE.exit = false; dock.classList.remove('away'); LIFE.x = dir > 0 ? -bodyW() : innerWidth; }
+    const [lo, hi] = lane();
+    LIFE.tread = ms / 1000; LIFE.face = dir; LIFE.faceNow = dir; LIFE.mode = 'tread';
+    LIFE.to = Math.max(lo, Math.min(hi, LIFE.x + dir * 36));
+    LIFE.walk = 'walk'; lifeClip('walk');
+  }
   function lifeStep(dt) {
     if (dock.classList.contains('hero') || !ch) return;
+    if (LIFE.mode === 'tread') {
+      LIFE.tread -= dt;
+      LIFE.x += (LIFE.to - LIFE.x) * (1 - Math.exp(-3 * dt));
+      ch.model.rotation.y = LIFE.faceNow * Math.PI / 2;
+      dock.style.transform = `translateX(${LIFE.x}px)`;
+      if (LIFE.tread <= 0) { LIFE.mode = 'idle'; LIFE.face = 0; LIFE.t = 2 + Math.random() * 3; lifeClip('idle'); }
+      else return;
+    }
     if (state !== 'off') {
       // talking: he comes to the right-hand end, where the conversation opens
       const hi = lane()[1];
@@ -490,5 +509,5 @@ export function createMiniColin({ go, known, items, pageOf }) {
     const r = canvas.getBoundingClientRect();
     return { x: r.left + (hv.x * 0.5 + 0.5) * r.width, y: r.top + (-hv.y * 0.5 + 0.5) * r.height, w: r.width, h: r.height };
   }
-  return { act, ask, wake, sleep, adopt, release, headScreen, get awake() { return state !== 'off'; } };
+  return { act, ask, wake, sleep, adopt, release, headScreen, stroll, get awake() { return state !== 'off'; } };
 }

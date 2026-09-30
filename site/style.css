@@ -83,6 +83,10 @@ body.scrolled #hero { opacity: 0; }
   box-shadow: 0 -30px 60px -40px rgba(0,0,0,.25);
 }
 body.at-home #view { margin-top: 100svh; }
+/* Glorb takes the top half on a phone, a bit more on a wide screen, so the
+   shelves start on the first screen instead of below a whole screen of him */
+body.has-glorb.at-home #view { margin-top: 54svh; }
+@media (min-aspect-ratio: 1/1) { body.has-glorb.at-home #view { margin-top: 72svh; } }
 #view.enter { animation: rise .6s cubic-bezier(.2,.8,.2,1) both; }
 @keyframes rise { from { transform: translateY(60px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { #view.enter { animation: none; } }
@@ -476,3 +480,31 @@ body.has-glorb #hero .role { display: block; margin: 0; font: 600 11px/1 var(--m
 .intro-me { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 101; pointer-events: none; opacity: 0; }
 .intro-me.on { opacity: 1; }
 #intro.walk .intro-word, #intro.walk .intro-role, #intro.walk .intro-enter { opacity: 0; transition: opacity .5s .35s; }
+
+/* ---- physical page travel (View Transitions) ---------------------------------- */
+#hud { view-transition-name: hud; }
+#deck { view-transition-name: deck; }
+#mini:not(.hero) { view-transition-name: colin; }
+::view-transition-group(hud), ::view-transition-group(deck), ::view-transition-group(colin) { animation: none; z-index: 5; }
+::view-transition-old(hud), ::view-transition-old(deck), ::view-transition-old(colin) { display: none; }
+::view-transition-new(hud), ::view-transition-new(deck), ::view-transition-new(colin) { animation: none; }
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: .56s; animation-timing-function: cubic-bezier(.65, 0, .25, 1); animation-fill-mode: both; mix-blend-mode: normal; }
+html[data-vt="right"]::view-transition-old(root) { animation-name: vt-out-l; }
+html[data-vt="right"]::view-transition-new(root) { animation-name: vt-in-r; }
+html[data-vt="left"]::view-transition-old(root)  { animation-name: vt-out-r; }
+html[data-vt="left"]::view-transition-new(root)  { animation-name: vt-in-l; }
+html[data-vt="in"]::view-transition-old(root)    { animation-name: vt-past; }
+html[data-vt="in"]::view-transition-new(root)    { animation-name: vt-arrive; }
+html[data-vt="out"]::view-transition-old(root)   { animation-name: vt-shrink; }
+html[data-vt="out"]::view-transition-new(root)   { animation-name: vt-return; }
+@keyframes vt-out-l { to { transform: translateX(-38%) scale(.9); opacity: 0; } }
+@keyframes vt-out-r { to { transform: translateX(38%) scale(.9); opacity: 0; } }
+@keyframes vt-in-r { from { transform: translateX(38%) scale(.9); opacity: 0; } }
+@keyframes vt-in-l { from { transform: translateX(-38%) scale(.9); opacity: 0; } }
+@keyframes vt-past { to { transform: scale(1.14); opacity: 0; } }
+@keyframes vt-arrive { from { transform: scale(.86); opacity: 0; } }
+@keyframes vt-shrink { to { transform: scale(.86); opacity: 0; } }
+@keyframes vt-return { from { transform: scale(1.14); opacity: 0; } }
+body.has-glorb #glorb { bottom: auto; height: calc(54svh + 24px); }
+@media (min-aspect-ratio: 1/1) { body.has-glorb #glorb { height: calc(72svh + 24px); } }

@@ -15,9 +15,37 @@ $('#hero').innerHTML = `<p class="role">${esc(SITE.role)}</p>`;
 // a script and a shared link lands where it was shared from.
 const route = () => location.pathname.slice(BASE.length).replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
 
+/* Moving between pages is PHYSICAL, one motion, no fades between phases. The
+   sections are laid out in a row (their order on the deck), so going to one
+   further along pans the camera that way, and Colin on the bar walks with it --
+   the world slides under his feet, which is what reads as the camera following
+   him. Going INTO an item is a push forward in depth, coming back out is a
+   pull back. The bar, the header and Colin are not part of the move: they are
+   the cockpit the world moves past. Uses the View Transitions API where there
+   is one (iOS 18+, Chrome); elsewhere the page simply rises in as before. */
+const placeOf = r => [r[0] ? SECTIONS.findIndex(s => s.key === r[0]) : -1, r.length > 1 ? 1 : 0];
+const calm = matchMedia('(prefers-reduced-motion: reduce)');
+function travel(update) {
+  const a = placeOf(route());
+  const swap = () => { update(); };
+  if (!document.startViewTransition || calm.matches) return swap();
+  // measure where we are going only after the URL has changed
+  let dir = 'right';
+  const vt = document.startViewTransition(() => {
+    swap();
+    const b = placeOf(route());
+    dir = a[0] === b[0] ? (b[1] > a[1] ? 'in' : 'out') : (b[0] > a[0] ? 'right' : 'left');
+    document.documentElement.dataset.vt = dir;          // before the pseudo-elements are built
+    if (dir === 'left' || dir === 'right') colin?.stroll?.(dir === 'right' ? 1 : -1, 700);
+  });
+  vt.finished.finally(() => { delete document.documentElement.dataset.vt; });
+}
 function go(path, push = true) {
-  if (push) history.pushState(null, '', BASE + path);
-  render();
+  travel(() => {
+    if (push) history.pushState(null, '', BASE + path);
+    render();
+    if (!route().length) scrollTo(0, 0);
+  });
 }
 document.addEventListener('click', e => {
   const song = e.target.closest('[data-song]');
@@ -29,7 +57,7 @@ document.addEventListener('click', e => {
   e.preventDefault();
   go(u.pathname.slice(BASE.length).replace(/^\/+/, ''));
 });
-addEventListener('popstate', () => render());
+addEventListener('popstate', () => travel(render));
 
 // ---- pieces ---------------------------------------------------------------
 const link = (href, inner, cls = '') => `<a href="${esc(href)}" data-link class="${cls}">${inner}</a>`;
@@ -246,7 +274,8 @@ function render() {
   const page = sec ? PAGES[sec] : PAGES.home;
   document.body.classList.toggle('at-home', !sec);
   view.innerHTML = page ? page(slug) : missing();
-  view.classList.remove('enter'); void view.offsetWidth; view.classList.add('enter');
+  view.classList.remove('enter');
+  if (!document.startViewTransition || calm.matches) { void view.offsetWidth; view.classList.add('enter'); }
   const s = sectionOf(sec);
   document.title = s ? `${slug ? (slug + ' · ') : ''}${s.label} — ${SITE.name}` : `${SITE.name} — ${SITE.role}`;
   if (sec) scrollTo(0, 0);
@@ -530,7 +559,7 @@ let seen = false; try { seen = !!sessionStorage.getItem('cw.intro'); } catch {}
 const wantIntro = !route().length && !q.has('nointro') && (q.has('intro') || (!seen && !reduced));
 
 // The globe loads after the page is already usable, and a failure leaves the page working.
-const globeReady = (USE_SWARM ? import('./stage-swarm.js?v=d68adea6').then(m => m.createStage) : import('./globe.js?v=8a9c02ed').then(m => m.createGlobe)).then(make => {
+const globeReady = (USE_SWARM ? import('./stage-swarm.js?v=a1ea0ebe').then(m => m.createStage) : import('./globe.js?v=8a9c02ed').then(m => m.createGlobe)).then(make => {
   globe = make({ canvas: $('#globe'), labelLayer: $('#labels'), sections: SECTIONS });
   pushColors();
   const [sec] = route();
@@ -559,5 +588,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=38a6ed1f').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=48175d8b').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));
