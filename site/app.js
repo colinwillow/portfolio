@@ -355,7 +355,7 @@ onAccent(() => pushColors());
 const GLORB = { api: null, ready: false, send: () => {} };
 const glorbTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 if (GLORB_ON) document.body.classList.add('has-glorb');
-const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=cef06fe5').then(m => {
+const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=91184800').then(m => {
   const api = m.createGlorb({ host: $('#glorb'), theme: glorbTheme(), bg: css('--bg') });
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
   new MutationObserver(() => api.post({ glorb: 'theme', theme: glorbTheme(), bg: css('--bg') }))
@@ -567,9 +567,7 @@ const globeReady = (USE_SWARM ? import('./stage-swarm.js?v=a1ea0ebe').then(m => 
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? Promise.all([import('./intro.js?v=09c475d8'), glorbReady]).then(([m, api]) => api
-      ? m.playIntro({ glorb: api, role: SITE.role })
-      : null)
+  ? import('./intro.js?v=fd1e8079').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api }))
       .catch(err => console.warn('intro', err))
   : Promise.resolve();
 

@@ -1,57 +1,79 @@
-// The way in -- and it is GLORB. There are no intro particles any more: the
-// field you see on the landing page is his, running his own physics, and the
-// strands it weaves round the logo are a formation whose targets move every
-// frame. Ported from the old portal page (p5): twelve strands -- lissajous
-// figures, rose curves, torus knots, each breathing at its own rate.
+// The way in. Ported from the old portal landing page (p5): particles steer
+// along twelve strands -- lissajous figures, rose curves and torus knots, each
+// breathing at its own rate -- round the name, flee your finger, and on a tap
+// blow outward like a door opening, leaving the globe behind them.
 //
-// Enter releases the formation. Nothing fades and nothing is swapped: the same
-// particles let go of the strands and fall home into his ring by his own
-// physics, while the frame he lives in shrinks from the whole screen down to
-// the top of the home page. If Colin's rig has loaded he walks through first,
-// and the particles are shoved out of his way.
+// Rewritten without p5: typed arrays and one 2D canvas, no per-frame
+// allocation, so it holds its frame rate on a phone. Shown once per session
+// on the home page (`?intro` forces it, `?nointro` skips it).
 //
-// Shown once per session on the home page (`?intro` forces it, `?nointro` skips).
+// The particles are GLORB'S particles. The portal looks and moves exactly as
+// it always did -- small violet and green dots steering along the strands and
+// colliding with the logo -- and on the tap each dot flies to one of HIS real
+// particles, resting in the top of the page underneath, and lands on it: green
+// dots onto his green core, violet ones onto his ring, growing to his size on
+// the way. At the moment they land every one of his particles is gathered onto
+// the dot it belongs to, so when this canvas lets go the field underneath is
+// in exactly the place the dots were, and it opens out into Glorb from there.
+// One field; nothing fades out while something else fades in somewhere else.
 
-const DEF = [
-  { la: 3, lb: 2, A: 120, B: 110 }, { la: 5, lb: 4, A: 130, B: 100 }, { la: 4, lb: 3, A: 110, B: 120 }, { la: 5, lb: 3, A: 120, B: 120 },
-  { k: 3, R: 120 }, { k: 5, R: 110 }, { k: 4, R: 130 }, { k: 7, R: 100 },
-  { p: 2, q: 3, R: 90 }, { p: 3, q: 5, R: 100 }, { p: 4, q: 7, R: 85 }, { p: 5, q: 3, R: 95 },
-];
-const SPD = [6, 5, 7, 4, 5, 6, 4, 7, 5, 4, 6, 5].map(x => x * 1e-4 * 60);   // radians of strand a second
-
-export function playIntro({ glorb, host, role = '', onRelease = () => {} }) {
+export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '#72ec5c', glorb = null } = {}) {
   return new Promise(resolve => {
     const el = document.createElement('div');
     el.id = 'intro';
     const logo = document.querySelector('#hud .logo');
-    const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-    el.innerHTML = `<div class="intro-word">${logo ? logo.outerHTML : '<b>COLIN</b> WILLOW'}</div>
-      ${role ? `<p class="intro-role">${esc(role)}</p>` : ''}
+    el.innerHTML = `<canvas></canvas><div class="intro-word">${logo ? logo.outerHTML : '<b>COLIN</b> WILLOW'}</div>
+      ${role ? `<p class="intro-role">${role.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}</p>` : ''}
       <button class="intro-enter">Enter</button>`;
-    document.body.appendChild(el);
-    document.body.classList.add('intro-on');
-    glorb.resize();
-
+    /* HIM. While the portal runs, his rig loads in the background; on Enter he
+       walks in from the left, straight through the particles -- they part
+       around his body as he goes -- and it is as he passes that they start
+       for Glorb. If he has not loaded by the tap, the transition simply goes
+       without him. The shape he pushes is his real silhouette: hips, chest and
+       head projected every frame, so an arm swing is what shoves them. */
     const me = { ok: false, on: false, cv: Object.assign(document.createElement('canvas'), { className: 'intro-me' }) };
-    document.body.appendChild(me.cv);
+    document.body.appendChild(me.cv);   // outside the intro: he keeps walking after it has faded
     import('./intro-me.js?v=02ba95bb').then(m => m.mountMe(me.cv)).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
-
-    // one strand and one phase per particle, fixed by index
-    const n = glorb.n, strand = new Uint8Array(n), tt = new Float32Array(n), spd = new Float32Array(n);
-    for (let i = 0; i < n; i++) {
-      strand[i] = (Math.random() * 12) | 0; tt[i] = Math.random() * Math.PI * 12;
-      spd[i] = SPD[strand[i]] * (0.8 + Math.random() * 0.4);
-    }
+    document.body.appendChild(el);
+    const cv = el.querySelector('canvas'), g = cv.getContext('2d');
     const word = el.querySelector('.intro-word');
-    let fc = 0, last = performance.now(), dead = false, walking = false, released = false;
-    const out = [0, 0];
-    function target(i, W, H, cx, cy) {
-      const s = strand[i], sd = DEF[s], si = s + 1, sc = Math.min(W, H) / 250;   // wide enough to weave round the logo, not onto it
+    let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, 2);
+    const size = () => { W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; };
+    size(); addEventListener('resize', size);
+
+    const N = W * H > 700000 ? 1600 : 800;
+    const px = new Float32Array(N), py = new Float32Array(N), vx = new Float32Array(N), vy = new Float32Array(N);
+    const strand = new Uint8Array(N), tt = new Float32Array(N), spd = new Float32Array(N),
+          maxV = new Float32Array(N), maxF = new Float32Array(N), rad = new Float32Array(N), hot = new Uint8Array(N);
+    const DEF = [
+      { la: 3, lb: 2, A: 120, B: 110 }, { la: 5, lb: 4, A: 130, B: 100 }, { la: 4, lb: 3, A: 110, B: 120 }, { la: 5, lb: 3, A: 120, B: 120 },
+      { k: 3, R: 120 }, { k: 5, R: 110 }, { k: 4, R: 130 }, { k: 7, R: 100 },
+      { p: 2, q: 3, R: 90 }, { p: 3, q: 5, R: 100 }, { p: 4, q: 7, R: 85 }, { p: 5, q: 3, R: 95 },
+    ];
+    const SPD = [6, 5, 7, 4, 5, 6, 4, 7, 5, 4, 6, 5].map(x => x * 1e-4);
+    for (let i = 0; i < N; i++) {
+      const a = Math.random() * Math.PI * 2, d = Math.random() * Math.min(W, H) * 0.45;
+      px[i] = W / 2 + Math.cos(a) * d; py[i] = H / 2 + Math.sin(a) * d;
+      strand[i] = (Math.random() * 12) | 0; tt[i] = Math.random() * Math.PI * 12;
+      spd[i] = SPD[strand[i]] * (0.8 + Math.random() * 0.4) * 60;   // per second, not per frame
+      maxV[i] = 14 + Math.random() * 8; maxF[i] = 0.25 + Math.random() * 0.3; rad[i] = 0.8 + Math.random() * 1.2;
+      hot[i] = Math.random() < 0.3 ? 1 : 0;       // 1 = one of his core (green), 0 = his rim (violet)
+    }
+
+    let mx = -1e4, my = -1e4, fc = 0, blown = 0, done = false, last = performance.now();
+    const move = e => { mx = e.clientX; my = e.clientY; };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerleave', () => { mx = my = -1e4; });
+
+    function target(i, out) {
+      const s = strand[i], sd = DEF[s], si = s + 1, cx = W / 2, cy = H / 2;
+      const sc = Math.min(W, H) / 700;
       const pulse = Math.sin(fc * 0.0008 * si + si) * si * 8 * sc, pulse2 = Math.cos(fc * 0.0006 * si + si * 0.7) * si * 6 * sc;
       const t = tt[i];
       if (s < 4) {
         const A = sd.A * sc + pulse, B = sd.B * sc + pulse2;
-        const xt = A * Math.sin(sd.la * t + Math.sin(fc * 3e-4) * 0.4), yt = B * Math.sin(sd.lb * t + Math.PI / 4), r = fc * 2e-4 * si;
+        const xt = A * Math.sin(sd.la * t + Math.sin(fc * 3e-4) * 0.4), yt = B * Math.sin(sd.lb * t + Math.PI / 4);
+        const r = fc * 2e-4 * si;
         out[0] = cx + xt * Math.cos(r) - yt * Math.sin(r); out[1] = cy + xt * Math.sin(r) + yt * Math.cos(r);
       } else if (s < 8) {
         const r = (sd.R * sc + pulse) * Math.cos(sd.k * t + fc * 1e-4 * si), rot = fc * 1.5e-4 * si;
@@ -60,65 +82,154 @@ export function playIntro({ glorb, host, role = '', onRelease = () => {} }) {
         const r1 = sd.R * sc + pulse, r2 = sd.R * sc * 0.38 + pulse2 * 0.3, phi = t * sd.q + fc * 1e-4 * si, psi = t * sd.p;
         out[0] = cx + (r1 + r2 * Math.cos(psi)) * Math.cos(phi) * 1.35; out[1] = cy + (r1 + r2 * Math.cos(psi)) * Math.sin(phi);
       }
-      // the strands part round the logo, the way the old portal kept off the name
-      const wr = word.getBoundingClientRect();
-      const rx = wr.width / 2 + 16, ry = wr.height / 2 + 26, wx = wr.left + wr.width / 2, wy = wr.top + wr.height / 2;
-      const dx = (out[0] - wx) / rx, dy = (out[1] - wy) / ry, d = Math.hypot(dx, dy);
-      if (d < 1 && d > 1e-3) { out[0] = wx + dx / d * rx; out[1] = wy + dy / d * ry; }
     }
 
-    // take the whole field into the strands
-    const { px, py } = glorb.field;
-    const pts = []; for (let i = 0; i < n; i++) pts.push([0, 0]);
-    glorb.setFormation({ points: pts, share: 1, wide: 1, fs: 0.5 }, 3600);
-
+    const tgt = [0, 0];
+    let meBody = [];
     function frame(now) {
-      if (dead) return;
+      if (done) return;
       requestAnimationFrame(frame);
-      const dt = Math.min(0.05, (now - last) / 1000); last = now; fc += dt * 60;
-      const { x: cx, y: cy, scale } = glorb.centre, k = scale * glorb.formS;
-      const W = innerWidth, H = innerHeight, { formX, formY, vx, vy } = glorb.field;
-      if (!released) for (let i = 0; i < n; i++) {
-        tt[i] += spd[i] * dt; target(i, W, H, cx, cy);
-        formX[i] = (out[0] - cx) / k; formY[i] = (out[1] - cy) / k;
-      }
-      // his body shoves them aside as he walks through
+      const dt = Math.min(0.05, (now - last) / 1000), k = dt * 60; last = now; fc += k;
       if (me.on) {
-        for (const b of me.api.body()) for (let i = 0; i < n; i++) {
-          const dx = px[i] - b.x, dy = py[i] - b.y, d = Math.hypot(dx, dy);
-          if (d < b.r && d > 0.1) { const p = (1 - d / b.r) * 2.2; vx[i] += dx / d * p; vy[i] += dy / d * p; }
+        meBody = me.api.body();
+        // he has reached the logo: the particles leave for Glorb, he keeps walking
+        if (walking && me.api.progress() > 0.42) { walking = false; converge(); }
+      }
+      const wr = word.getBoundingClientRect(), rx = wr.width / 2 + 10, ry = wr.height / 2 + 8, wx = wr.left + wr.width / 2, wy = wr.top + wr.height / 2;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.clearRect(0, 0, W, H);
+      for (let i = 0; i < N; i++) {
+        if (blown && G) {
+          // onto HIS particle, wherever it is this frame: a curved flight that
+          // swirls the way he turns and ends exactly on it
+          const u = Math.min(1, blown / FLY), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+          const j = gi[i], ox = G.f.px[j], oy = G.f.py[j] + G.top;
+          const a0 = Math.atan2(sy0[i] - oy, sx0[i] - ox), r0 = Math.hypot(sx0[i] - ox, sy0[i] - oy);
+          const a = a0 + (1 - e) * 1.6 * ((i & 1) ? 1 : -1) * e, rr = r0 * (1 - e);
+          const tx = ox + Math.cos(a) * rr, ty = oy + Math.sin(a) * rr;
+          vx[i] = (tx - px[i]) / Math.max(k, 1e-3); vy[i] = (ty - py[i]) / Math.max(k, 1e-3);
+        } else if (blown) {
+          // no Glorb to go to: the old door opening
+          const dx = px[i] - W / 2, dy = py[i] - H / 2, d = Math.hypot(dx, dy) || 1;
+          vx[i] += dx / d * 2.2 * k; vy[i] += dy / d * 2.2 * k;
+          vx[i] *= Math.pow(1.04, k); vy[i] *= Math.pow(1.04, k);
+        } else {
+          tt[i] += spd[i] * dt; target(i, tgt);
+          let dx = tgt[0] - px[i], dy = tgt[1] - py[i];
+          const d = Math.hypot(dx, dy) || 1, v = d < 60 ? maxV[i] * d / 60 : maxV[i];
+          let sx = dx / d * v - vx[i], sy = dy / d * v - vy[i];
+          const sm = Math.hypot(sx, sy); if (sm > maxF[i]) { sx *= maxF[i] / sm; sy *= maxF[i] / sm; }
+          let ax = sx, ay = sy;
+          // keep off the name
+          const nx = Math.max(wx - rx, Math.min(px[i], wx + rx)), ny = Math.max(wy - ry, Math.min(py[i], wy + ry));
+          const ex = px[i] - nx, ey = py[i] - ny, ed = Math.hypot(ex, ey);
+          if (ed < 0.5) { const ox = px[i] - wx || 0.1, oy = py[i] - wy, om = Math.hypot(ox, oy); ax += ox / om * maxF[i] * 14; ay += oy / om * maxF[i] * 14; }
+          else if (ed < 14) { ax += ex / ed * maxF[i] * 3.5 * (1 - ed / 14); ay += ey / ed * maxF[i] * 3.5 * (1 - ed / 14); }
+          // his body shoves them aside as he walks through
+          for (const b of meBody) {
+            const bx = px[i] - b.x, by = py[i] - b.y, bd = Math.hypot(bx, by);
+            if (bd < b.r && bd > 0) { const p = maxF[i] * 18 * (1 - bd / b.r); ax += bx / bd * p; ay += by / bd * p; }
+          }
+          // flee the finger
+          const fx = px[i] - mx, fy = py[i] - my, fd = Math.hypot(fx, fy);
+          if (fd < 90 && fd > 0) { const p = maxF[i] * 6 * (1 - fd / 90); ax += fx / fd * p; ay += fy / fd * p; }
+          vx[i] = (vx[i] + ax * k) * Math.pow(0.95, k); vy[i] = (vy[i] + ay * k) * Math.pow(0.95, k);
         }
-        if (walking && me.api.progress() > 0.42) { walking = false; release(); }
-        if (!me.api.progress || me.api.progress() >= 1) me.on = false;
+        px[i] += vx[i] * k; py[i] += vy[i] * k;
+      }
+      // two passes, one fill each: neutral dots, then the accent ones on top
+      // round dots, as he draws them; they grow to his size as they arrive
+      const grow = blown && G ? Math.min(1, blown / FLY) : 0;
+      for (const h of [0, 1]) {
+        g.fillStyle = h ? core : rim;
+        g.globalAlpha = blown && !G ? Math.max(0, 1 - blown * 1.4) : h ? 0.9 : 0.75;
+        g.beginPath();
+        for (let i = 0; i < N; i++) {
+          if (hot[i] !== h) continue;
+          const s0 = rad[i] * (1 + Math.min(4, Math.hypot(vx[i], vy[i]) * 0.04)) * 1.3;
+          const s = s0 + (gz[i] - s0) * grow * grow;
+          g.moveTo(px[i] + s, py[i]); g.arc(px[i], py[i], s, 0, 6.2832);
+        }
+        g.fill();
+      }
+      g.globalAlpha = 1;
+      if (blown) {
+        blown += dt;
+        if (G && !G.landed && blown >= FLY) land();
+        if (G) { const f = (blown - FLY) / 0.45; el.style.opacity = String(Math.max(0, Math.min(1, 1 - f))); if (f >= 1) finish(); }
+        else { el.style.opacity = String(Math.max(0, 1 - blown * 1.3)); if (blown > 0.85) finish(); }
       }
     }
     requestAnimationFrame(frame);
 
-    function release() {
-      if (released) return;
-      released = true;
-      glorb.goHome('');                               // the same particles, home to the ring
-      el.classList.add('out');
-      document.body.classList.remove('intro-on');     // and his frame shrinks to the top of the page
-      onRelease();
-      setTimeout(() => { el.remove(); removeEventListener('keydown', key); removeEventListener('pointerup', tap, true); }, 900);
-      setTimeout(() => { dead = true; if (!me.on) { me.api?.dispose(); me.cv.remove(); } }, 6000);
-    }
-    let armed = false;
+    /* Where he is: the rest geometry measured off his own screenshots at a
+       390 px wide frame -- ring about 0.19-0.30 of the frame's short side,
+       core about 0.05-0.09, violet dots bigger than green ones. */
+    const FLY = 1.15;
+    const sx0 = new Float32Array(N), sy0 = new Float32Array(N), gi = new Int32Array(N), gz = new Float32Array(N);
+    let G = null, walking = false;
     function enter() {
-      if (armed) return; armed = true;
-      try { sessionStorage.setItem('cw.intro', '1'); } catch {}
+      if (blown || walking) return;
+      if (me.ok) {                         // he walks through first
+        walking = true; me.on = true; me.api.start(W, H);
+        el.classList.add('walk');
+        resolve('entered');
+        return;
+      }
+      converge();
       resolve('entered');
-      if (me.ok) { walking = true; me.on = true; me.api.start(innerWidth, innerHeight); el.classList.add('walk'); }
-      else release();
     }
+    /* Which of his particles each dot belongs to. Green dots take his core and
+       violet dots his ring, spread evenly through each so every part of him is
+       spoken for -- then every one of HIS particles is assigned to a dot too,
+       which is what lets all of them be standing on the dots at the handover. */
+    function converge() {
+      const gb = typeof glorb === 'function' ? glorb() : glorb;   // he may still be loading; then the old door opens
+      if (gb) {
+        const n = gb.n, f = gb.field, isCore = i => f.pr[i] < gb.core;
+        const cores = [], rims = [];
+        for (let i = 0; i < n; i++) (isCore(i) ? cores : rims).push(i);
+        const hots = [], colds = [];
+        for (let i = 0; i < N; i++) (hot[i] ? hots : colds).push(i);
+        // too many green dots for his core (or the other way): the spares take the other kind
+        const share = (dots, pool, other) => dots.forEach((d, k) => {
+          const src = pool.length ? pool : other; gi[d] = src[Math.floor(k * src.length / dots.length)];
+        });
+        share(hots, cores, rims); share(colds, rims, cores);
+        // his particles, each to a dot of its own colour
+        const owner = new Int32Array(n);
+        const give = (pool, dots, other) => pool.forEach((p, k) => {
+          const src = dots.length ? dots : other; owner[p] = src[Math.floor(k * src.length / pool.length)];
+        });
+        give(cores, hots, colds); give(rims, colds, hots);
+        const r = document.getElementById('glorb').getBoundingClientRect();
+        G = { f, n, owner, top: r.top, left: r.left, k: gb.centre.scale / 390, landed: false };
+        for (let i = 0; i < N; i++) {
+          sx0[i] = px[i]; sy0[i] = py[i];
+          // his dot sizes at rest, measured off his own frames: violet bigger than green
+          gz[i] = (isCore(gi[i]) ? 2.2 + Math.random() * 2 : 3.5 + Math.random() * 4.5) * G.k;
+        }
+      }
+      blown = 0.0001; el.classList.add('out');
+    }
+    /* The handover. Every one of his particles is put on the dot it belongs to,
+       carrying that dot's motion, so the field underneath is exactly the
+       picture on top at the instant this canvas starts to let go -- and his own
+       physics opens it back out into Glorb from there. */
+    function land() {
+      G.landed = true;
+      const f = G.f;
+      for (let j = 0; j < G.n; j++) {
+        const d = G.owner[j];
+        f.px[j] = px[d] - G.left + (Math.random() - 0.5) * 2; f.py[j] = py[d] - G.top + (Math.random() - 0.5) * 2;
+        f.vx[j] = 0; f.vy[j] = 0;          // landed means at rest on the dot, not still flying
+      }
+    }
+    function finish() { done = true; if (!me.on) { me.api?.dispose(); me.cv.remove(); } removeEventListener('resize', size); removeEventListener('keydown', key); el.remove(); }
     const key = e => { if (e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') enter(); };
-    // a tap anywhere is Enter; a drag is you playing with him
-    let down = null;
-    const tap = e => { if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 12 && performance.now() - down.t < 450) enter(); down = null; };
-    addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; }, { capture: true });
-    addEventListener('pointerup', tap, true);
     addEventListener('keydown', key);
-    el.querySelector('.intro-enter').addEventListener('click', enter);
+    el.addEventListener('click', enter);
+    el.style.setProperty('--bg', bg);
+    el.style.background = bg;
   });
 }

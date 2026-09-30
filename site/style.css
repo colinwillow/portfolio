@@ -196,8 +196,7 @@ body.no-globe.at-home #view { margin-top: 60svh; }
 .caption .now { color: var(--ink); background: var(--accent-soft); border-radius: 3px; }
 
 /* ---- intro: the portal ---------------------------------------------------- */
-#intro { position: fixed; inset: 0; z-index: 100; pointer-events: none; }
-#intro .intro-enter { pointer-events: auto; }
+#intro { position: fixed; inset: 0; z-index: 100; background: var(--bg); cursor: pointer; }
 #intro.out .intro-word, #intro.out .intro-role { transition: opacity .5s, transform .6s; }
 #intro canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .intro-word { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); white-space: nowrap;
@@ -410,7 +409,6 @@ body.has-glorb.scrolled #glorb { opacity: .3; }
 #glorb canvas.glorb-gl { position: fixed; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 /* the intro is HIS field at full screen; Enter lets the frame fall to the top of the page */
 body.has-glorb #glorb { transition: height .95s cubic-bezier(.65, 0, .25, 1), opacity .5s; }
-body.has-glorb.intro-on #glorb { height: 100svh; z-index: 95; }
 body.intro-on { overflow: hidden; }
 body.has-glorb.at-home #stage { display: none; }
 /* the aisle is a solid sheet: content floating over particles was the mess */

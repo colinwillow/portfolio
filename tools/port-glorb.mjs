@@ -98,7 +98,9 @@ ${body}
     setFormation, goHome, cfg, drive,
     get n() { return Math.min(MAX, Math.round(cfg.count)); },
     // the particles themselves, for anything that needs to hand them over or take them back
-    field: { px, py, vx, vy, pz, bx, by, formX, formY, formZ, formOn },
+    field: { px, py, vx, vy, pz, bx, by, formX, formY, formZ, formOn, pr },
+    /** which particles are his core: pr[i] < core */
+    get core() { return cfg.core; },
     get centre() { return { x: cx, y: cy, scale }; },
     /** formation targets are in these units: screen = centre + form * scale * formS */
     get formS() { return formS; },
