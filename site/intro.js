@@ -17,7 +17,7 @@
 // in exactly the place the dots were, and it opens out into Glorb from there.
 // One field; nothing fades out while something else fades in somewhere else.
 
-export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '#72ec5c', glorb = null } = {}) {
+export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '#72ec5c', glorb = null, dotK = 1 } = {}) {
   return new Promise(resolve => {
     const el = document.createElement('div');
     el.id = 'intro';
@@ -33,7 +33,7 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
        head projected every frame, so an arm swing is what shoves them. */
     const me = { ok: false, on: false, cv: Object.assign(document.createElement('canvas'), { className: 'intro-me' }) };
     document.body.appendChild(me.cv);   // outside the intro: he keeps walking after it has faded
-    import('./intro-me.js?v=6b9b1d62').then(m => m.mountMe(me.cv)).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
+    import('./intro-me.js?v=07d0028e').then(m => m.mountMe(me.cv)).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
     document.body.appendChild(el);
     const cv = el.querySelector('canvas'), g = cv.getContext('2d'), g0 = g;
     /* Depth: a third of the dots are drawn on a layer ABOVE him, so he walks
@@ -238,7 +238,7 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
         for (let i = 0; i < N; i++) {
           sx0[i] = px[i]; sy0[i] = py[i];
           // his dot sizes at rest, measured off his own frames: violet bigger than green
-          gz[i] = (isCore(gi[i]) ? 2.2 + Math.random() * 2 : 3.5 + Math.random() * 4.5) * G.k;
+          gz[i] = (isCore(gi[i]) ? 2.2 + Math.random() * 2 : 3.5 + Math.random() * 4.5) * G.k * dotK;
         }
       }
       blown = 0.0001; el.classList.add('out');

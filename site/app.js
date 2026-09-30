@@ -353,10 +353,13 @@ onAccent(() => pushColors());
    whole), on one canvas that is the whole screen for the intro and the top of
    the home page after it. One field, every state: nothing is swapped. */
 const GLORB = { api: null, ready: false, send: () => {} };
+const GLORB_DOT = 0.65;
 const glorbTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 if (GLORB_ON) document.body.classList.add('has-glorb');
 const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=91184800').then(m => {
   const api = m.createGlorb({ host: $('#glorb'), theme: glorbTheme(), bg: css('--bg') });
+  // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
+  api.cfg.dot *= GLORB_DOT;
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
   new MutationObserver(() => api.post({ glorb: 'theme', theme: glorbTheme(), bg: css('--bg') }))
     .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -567,7 +570,7 @@ const globeReady = (USE_SWARM ? import('./stage-swarm.js?v=a1ea0ebe').then(m => 
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? import('./intro.js?v=f4e04cfe').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api }))
+  ? import('./intro.js?v=3016426b').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
       .catch(err => console.warn('intro', err))
   : Promise.resolve();
 

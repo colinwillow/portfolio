@@ -20,7 +20,7 @@ export async function mountMe(cv) {
       if (/colin.?head/i.test(n)) o.morphTargetInfluences[i] = 1;          // the shape that makes the head his
   });
   const walk = pickClip(c.clips, 'walk_fwd_swagger', 'walk_fwd_neutral');
-  play(c.mixer, walk, { fade: 0 }); c.mixer.update(0.01);
+  const walkA = play(c.mixer, walk, { fade: 0 }); c.mixer.update(0.01);
   const box = skinnedBounds(c.model), h = box.max.y - box.min.y;
   c.model.position.y -= box.min.y;
   const bones = {};
@@ -50,6 +50,10 @@ export async function mountMe(cv) {
     return v > 0.05 * h && v < 3 * h ? v : 0.7 * h;
   }
   const footSpeed = bones.LeftFoot && bones.RightFoot ? stride() : 0.7 * h;
+  /* A brisker walk than the clip's own: the step plays faster AND he travels
+     faster by the same factor, so the planted foot still does not slide. */
+  const PACE = 1.35;
+  if (walkA) walkA.timeScale = PACE;
 
   const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
@@ -61,7 +65,7 @@ export async function mountMe(cv) {
   scene.add(c.model); c.model.rotation.y = Math.PI / 2;           // he faces +Z; walking right is +X
 
   let W = 0, H = 0, span = 0, x0 = 0, x1 = 0, t = 0, dur = 1, running = false, dead = false;
-  const speed = footSpeed;                                         // metres a second: his feet, measured
+  const speed = footSpeed * PACE;                                         // metres a second: his feet, measured
   const v = new THREE.Vector3(), clock = new THREE.Clock();
   function layout(w, hgt) {
     W = w; H = hgt; renderer.setSize(W, H, false); camera.aspect = W / H;
