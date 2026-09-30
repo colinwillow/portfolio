@@ -393,7 +393,15 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
    `anchor` is the scroll position the unit is sitting at: a key sets it, and
    scrolling above it lowers it, so it always reappears on the way back up. */
 const HEAD = { anchor: 0, auto: 0, target: 0, sk: 1 };
-const headRest = () => innerHeight * (innerWidth > innerHeight ? 0.72 : 0.54);
+/* The page's CSS sizes everything in svh (the screen WITH the browser bar showing)
+   and innerHeight is the screen as it is right now -- on a phone those differ by
+   the height of the URL bar, and mixing them put the strip below where the CSS
+   left room for it (it slid over the first shelf) and clipped Glorb short of the
+   strip. So the head measures svh itself, off a probe the CSS sizes. */
+const svhProbe = document.body.appendChild(Object.assign(document.createElement('div'),
+  { style: 'position:fixed;left:0;top:0;width:0;height:100svh;visibility:hidden;pointer-events:none' }));
+const svh = () => svhProbe.offsetHeight || innerHeight;
+const headRest = () => svh() * (innerWidth > svh() ? 0.72 : 0.54);
 const deckH = () => $('#deck')?.offsetHeight || 58;
 function headOffset() {
   if (HEAD.auto) return 0;
@@ -415,7 +423,7 @@ addEventListener('scroll', () => {
   let top;
   if (home) { top = headRest() - headOffset(); deckEl.style.top = top + 'px'; }
   else { deckEl.style.top = ''; top = deckEl.getBoundingClientRect().top; }
-  const g = $('#glorb'); if (g) g.style.clipPath = `inset(0 0 ${Math.max(0, innerHeight - top)}px 0)`;
+  const g = $('#glorb'); if (g) g.style.clipPath = `inset(0 0 ${Math.max(0, g.clientHeight - top)}px 0)`;
   const api = GLORB.api; if (!api) return;
   // he rests in the middle of whatever space is above the strip when the page is at the top
   // on a stage page he is the backdrop: bigger, and centred behind Colin's chest and head
@@ -423,7 +431,8 @@ addEventListener('scroll', () => {
   HEAD.sk += ((stage ? 2.8 : 1) - HEAD.sk) * 0.08; api.setScale(HEAD.sk);
   const R = api.centre.scale * 0.34, room = home ? headRest() : stage ? top * 0.76 : innerHeight * 0.38;
   api.setFloor(top - 1);
-  api.setCentreY(Math.min(room * 0.5, top - R * 0.7));
+  // as the strip rises it catches him low, so his underside visibly flattens on it before he goes
+  api.setCentreY(Math.min(room * 0.5, top - R * 0.5));
   api.pause(top < -R * 1.5);
   WEAVE?.pause(top < 0);
 })();
