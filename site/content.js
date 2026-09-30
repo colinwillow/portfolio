@@ -21,7 +21,7 @@ export const SITE = {
 // The globe's labels. `lat`/`lon` are where each sits on the sphere (degrees),
 // `tier` sets how big it is: 1 = the main three, 2 = supporting, 3 = the rest.
 export const SECTIONS = [
-  { key: 'play',      label: 'Play',      tier: 1, lat:  18, lon:  -20, blurb: 'Games and web apps you can open right now.' },
+  { key: 'play',      label: 'Games',      tier: 1, lat:  18, lon:  -20, blurb: 'Games and web apps you can open right now.' },
   { key: 'assets',    label: 'Assets',    tier: 1, lat: -22, lon:   40, blurb: 'Rigged, animated characters built for web and mobile games.' },
   { key: 'scripts',   label: 'Scripts',   tier: 1, lat:  38, lon:  100, blurb: 'Cinema 4D and pipeline scripts from the tutorials.' },
   { key: 'web',       label: 'Web',       tier: 2, lat: -40, lon:  150, blurb: 'Sites built for brands and friends.' },

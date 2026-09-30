@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=b6882fb6';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=b418e1e6';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -129,7 +129,7 @@ const PAGES = {
     if (slug) {
       const it = PLAY.find(x => x.slug === slug || x.aliases?.includes(slug));
       if (!it) return missing();
-      return `<div class="wrap">${crumbs(link('play', 'Play'), esc(it.title))}
+      return `<div class="wrap">${crumbs(link('play', 'Games'), esc(it.title))}
         <h2 class="title">${esc(it.title)}</h2><p class="lede">${esc(it.blurb)}</p>
         <div class="row">${ext(it.url, 'Open ' + esc(it.title) + ' ↗', 'btn accent')}
           <span class="pill ${it.status === 'live' ? 'hot' : ''}">${STATUS[it.status]}</span>
@@ -497,7 +497,11 @@ function glorbShift() {
 // home page the key for whichever shelf you are looking at latches by itself as
 // you scroll. Colin lives on top of this bar.
 const deck = $('.deck-keys');
-deck.innerHTML = SECTIONS.map((s, i) => `<a class="key" href="${s.key}" data-key="${s.key}"><b>${esc(s.label)}</b></a>`).join('');
+// Keys with Colin's graffiti lettering show the art; the rest keep their name until theirs lands.
+const KEYART = new Set(['play', 'assets', 'scripts', 'web', 'motion', 'studios']);
+deck.innerHTML = SECTIONS.map(s => KEYART.has(s.key)
+  ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}"><img src="site/keys/${s.key}.webp" alt="" draggable="false"></a>`
+  : `<a class="key" href="${s.key}" data-key="${s.key}"><b>${esc(s.label)}</b></a>`).join('');
 let latched = null;
 function latch(key, show = true) {
   if (key === latched) return;

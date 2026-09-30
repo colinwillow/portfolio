@@ -594,3 +594,12 @@ html[data-vt="out"]::view-transition-new(view)   { animation-name: vt-return; }
 ::view-transition-old(colin) { display: none; }
 ::view-transition-new(colin) { animation: none; }
 ::view-transition-group(colin) { z-index: 5; animation-duration: .6s; animation-timing-function: cubic-bezier(.3,.8,.2,1); }
+
+/* ---- graffiti keys: his lettering on the key face -------------------------------- */
+:root { --deck: 68px; }
+.key.art { height: 52px; padding: 3px 7px; justify-content: center; align-items: center; }
+.key.art img { height: 44px; width: auto; display: block; pointer-events: none; user-select: none; -webkit-user-drag: none;
+  filter: saturate(.9) brightness(.9); transition: filter .2s, transform .12s; }
+.key.art.in img { filter: none; transform: scale(1.04); }
+.key.art::after { top: 5px; right: 5px; }
+.key:not(.art) { height: 52px; }
