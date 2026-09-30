@@ -6,12 +6,18 @@
 // Rewritten without p5: typed arrays and one 2D canvas, no per-frame
 // allocation, so it holds its frame rate on a phone. Shown once per session
 // on the home page (`?intro` forces it, `?nointro` skips it).
+//
+// The particles are GLORB'S particles: his violet and his green, and on the
+// tap they do not blow away -- they fly into his ring and his core, at exactly
+// the place and size he is resting behind this page, and the real Glorb is
+// already there underneath when the canvas lets go. The name is his logo.
 
-export function playIntro({ accent = '#b07a8f', ink = '#151515', bg = '#f3f2ef' } = {}) {
+export function playIntro({ ink = '#151515', bg = '#f3f2ef', rim = '#9a1cf0', core = '#72ec5c', into = null } = {}) {
   return new Promise(resolve => {
     const el = document.createElement('div');
     el.id = 'intro';
-    el.innerHTML = `<canvas></canvas><div class="intro-word"><b>COLIN</b> WILLOW</div>
+    const logo = document.querySelector('#hud .logo');
+    el.innerHTML = `<canvas></canvas><div class="intro-word">${logo ? logo.outerHTML : '<b>COLIN</b> WILLOW'}</div>
       <button class="intro-enter">Enter</button>`;
     document.body.appendChild(el);
     const cv = el.querySelector('canvas'), g = cv.getContext('2d');
@@ -36,7 +42,7 @@ export function playIntro({ accent = '#b07a8f', ink = '#151515', bg = '#f3f2ef' 
       strand[i] = (Math.random() * 12) | 0; tt[i] = Math.random() * Math.PI * 12;
       spd[i] = SPD[strand[i]] * (0.8 + Math.random() * 0.4) * 60;   // per second, not per frame
       maxV[i] = 14 + Math.random() * 8; maxF[i] = 0.25 + Math.random() * 0.3; rad[i] = 0.8 + Math.random() * 1.2;
-      hot[i] = Math.random() < 0.14 ? 1 : 0;
+      hot[i] = Math.random() < 0.3 ? 1 : 0;       // 1 = one of his core (green), 0 = his rim (violet)
     }
 
     let mx = -1e4, my = -1e4, fc = 0, blown = 0, done = false, last = performance.now();
@@ -72,8 +78,16 @@ export function playIntro({ accent = '#b07a8f', ink = '#151515', bg = '#f3f2ef' 
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, W, H);
       for (let i = 0; i < N; i++) {
-        if (blown) {
-          // the door opening: everything accelerates straight out from the middle
+        if (blown && G) {
+          // into Glorb: a curved flight from where each one was to its place in
+          // his ring or core, swirling the way he turns
+          const u = Math.min(1, blown / FLY), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+          const a = ga[i] + (1 - e) * 2.4;
+          const tx = G.x + Math.cos(a) * gr[i] * G.s, ty = G.y + Math.sin(a) * gr[i] * G.s;
+          const nx2 = sx0[i] + (tx - sx0[i]) * e, ny2 = sy0[i] + (ty - sy0[i]) * e;
+          vx[i] = (nx2 - px[i]) / Math.max(k, 1e-3); vy[i] = (ny2 - py[i]) / Math.max(k, 1e-3);
+        } else if (blown) {
+          // no Glorb to go to: the old door opening
           const dx = px[i] - W / 2, dy = py[i] - H / 2, d = Math.hypot(dx, dy) || 1;
           vx[i] += dx / d * 2.2 * k; vy[i] += dy / d * 2.2 * k;
           vx[i] *= Math.pow(1.04, k); vy[i] *= Math.pow(1.04, k);
@@ -97,28 +111,48 @@ export function playIntro({ accent = '#b07a8f', ink = '#151515', bg = '#f3f2ef' 
         px[i] += vx[i] * k; py[i] += vy[i] * k;
       }
       // two passes, one fill each: neutral dots, then the accent ones on top
+      // round dots, as he draws them; they grow to his size as they arrive
+      const grow = blown && G ? Math.min(1, blown / FLY) : 0;
       for (const h of [0, 1]) {
-        g.fillStyle = h ? accent : ink;
-        g.globalAlpha = blown ? Math.max(0, 1 - blown * 1.4) : h ? 0.95 : 0.55;
+        g.fillStyle = h ? core : rim;
+        g.globalAlpha = blown && !G ? Math.max(0, 1 - blown * 1.4) : h ? 0.9 : 0.75;
         g.beginPath();
         for (let i = 0; i < N; i++) {
           if (hot[i] !== h) continue;
-          const s = rad[i] * (1 + Math.hypot(vx[i], vy[i]) * 0.06);
-          g.rect(px[i] - s, py[i] - s, s * 2, s * 2);
+          const s0 = rad[i] * (1 + Math.min(4, Math.hypot(vx[i], vy[i]) * 0.04)) * 1.3;
+          const s = s0 + (gz[i] * (G ? G.s / 390 : 1) - s0) * grow * grow;
+          g.moveTo(px[i] + s, py[i]); g.arc(px[i], py[i], s, 0, 6.2832);
         }
         g.fill();
       }
       g.globalAlpha = 1;
       if (blown) {
         blown += dt;
-        el.style.opacity = String(Math.max(0, 1 - blown * 1.3));
-        if (blown > 0.85) finish();
+        if (G) { const f = (blown - FLY) / 0.45; el.style.opacity = String(Math.max(0, Math.min(1, 1 - f))); if (f >= 1) finish(); }
+        else { el.style.opacity = String(Math.max(0, 1 - blown * 1.3)); if (blown > 0.85) finish(); }
       }
     }
     requestAnimationFrame(frame);
 
+    /* Where he is: the rest geometry measured off his own screenshots at a
+       390 px wide frame -- ring about 0.19-0.30 of the frame's short side,
+       core about 0.05-0.09, violet dots bigger than green ones. */
+    const FLY = 1.15;
+    const sx0 = new Float32Array(N), sy0 = new Float32Array(N), ga = new Float32Array(N),
+          gr = new Float32Array(N), gz = new Float32Array(N);
+    let G = null;
     function enter() {
       if (blown) return;
+      const box = into && into();
+      if (box && box.width > 10) {
+        G = { x: box.left + box.width / 2, y: box.top + box.height / 2, s: Math.min(box.width, box.height) };
+        for (let i = 0; i < N; i++) {
+          sx0[i] = px[i]; sy0[i] = py[i];
+          ga[i] = Math.atan2(py[i] - G.y, px[i] - G.x);
+          gr[i] = hot[i] ? 0.05 + Math.random() * 0.045 : 0.19 + Math.pow(Math.random(), 0.7) * 0.11;
+          gz[i] = hot[i] ? 2 + Math.random() * 2.5 : 3.5 + Math.random() * 5;
+        }
+      }
       blown = 0.0001; el.classList.add('out');
       resolve('entered');                // the globe starts its swell while the door is still opening
     }

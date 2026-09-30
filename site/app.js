@@ -253,6 +253,7 @@ function render() {
   globe?.pause?.(!sec && GLORB_ON);   // at home Glorb is the stage
   wireVideos();
   after?.();
+  if (typeof deckSync === 'function') deckSync();
 }
 
 // Loops only load and play while they are on screen -- 21 autoplaying videos
@@ -334,15 +335,48 @@ if (GLORB_ON) {
   new MutationObserver(() => GLORB.send({ glorb: 'theme', theme: th(), bg: css('--bg') }))
     .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 }
-// The section row: a shelf on the home page scrolls into view, anything else opens.
-$('#sections').innerHTML = SECTIONS.map(s => `<a href="${s.key}" data-key="${s.key}">${esc(s.label)}</a>`).join('');
-$('#sections').addEventListener('click', e => {
-  const a = e.target.closest('a[data-key]'); if (!a) return;
+// ---- the deck ---------------------------------------------------------------
+// The site's navigation is a row of push keys on a bar at the foot of the page,
+// like the transport keys on an old cassette deck: press one and it goes down
+// and STAYS down (latched) while the one that was down pops back up. On the
+// home page the key for whichever shelf you are looking at latches by itself as
+// you scroll. Colin lives on top of this bar.
+const deck = $('.deck-keys');
+deck.innerHTML = SECTIONS.map((s, i) => `<a class="key" href="${s.key}" data-key="${s.key}"><i>${String(i + 1).padStart(2, '0')}</i><b>${esc(s.label)}</b></a>`).join('');
+let latched = null;
+function latch(key, show = true) {
+  if (key === latched) return;
+  latched = key;
+  deck.querySelectorAll('.key').forEach(k => k.classList.toggle('in', k.dataset.key === key));
+  const k = key && deck.querySelector(`.key[data-key="${key}"]`);
+  if (k && show) { const r = k.getBoundingClientRect(), d = deck.getBoundingClientRect();
+    if (r.left < d.left + 20 || r.right > d.right - 20) deck.scrollBy({ left: r.left - d.left - d.width / 2 + r.width / 2, behavior: 'smooth' }); }
+}
+deck.addEventListener('pointerdown', e => { const k = e.target.closest('.key'); if (k) k.classList.add('down'); });
+['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => deck.addEventListener(ev, () => deck.querySelectorAll('.key.down').forEach(k => k.classList.remove('down'))));
+deck.addEventListener('click', e => {
+  const a = e.target.closest('.key'); if (!a) return;
   e.preventDefault();
-  const shelf = document.getElementById('shelf-' + a.dataset.key);
-  if (!route().length && shelf) shelf.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  else go(a.dataset.key);
+  const key = a.dataset.key, shelf = document.getElementById('shelf-' + key);
+  latch(key, false);
+  if (!route().length && shelf) { deckHold = performance.now() + 1200; shelf.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  else go(key);
 });
+let deckHold = 0;
+function deckSync() {
+  const [sec] = route();
+  if (sec) return latch(sectionOf(sec) ? sec : null);
+  if (performance.now() < deckHold) return;
+  let key = null;
+  if (scrollY > innerHeight * 0.45) {
+    const mid = innerHeight * 0.45;
+    for (const el of document.querySelectorAll('.shelf[id^="shelf-"]')) {
+      const r = el.getBoundingClientRect(); if (r.top <= mid && r.bottom >= mid) { key = el.id.slice(6); break; }
+    }
+  }
+  latch(key);
+}
+addEventListener('scroll', deckSync, { passive: true });
 
 // ONE music player for the whole site: the ♪ key, the Audio page and the
 // stage all share it, so whatever is playing is what the swarm dances to.
@@ -504,7 +538,7 @@ const globeReady = (USE_SWARM ? import('./stage-swarm.js?v=d68adea6').then(m => 
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? import('./intro.js?v=9b0ed354').then(m => m.playIntro({ accent: css('--accent'), ink: css('--ink'), bg: css('--bg') }))
+  ? import('./intro.js?v=aa7f1fe1').then(m => m.playIntro({ ink: css('--ink'), bg: css('--bg'), into: GLORB_ON ? () => $('#glorb').getBoundingClientRect() : null }))
       .then(() => { try { sessionStorage.setItem('cw.intro', '1'); } catch {} globeReady.then(() => globe?.pulse(1.6)); })
       .catch(() => {})
   : Promise.resolve();
@@ -524,5 +558,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=ca34e73e').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=38a6ed1f').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

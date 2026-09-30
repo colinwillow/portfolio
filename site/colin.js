@@ -105,7 +105,11 @@ export function createMiniColin({ go, known, items, pageOf }) {
       <button class="mini-kb" aria-pressed="false" title="Type instead">⌨</button>
       <button class="mini-off" title="Stop listening">✕</button>
     </div>
-    <button class="mini-body" aria-label="Talk to Colin"><canvas></canvas><span class="mini-tag">Tap to talk</span></button>`;
+    <div class="mini-bubble" hidden role="dialog" aria-label="Colin">
+      <p>Hey. Want to talk? I can show you around.</p>
+      <div><button class="mini-yes">Talk</button><button class="mini-no" aria-label="Dismiss">✕</button></div>
+    </div>
+    <button class="mini-body" aria-label="Colin"><canvas></canvas><span class="mini-tag"></span></button>`;
   document.body.appendChild(dock);
   const $d = s => dock.querySelector(s);
   const canvas = $d('canvas'), panel = $d('.mini-panel'), logEl = $d('.mini-log'), form = $d('form'),
@@ -141,12 +145,96 @@ export function createMiniColin({ go, known, items, pageOf }) {
   }
   new ResizeObserver(size).observe(canvas);
 
+  /* HIS LITTLE LIFE ON THE DECK. He stands on the bar at the foot of the page
+     and gets on with things: stands about, wanders to somewhere else along it,
+     now and then does something (a wave, a kick at nothing, a moonwalk), and
+     every so often walks off one edge and comes back in from one side a while
+     later. Scrolling down to read sends him off the nearest edge so he is not
+     in the way; stopping brings him back. All of it is paused while he is
+     talking or borrowed by the About page. Positions are the dock's LEFT edge in
+     CSS px; his walking speed is his own height per second, converted through
+     the camera so the feet do not skate. */
+  const LIFE = { x: null, to: 0, mode: 'idle', t: 2 + Math.random() * 3, face: 0, faceNow: 0, gone: false,
+                 speed: 0.62, clips: {} };
+  const pxPerM = () => { const r = canvas.getBoundingClientRect(); return r.height / (2 * camera.position.z * Math.tan(camera.fov * Math.PI / 360)); };
+  const bodyW = () => canvas.getBoundingClientRect().width || 120;
+  const lane = () => [8, Math.max(8, innerWidth - bodyW() - 8)];
+  function lifeClip(name) {
+    const c = LIFE.clips[name]; if (!c || LIFE.cur === c) return; LIFE.cur = c;
+    play(ch.mixer, c, { fade: 0.35 });
+  }
+  function walkTo(x) { LIFE.to = x; LIFE.mode = 'walk'; LIFE.face = x > LIFE.x ? 1 : -1; lifeClip(LIFE.walk);
+    if (LIFE.exit && bubble) bubble.hidden = true; }
+  function lifeDecide() {
+    const [lo, hi] = lane(), r = Math.random();
+    if (LIFE.gone) {                    // back in, from whichever side
+      const fromLeft = Math.random() < 0.5;
+      LIFE.x = fromLeft ? -bodyW() - 10 : innerWidth + 10; LIFE.gone = false; dock.classList.remove('away');
+      walkTo(lo + Math.random() * (hi - lo)); return;
+    }
+    if (r < 0.12) {                     // off an edge for a while
+      LIFE.exit = true; walkTo(LIFE.x < innerWidth / 2 ? -bodyW() - 20 : innerWidth + 20); return;
+    }
+    if (r < 0.55) {                     // somewhere else along the bar, not a shuffle
+      let x; do { x = lo + Math.random() * (hi - lo); } while (Math.abs(x - LIFE.x) < (hi - lo) * 0.25 && hi - lo > 60);
+      LIFE.walk = Math.random() < 0.2 && LIFE.clips.swagger ? 'swagger' : 'walk'; walkTo(x); return;
+    }
+    LIFE.mode = 'idle'; LIFE.face = 0; LIFE.t = 3 + Math.random() * 6;
+    const fid = ['kick', 'wave', 'moon', 'tired'].filter(k => LIFE.clips[k]);
+    if (r > 0.8 && fid.length) { const k = fid[(Math.random() * fid.length) | 0];
+      LIFE.cur = null; play(ch.mixer, LIFE.clips[k], { once: true, back: LIFE.clips.idle, fade: 0.3 }); LIFE.cur = LIFE.clips.idle; }
+    else lifeClip('idle');
+  }
+  function lifeStep(dt) {
+    if (dock.classList.contains('hero') || !ch) return;
+    if (state !== 'off') {
+      // talking: he comes to the right-hand end, where the conversation opens
+      const hi = lane()[1];
+      if (LIFE.gone || LIFE.x === null) { LIFE.x = innerWidth + 10; LIFE.gone = false; LIFE.exit = false; dock.classList.remove('away'); }
+      if (Math.abs(LIFE.x - hi) > 1) { if (LIFE.mode !== 'walk' || LIFE.to !== hi) { LIFE.walk = 'walk'; walkTo(hi); } }
+      else if (LIFE.mode === 'walk') { LIFE.mode = 'idle'; LIFE.face = 0; lifeClip('idle'); }
+      if (LIFE.mode === 'walk') {
+        const v = LIFE.speed * pxPerM() * (camera.userData.h || 1), d = LIFE.to - LIFE.x;
+        if (Math.abs(LIFE.faceNow - LIFE.face) < 0.35) LIFE.x += Math.sign(d) * Math.min(Math.abs(d), v * 1.4 * dt);
+      }
+      LIFE.faceNow += (LIFE.face - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
+      ch.model.rotation.y = LIFE.faceNow * Math.PI / 2;
+      dock.style.transform = `translateX(${LIFE.x}px)`; dock.classList.add('rside');
+      return;
+    }
+    if (LIFE.x === null) { const [lo, hi] = lane(); LIFE.x = hi; }
+    const reading = document.body.classList.contains('reading');
+    if (reading && !LIFE.gone && !LIFE.exit) { LIFE.exit = true; LIFE.walk = 'walk';
+      walkTo(LIFE.x < innerWidth / 2 ? -bodyW() - 20 : innerWidth + 20); }
+    if (LIFE.mode === 'walk') {
+      const v = LIFE.speed * (LIFE.walk === 'swagger' ? 0.85 : 1) * pxPerM() * (camera.userData.h || 1);
+      const d = LIFE.to - LIFE.x, step = Math.sign(d) * Math.min(Math.abs(d), v * dt);
+      // only move once he has actually turned, or he glides sideways while facing out
+      if (Math.abs(LIFE.faceNow - LIFE.face) < 0.35) LIFE.x += step;
+      if (Math.abs(LIFE.to - LIFE.x) < 0.5) {
+        if (LIFE.exit) { LIFE.exit = false; LIFE.gone = true; LIFE.mode = 'gone'; dock.classList.add('away');
+          LIFE.t = reading ? 1e9 : 5 + Math.random() * 12; lifeClip('idle'); }
+        else { LIFE.mode = 'idle'; LIFE.face = 0; LIFE.t = 2.5 + Math.random() * 5; lifeClip('idle'); }
+      }
+    } else {
+      if (LIFE.gone && reading) LIFE.t = Math.max(LIFE.t, 1.2);
+      else if (LIFE.gone && LIFE.t > 1.2) LIFE.t = Math.min(LIFE.t, 1.2 + Math.random() * 6);
+      LIFE.t -= dt; if (LIFE.t <= 0) lifeDecide();
+    }
+    // turning is a turn, not a snap: profile to walk, back to the viewer to stand
+    LIFE.faceNow += (LIFE.face - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
+    ch.model.rotation.y = LIFE.faceNow * Math.PI / 2;
+    dock.style.transform = `translateX(${LIFE.x}px)`;
+    dock.classList.toggle('rside', LIFE.x > innerWidth / 2);
+  }
+
   const clock = new THREE.Clock();
   function frame() {
     if (dead) return;
     requestAnimationFrame(frame);
     if (document.hidden || !ch) return;
     const dt = Math.min(0.05, clock.getDelta());
+    lifeStep(dt);
     // Take last frame's glance OFF before the mixer runs: if the idle has no
     // head track, nothing else would, and the offset would stack every frame.
     if (head) head.quaternion.copy(headBase);
@@ -210,12 +298,16 @@ export function createMiniColin({ go, known, items, pageOf }) {
     });
     scene.add(c.model);
     idle = pickClip(c.clips, 'idle_neutral', 'neutral_idle');
+    Object.assign(LIFE.clips, { idle, walk: pickClip(c.clips, 'walk_fwd_neutral'), swagger: pickClip(c.clips, 'walk_fwd_swagger'),
+      kick: pickClip(c.clips, 'idle_sad_kick'), wave: pickClip(c.clips, 'waving'), moon: pickClip(c.clips, 'dance_moonwalk'),
+      tired: pickClip(c.clips, 'idle_exhausted') });
+    LIFE.walk = 'walk'; LIFE.cur = idle;
     play(c.mixer, idle, { fade: 0 }); c.mixer.update(0.01);
     const box = skinnedBounds(c.model), h = box.max.y - box.min.y;
     c.model.position.y -= box.min.y;
     c.model.position.x -= (box.min.x + box.max.x) / 2;
     const dist = h * 0.62 / Math.tan(camera.fov * Math.PI / 360);
-    camera.position.set(0, h * 0.62, dist); camera.lookAt(0, h * 0.5, 0);
+    camera.position.set(0, h * 0.62, dist); camera.lookAt(0, h * 0.5, 0); camera.userData.h = h;
     size(); dock.classList.remove('loading');
     frame();
   }).catch(err => { console.warn('mini colin', err); dock.remove(); dead = true; });
@@ -234,7 +326,8 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let ctx = null, state = 'off', rec = null, heard = '', gapT = 0, cc = false, turn = 0;
   const setState = s2 => { state = s2; dock.dataset.state = s2;
-    tag.textContent = { off: 'Tap to talk', listening: 'Listening', thinking: 'Thinking', speaking: 'Talking' }[s2]; };
+    tag.textContent = { off: '', listening: 'Listening', thinking: 'Thinking', speaking: 'Talking' }[s2];
+    if (s2 !== 'off') bubble.hidden = true; };
   const log = (who, text) => { const p = document.createElement('p'); p.className = who; p.textContent = text;
     logEl.appendChild(p); while (logEl.children.length > 10) logEl.firstChild.remove(); logEl.scrollTop = 1e6; return p; };
   let capT = 0;
@@ -364,8 +457,19 @@ export function createMiniColin({ go, known, items, pageOf }) {
     if (on) setTimeout(() => input.focus({ preventScroll: true }), 50);
   }
 
+  /* Talking is an Easter egg, not a button on the page: tap him and he asks,
+     in a bubble you can wave away. Once a visit he offers on his own, a while
+     after you arrive, and never again once you have said no. */
+  const bubble = $d('.mini-bubble');
+  let offered = false; try { offered = !!sessionStorage.getItem('cw.colinAsked'); } catch {}
+  const offer = () => { if (state !== 'off' || dock.classList.contains('away')) return;
+    bubble.hidden = false; offered = true; try { sessionStorage.setItem('cw.colinAsked', '1'); } catch {}
+    if (ch) act('wave'); };
+  setTimeout(function nudge() { if (offered) return; if (LIFE.mode === 'idle' && !LIFE.gone) offer(); else setTimeout(nudge, 3000); }, 16000);
+  $d('.mini-yes').onclick = () => { bubble.hidden = true; wake(); };
+  $d('.mini-no').onclick = () => { bubble.hidden = true; };
   $d('.mini-body').onclick = () => {
-    if (state === 'off') wake();
+    if (state === 'off') { if (bubble.hidden) offer(); else bubble.hidden = true; }
     else if (state === 'speaking') { turn++; hush(); setState('listening'); listen(); }   // tap to interrupt him
   };
   $d('.mini-off').onclick = sleep;
