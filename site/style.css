@@ -547,3 +547,14 @@ body.has-glorb #stage { display: none; }
 .cover.app.blank { display: grid; place-items: center; font: 700 56px var(--ui); color: var(--accent-ink); background: var(--accent-soft); }
 .card.media .cover.app { width: 46%; margin: 16px 16px 12px; }
 .grid:has(.cover.app) { grid-template-columns: repeat(auto-fill, minmax(min(46%, 260px), 1fr)); }
+
+/* ---- a STAGE page (About): the first screen is the whole show ------------------
+   The strip sits at the foot of the screen, Colin stands on it centre stage, and
+   Glorb fills everything behind him. The page itself starts below the strip. */
+body.stage-page #deck { margin-top: calc(100svh - var(--deck)); }
+body.stage-page #about-hero { position: absolute; left: 0; right: 0; margin: 0; bottom: calc(100% + var(--deck));
+  height: calc(100svh - var(--deck)); overflow: visible; z-index: 13; pointer-events: none; }
+body.stage-page .about-slot { transform: translateY(6px); }
+body.stage-page #mini.hero .mini-body { width: min(100%, 560px); }
+body.stage-page .about-talk { left: auto; right: var(--gut); bottom: 22px; transform: none; pointer-events: auto; }
+.tile.game:first-child { width: min(56vw, 280px); }

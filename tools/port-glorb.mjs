@@ -53,11 +53,18 @@ body = body.replace(wallEnd, wallEnd + `      // the page's strip: a flat floor 
 `);
 const loopHead = "function loop() {\n";
 if (!body.includes(loopHead)) { console.error('loop() not found'); process.exit(1); }
-body = body.replace(loopHead, loopHead + "  if (__cy != null) cy = __cy;\n");
+body = body.replace(loopHead, loopHead + "  if (__cy != null) cy = __cy;\n  scale = Math.min(W, H) * __sk;\n");
 
 // THE LITTLE ONE -- the small orb he shows during a formation as the way back
 // home. Here the page is the way back, and he sat on top of every shape, so the
 // port can switch him off (createGlorb({ mini: false }), the default here).
+// ...and the clamp on his ring has to grow with him, or a bigger Glorb is the same size
+const maxRLine = "  const maxR = Math.min(W, H) * 0.5 * cfg.fit;\n";
+if (!body.includes(maxRLine)) { console.error('maxR clamp not found'); process.exit(1); }
+body = body.replace(maxRLine, "  const maxR = Math.min(W, H) * 0.5 * cfg.fit * __sk;\n");
+// and the dots grow by less than he does, so a backdrop Glorb is not all blobs
+body = body.replace("  const k = scale / 400;\n", "  const k = scale / 400 / Math.sqrt(__sk);\n");
+
 const miniHead = "function drawMini(now, k) {\n";
 if (!body.includes(miniHead)) { console.error('drawMini not found'); process.exit(1); }
 body = body.replace(miniHead, miniHead + "  if (!__mini) return;\n");
@@ -110,7 +117,7 @@ export function createGlorb({ mini: __mini = false, host, theme: __theme = 'dark
   // hidden hero costs nothing and picks up exactly where it stopped
   let __paused = false; const __parked = new Set();
   const requestAnimationFrame = (f) => __paused ? (__parked.add(f), 0) : __real.requestAnimationFrame(f);
-  let __start = null, __floor = 1e9, __cy = null;
+  let __start = null, __floor = 1e9, __cy = null, __sk = 1;
 
 ${body}
 
@@ -137,6 +144,8 @@ ${body}
     /** the strip's top edge in his canvas pixels (1e9 = no floor), and where his centre rests (null = middle) */
     setFloor(y) { __floor = y; },
     setCentreY(y) { __cy = y; },
+    /** how big he is against the screen (1 = his own size): a stage page makes him the backdrop */
+    setScale(k) { __sk = k; },
   };
 }
 `;

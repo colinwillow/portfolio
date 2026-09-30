@@ -199,7 +199,16 @@ export function createMiniColin({ go, known, items, pageOf }) {
     LIFE.walk = 'walk'; lifeClip('walk');
   }
   function lifeStep(dt) {
-    if (dock.classList.contains('hero') || !ch) return;
+    if (!ch) return;
+    if (dock.classList.contains('hero')) {
+      // borrowed by a page: he stands centre stage, facing out, whatever he was doing on the strip
+      if (LIFE.mode !== 'idle') { LIFE.mode = 'idle'; LIFE.t = 3; }
+      LIFE.face = 0; lifeClip('idle');
+      LIFE.faceNow += (0 - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
+      ch.model.rotation.y = LIFE.faceNow * Math.PI / 2;
+      dock.style.transform = '';
+      return;
+    }
     if (LIFE.mode === 'tread') {
       LIFE.tread -= dt;
       LIFE.x += (LIFE.to - LIFE.x) * (1 - Math.exp(-3 * dt));
@@ -501,7 +510,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
 
   // Hero mode: the About page borrows him, big, in its own frame.
   const home = { parent: document.body, next: null };
-  function adopt(host) { if (!host) return; host.appendChild(dock); dock.classList.add('hero'); size(); }
+  function adopt(host) { if (!host) return; host.appendChild(dock); dock.classList.add('hero'); if (bubble) bubble.hidden = true; size(); }
   function release() { if (dock.parentElement !== perch()) { perch().appendChild(dock); dock.classList.remove('hero'); size(); } }
   /** Where his head is on screen (client px), for things that orbit it. */
   const hv = new THREE.Vector3();

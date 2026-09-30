@@ -40,7 +40,7 @@ export function createGlorb({ mini: __mini = false, host, theme: __theme = 'dark
   // hidden hero costs nothing and picks up exactly where it stopped
   let __paused = false; const __parked = new Set();
   const requestAnimationFrame = (f) => __paused ? (__parked.add(f), 0) : __real.requestAnimationFrame(f);
-  let __start = null, __floor = 1e9, __cy = null;
+  let __start = null, __floor = 1e9, __cy = null, __sk = 1;
 
 const BANDS = 64, TAU = Math.PI * 2;
 
@@ -12286,6 +12286,7 @@ const STEP = 1000 / 60;
 
 function loop() {
   if (__cy != null) cy = __cy;
+  scale = Math.min(W, H) * __sk;
   const n = Math.min(MAX, Math.round(cfg.count));
   const now = performance.now();
   let dt = now - lastT; lastT = now;
@@ -12418,11 +12419,11 @@ function loop() {
   const drift2 = driftOn * DRIFT.shapeAmp *
                  (0.62 * Math.sin(tt / DRIFT.shapeA) + 0.38 * Math.sin(tt / DRIFT.shapeB + 2.4));
   const gScale = (1 + drive.scale * rmsNow) * (1 + rest * 0.05 * Math.sin(tt / 9.1));
-  const maxR = Math.min(W, H) * 0.5 * cfg.fit;
+  const maxR = Math.min(W, H) * 0.5 * cfg.fit * __sk;
 
   // falloff / sizeHi were absolute px, which is why desktop looked nothing
   // like mobile. Normalise against a 400px reference short edge.
-  const k = scale / 400;
+  const k = scale / 400 / Math.sqrt(__sk);
   // The black ring is wherever size crosses zero, i.e. dist == falloffPx. Fixed
   // in px it stops tracking the orb: shrink radius and the whole thing ends up
   // inside the green zone with no ring and no purple at all. follow blends the
@@ -14400,5 +14401,7 @@ __start = loop;
     /** the strip's top edge in his canvas pixels (1e9 = no floor), and where his centre rests (null = middle) */
     setFloor(y) { __floor = y; },
     setCentreY(y) { __cy = y; },
+    /** how big he is against the screen (1 = his own size): a stage page makes him the backdrop */
+    setScale(k) { __sk = k; },
   };
 }

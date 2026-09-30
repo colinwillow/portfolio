@@ -279,6 +279,7 @@ function render() {
   const [sec, slug] = route();
   const page = sec ? PAGES[sec] : PAGES.home;
   document.body.classList.toggle('at-home', !sec);
+  document.body.classList.toggle('stage-page', sec === 'about' && !slug);   // a full-screen stage above the strip
   view.innerHTML = page ? page(slug) : missing();
   view.classList.remove('enter');
   if (!document.startViewTransition || calm.matches) { void view.offsetWidth; view.classList.add('enter'); }
@@ -366,7 +367,7 @@ const GLORB = { api: null, ready: false, send: () => {} };
 const GLORB_DOT = 0.65;
 const glorbTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 if (GLORB_ON) document.body.classList.add('has-glorb');
-const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=1dae440e').then(m => {
+const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
   const api = m.createGlorb({ host: $('#glorb'), theme: glorbTheme(), bg: css('--bg') });
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
@@ -384,7 +385,7 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=1dae440e').then(m => {
      as it goes), and scrolling back brings it back down.
    `anchor` is the scroll position the unit is sitting at: a key sets it, and
    scrolling above it lowers it, so it always reappears on the way back up. */
-const HEAD = { anchor: 0, auto: 0, target: 0 };
+const HEAD = { anchor: 0, auto: 0, target: 0, sk: 1 };
 const headRest = () => innerHeight * (innerWidth > innerHeight ? 0.72 : 0.54);
 const deckH = () => $('#deck')?.offsetHeight || 58;
 function headOffset() {
@@ -410,7 +411,10 @@ addEventListener('scroll', () => {
   const g = $('#glorb'); if (g) g.style.clipPath = `inset(0 0 ${Math.max(0, innerHeight - top)}px 0)`;
   const api = GLORB.api; if (!api) return;
   // he rests in the middle of whatever space is above the strip when the page is at the top
-  const R = api.centre.scale * 0.34, room = home ? headRest() : innerHeight * 0.38;
+  // on a stage page he is the backdrop: bigger, and centred behind Colin's chest and head
+  const stage = document.body.classList.contains('stage-page');
+  HEAD.sk += ((stage ? 2.8 : 1) - HEAD.sk) * 0.08; api.setScale(HEAD.sk);
+  const R = api.centre.scale * 0.34, room = home ? headRest() : stage ? top * 0.76 : innerHeight * 0.38;
   api.setFloor(top - 1);
   api.setCentreY(Math.min(room * 0.5, top - R * 0.7));
   api.pause(top < -R * 1.5);
@@ -673,5 +677,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=9c449b9a').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=b6c8432b').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));
