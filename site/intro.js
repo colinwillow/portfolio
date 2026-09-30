@@ -33,19 +33,24 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
        head projected every frame, so an arm swing is what shoves them. */
     const me = { ok: false, on: false, cv: Object.assign(document.createElement('canvas'), { className: 'intro-me' }) };
     document.body.appendChild(me.cv);   // outside the intro: he keeps walking after it has faded
-    import('./intro-me.js?v=bd2382ad').then(m => m.mountMe(me.cv)).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
+    import('./intro-me.js?v=6b9b1d62').then(m => m.mountMe(me.cv)).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
     document.body.appendChild(el);
-    const cv = el.querySelector('canvas'), g = cv.getContext('2d');
+    const cv = el.querySelector('canvas'), g = cv.getContext('2d'), g0 = g;
+    /* Depth: a third of the dots are drawn on a layer ABOVE him, so he walks
+       through the field rather than in front of it. */
+    const cvF = Object.assign(document.createElement('canvas'), { className: 'intro-front' }), gF = cvF.getContext('2d');
+    document.body.appendChild(cvF);
     const word = el.querySelector('.intro-word');
     let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, 2);
-    const size = () => { W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; };
+    const size = () => { W = innerWidth; H = innerHeight; cv.width = cvF.width = W * dpr; cv.height = cvF.height = H * dpr; };
     size(); addEventListener('resize', size);
 
     const N = W * H > 700000 ? 1600 : 800;
     const px = new Float32Array(N), py = new Float32Array(N), vx = new Float32Array(N), vy = new Float32Array(N);
     const strand = new Uint8Array(N), tt = new Float32Array(N), spd = new Float32Array(N),
           maxV = new Float32Array(N), maxF = new Float32Array(N), rad = new Float32Array(N), hot = new Uint8Array(N);
-    const knock = new Float32Array(N);             // 1 just after he hit it, easing back to 0
+    const knock = new Float32Array(N);
+    const front = new Uint8Array(N); for (let i = 0; i < N; i++) front[i] = Math.random() < 0.34 ? 1 : 0;             // 1 just after he hit it, easing back to 0
     const DEF = [
       { la: 3, lb: 2, A: 120, B: 110 }, { la: 5, lb: 4, A: 130, B: 100 }, { la: 4, lb: 3, A: 110, B: 120 }, { la: 5, lb: 3, A: 120, B: 120 },
       { k: 3, R: 120 }, { k: 5, R: 110 }, { k: 4, R: 130 }, { k: 7, R: 100 },
@@ -132,26 +137,30 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
           const back = 1 - 0.85 * knock[i];
           vx[i] = (vx[i] + ax * back * k) * Math.pow(0.95, k); vy[i] = (vy[i] + ay * back * k) * Math.pow(0.95, k);
           knock[i] *= Math.pow(0.975, k);
-          /* HIM. A particle that finds itself inside his silhouette is put back
-             on his surface and bounces off it: the part of its motion INTO him
-             (measured against his own walking speed, so a body arriving at a
-             particle hits it as hard as a particle arriving at a body) is sent
-             back out at a fraction, and the part ALONG the surface is kept --
-             that is what rolls them up his arm and over his shoulder. */
+          /* HIM, AS AIR SEES A CAR. In his own frame the air rushes backwards
+             past him; near his body that stream is bent to run ALONG his
+             surface (the part heading into him is removed, the rest kept).
+             Back in the world that means: at his chest they are pushed ahead a
+             little and slide up or down, over his head and under his feet they
+             hardly move while he passes, and behind him they fill back in. They
+             are not carried off with him, and the strand pulls them home after. */
           if (me.on) {
             const hit = me.api.hit(px[i], py[i]);
-            if (hit && hit.d > 0.3) {
-              const push = (hit.d - 0.3) * 9;
-              px[i] += hit.nx * push; py[i] += hit.ny * push;
+            if (hit && hit.d > 0.12) {
+              // only what he is walking INTO is touched: nothing is dragged along in his wake
               const rvx = vx[i] - hit.vx, rvy = vy[i];
               const vn = rvx * hit.nx + rvy * hit.ny;
+              const w = Math.min(1, (hit.d - 0.12) * 2.2);
               if (vn < 0) {
-                const e = 0.45 + Math.random() * 0.35;          // how springy, a little different each time
-                vx[i] -= (1 + e) * vn * hit.nx; vy[i] -= (1 + e) * vn * hit.ny;
-                // and a flick upward along him, so they climb rather than just slide
-                vy[i] -= Math.abs(vn) * 0.25;
+                vx[i] -= vn * hit.nx * w; vy[i] -= vn * hit.ny * w;        // it cannot go into him...
+                // ...so it slides round him instead: over the top above his middle, under below it
+                let tx = -hit.ny, ty = hit.nx;                            // along his surface...
+                const up = hit.ny < 0.15;                                  // ...upward above his middle, downward below
+                if ((up && ty > 0) || (!up && ty < 0)) { tx = -tx; ty = -ty; }
+                vx[i] += tx * -vn * 0.9 * w; vy[i] += ty * -vn * 0.9 * w;
               }
-              knock[i] = 1;
+              if (hit.d > 0.5) { const push = (hit.d - 0.5) * 6; px[i] += hit.nx * push; py[i] += hit.ny * push; }
+              knock[i] = Math.max(knock[i], w);
             }
           }
         }
@@ -160,12 +169,14 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
       // two passes, one fill each: neutral dots, then the accent ones on top
       // round dots, as he draws them; they grow to his size as they arrive
       const grow = blown && G ? Math.min(1, blown / FLY) : 0;
-      for (const h of [0, 1]) {
+      gF.setTransform(dpr, 0, 0, dpr, 0, 0); gF.clearRect(0, 0, W, H);
+      for (const L of [0, 1]) for (const h of [0, 1]) {
+        const g = L ? gF : g0;
         g.fillStyle = h ? core : rim;
         g.globalAlpha = blown && !G ? Math.max(0, 1 - blown * 1.4) : h ? 0.9 : 0.75;
         g.beginPath();
         for (let i = 0; i < N; i++) {
-          if (hot[i] !== h) continue;
+          if (hot[i] !== h || front[i] !== L) continue;
           const s0 = rad[i] * (1 + Math.min(4, Math.hypot(vx[i], vy[i]) * 0.04)) * 1.3;
           const s = s0 + (gz[i] - s0) * grow * grow;
           g.moveTo(px[i] + s, py[i]); g.arc(px[i], py[i], s, 0, 6.2832);
@@ -176,8 +187,8 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
       if (blown) {
         blown += dt;
         if (G && !G.landed && blown >= FLY) land();
-        if (G) { const f = (blown - FLY) / 0.45; el.style.opacity = String(Math.max(0, Math.min(1, 1 - f))); if (f >= 1) finish(); }
-        else { el.style.opacity = String(Math.max(0, 1 - blown * 1.3)); if (blown > 0.85) finish(); }
+        if (G) { const f = (blown - FLY) / 0.45; el.style.opacity = cvF.style.opacity = String(Math.max(0, Math.min(1, 1 - f))); if (f >= 1) finish(); }
+        else { el.style.opacity = cvF.style.opacity = String(Math.max(0, 1 - blown * 1.3)); if (blown > 0.85) finish(); }
       }
     }
     requestAnimationFrame(frame);
@@ -245,7 +256,7 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
         f.vx[j] = 0; f.vy[j] = 0;          // landed means at rest on the dot, not still flying
       }
     }
-    function finish() { done = true; if (!me.on) { me.api?.dispose(); me.cv.remove(); } removeEventListener('resize', size); removeEventListener('keydown', key); el.remove(); }
+    function finish() { done = true; if (!me.on) { me.api?.dispose(); me.cv.remove(); } removeEventListener('resize', size); removeEventListener('keydown', key); el.remove(); cvF.remove(); }
     const key = e => { if (e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') enter(); };
     addEventListener('keydown', key);
     el.addEventListener('click', enter);

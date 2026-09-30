@@ -567,7 +567,7 @@ const globeReady = (USE_SWARM ? import('./stage-swarm.js?v=a1ea0ebe').then(m => 
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? import('./intro.js?v=7a26bc41').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api }))
+  ? import('./intro.js?v=f4e04cfe').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api }))
       .catch(err => console.warn('intro', err))
   : Promise.resolve();
 

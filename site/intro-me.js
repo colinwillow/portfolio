@@ -28,6 +28,29 @@ export async function mountMe(cv) {
     for (const k of ['Head', 'Spine2', 'Hips', 'LeftHand', 'RightHand', 'LeftFoot', 'RightFoot'])
       if (new RegExp(k + '$').test(o.name) && !bones[k]) bones[k] = o; });
 
+  /* HOW FAST HIS FEET ACTUALLY GO. The clip walks in place, so the speed he is
+     moved at has to match what his planted foot is doing or he skates. Played
+     through once, the LOWER foot at each moment is the planted one, and it
+     travels backwards under him at exactly his walking speed: that is the
+     number, read off the clip rather than guessed. */
+  function stride() {
+    const T = walk.duration, steps = 90, fv = new THREE.Vector3(), prev = {};
+    const speeds = [];
+    for (let s = 0; s <= steps; s++) {
+      c.mixer.setTime((s / steps) * T); c.model.updateMatrixWorld(true);
+      const now = {};
+      for (const k of ['LeftFoot', 'RightFoot']) { bones[k].getWorldPosition(fv); now[k] = { y: fv.y, z: fv.z }; }
+      if (s) { const k = now.LeftFoot.y < now.RightFoot.y ? 'LeftFoot' : 'RightFoot';
+        speeds.push(-(now[k].z - prev[k].z) / (T / steps)); }
+      Object.assign(prev, now);
+    }
+    c.mixer.setTime(0);
+    speeds.sort((a, b) => a - b);
+    const v = speeds[Math.floor(speeds.length * 0.5)];
+    return v > 0.05 * h && v < 3 * h ? v : 0.7 * h;
+  }
+  const footSpeed = bones.LeftFoot && bones.RightFoot ? stride() : 0.7 * h;
+
   const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.NeutralToneMapping;
@@ -38,12 +61,12 @@ export async function mountMe(cv) {
   scene.add(c.model); c.model.rotation.y = Math.PI / 2;           // he faces +Z; walking right is +X
 
   let W = 0, H = 0, span = 0, x0 = 0, x1 = 0, t = 0, dur = 1, running = false, dead = false;
-  const speed = 0.85 * h;                                          // metres a second, for this clip
+  const speed = footSpeed;                                         // metres a second: his feet, measured
   const v = new THREE.Vector3(), clock = new THREE.Clock();
   function layout(w, hgt) {
     W = w; H = hgt; renderer.setSize(W, H, false); camera.aspect = W / H;
     // frame him about 55% of the screen tall, feet a little below the middle-third line
-    const tall = h / 0.55, dist = tall / (2 * Math.tan(camera.fov * Math.PI / 360));
+    const tall = h / 0.42, dist = tall / (2 * Math.tan(camera.fov * Math.PI / 360));
     camera.position.set(0, h * 0.62, dist); camera.lookAt(0, h * 0.62, 0); camera.updateProjectionMatrix();
     span = tall * camera.aspect / 2 + h * 0.5;                    // just off either edge
     x0 = -span; x1 = span; dur = (x1 - x0) / speed;
@@ -91,11 +114,12 @@ export async function mountMe(cv) {
   const at = (x, y) => { x = Math.max(0, Math.min(mw - 1.001, x)); y = Math.max(0, Math.min(mh - 1.001, y));
     const i = x | 0, j = y | 0, fx = x - i, fy = y - j, o = j * mw + i;
     return (fld[o] * (1 - fx) + fld[o + 1] * fx) * (1 - fy) + (fld[o + mw] * (1 - fx) + fld[o + mw + 1] * fx) * fy; };
-  let bodyVx = 0, lastX = 0;
+  let bodyVx = 0, lastX = 0, wasX = 0;
   const scr = (o, lift = 0) => { o.getWorldPosition(v); v.y += lift; v.project(camera);
     return { x: (v.x * 0.5 + 0.5) * W, y: (-v.y * 0.5 + 0.5) * H }; };
   function frame() {
     if (dead) return;
+    wasX = c.model.position.x;
     requestAnimationFrame(frame);
     const dt = Math.min(0.05, clock.getDelta());
     if (!running) return;
