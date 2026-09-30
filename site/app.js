@@ -487,7 +487,7 @@ function glorbShift() {
 // home page the key for whichever shelf you are looking at latches by itself as
 // you scroll. Colin lives on top of this bar.
 const deck = $('.deck-keys');
-deck.innerHTML = SECTIONS.map((s, i) => `<a class="key" href="${s.key}" data-key="${s.key}"><i>${String(i + 1).padStart(2, '0')}</i><b>${esc(s.label)}</b></a>`).join('');
+deck.innerHTML = SECTIONS.map((s, i) => `<a class="key" href="${s.key}" data-key="${s.key}"><b>${esc(s.label)}</b></a>`).join('');
 let latched = null;
 function latch(key, show = true) {
   if (key === latched) return;
