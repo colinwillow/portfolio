@@ -311,75 +311,38 @@ const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).
 const pushColors = () => globe?.setColors({ ink: css(USE_SWARM ? '--ink' : '--globe-ink'), accent: css('--accent'), deep: css('--accent-deep') });
 onAccent(() => pushColors());
 
-// ---- the hero: the real Glorb, and the navigation is swiping him ------------
-// He lives in his own repo and is embedded whole (glorp/?embed), so the flee,
-// the ring and the music visualiser are HIS tuned ones rather than a copy. He
-// plays himself a silent song so he is always alive; when the ♪ player is on he
-// gets the real one. Swipe him and he becomes the next section's shape; tap him
-// (or its name) and the page goes there.
-const GLORB = { i: -1, frame: null, ready: false, send: () => {} };
-const mixHex = (a, b, t) => '#' + [0, 2, 4].map(k => Math.round(parseInt(a.slice(1 + k, 3 + k), 16) * (1 - t) +
-  parseInt(b.slice(1 + k, 3 + k), 16) * t).toString(16).padStart(2, '0')).join('');
-function glorbPalette() {
-  const dark = document.documentElement.dataset.theme === 'dark', acc = css('--accent');
-  return { rim: acc, core: dark ? mixHex(acc, '#ffffff', 0.72) : css('--accent-deep') };
-}
+// ---- the hero: the real Glorb ---------------------------------------------
+// He lives in his own repo and is embedded whole (glorp/?embed): his own
+// palette, his own rest (a quiet room through his real mic analysis) and his
+// own flee. Nothing on the page is wired to gestures on him -- the swipe-to-
+// navigate version was messy and fired by accident. He is the hero; the row of
+// sections under him is the navigation. When the ♪ player is on he dances to it.
+const GLORB = { frame: null, ready: false, send: () => {} };
 if (GLORB_ON) {
   document.body.classList.add('has-glorb');
   const f = document.createElement('iframe');
-  const hex = v => v.replace('#', '');
   const th = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
-  const pal = glorbPalette();
-  // same origin on github.io, and colinwillow.com serves the same account
   const src = (BASE === '/portfolio/' ? '/glorp/' : 'https://colinwillow.github.io/glorp/') +
-    `?embed&theme=${th()}&bg=${hex(css('--bg'))}&rim=${hex(pal.rim)}&core=${hex(pal.core)}`;
-  Object.assign(f, { src, title: 'Glorb — swipe to browse the sections' });
+    `?embed&theme=${th()}&bg=${css('--bg').replace('#', '')}`;
+  Object.assign(f, { src, title: 'Glorb' });
   $('#glorb').append(f);
   GLORB.frame = f;
   GLORB.send = m => { try { f.contentWindow.postMessage(m, '*'); } catch {} };
-  const sendLook = () => { GLORB.send({ glorb: 'theme', theme: th(), bg: css('--bg') }); GLORB.send({ glorb: 'palette', ...glorbPalette() }); };
   addEventListener('message', e => {
-    if (e.source !== f.contentWindow) return;
-    const d = e.data || {};
-    if (d.glorb === 'ready') { GLORB.ready = true; if (GLORB.i >= 0) glorbShow(); }
-    else if (d.glorb === 'swipe') { if (d.dir === 'up') glorbDown(); else glorbStep(d.dir); }
-    else if (d.glorb === 'tap') { if (GLORB.i >= 0) glorbGo(); else glorbStep(1); }
+    if (e.source === f.contentWindow && e.data?.glorb === 'ready') GLORB.ready = true;
   });
-  new MutationObserver(sendLook).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-  onAccent(() => sendLook());
-  $('.pg-prev').onclick = () => glorbStep(-1);
-  $('.pg-next').onclick = () => glorbStep(1);
-  $('.pg-now').onclick = () => (GLORB.i >= 0 ? glorbGo() : glorbStep(1));
-  addEventListener('keydown', e => {
-    if (route().length || scrollY > innerHeight * 0.5 || e.target.closest?.('input,textarea')) return;
-    if (e.key === 'ArrowRight') glorbStep(1); else if (e.key === 'ArrowLeft') glorbStep(-1);
-    else if (e.key === 'Enter' && GLORB.i >= 0 && e.target === document.body) glorbGo();
-  });
+  new MutationObserver(() => GLORB.send({ glorb: 'theme', theme: th(), bg: css('--bg') }))
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 }
-function glorbStep(dir) {
-  const n = SECTIONS.length;
-  GLORB.i = GLORB.i < 0 ? (dir > 0 ? 0 : n - 1) : (GLORB.i + dir + n) % n;
-  glorbShow();
-}
-let glorbTurn = 0;
-async function glorbShow() {
-  const s = SECTIONS[GLORB.i], my = ++glorbTurn;
-  const now = $('.pg-now');
-  now.innerHTML = `<b>${esc(s.label)}</b><i>${String(GLORB.i + 1).padStart(2, '0')} / ${SECTIONS.length}</i>`;
-  now.classList.remove('flip'); void now.offsetWidth; now.classList.add('flip');
-  document.body.classList.add('picked');
-  if (!GLORB.ready) return;
-  const { glorbPoints } = await import('./glorb-shapes.js?v=0107854f');
-  const pts = await glorbPoints(s.key);
-  if (my !== glorbTurn || !pts) return;
-  GLORB.send({ glorb: 'points', points: pts, flat: true, share: 0.6, fs: 0.31 });
-}
-function glorbGo() {
-  const key = SECTIONS[GLORB.i].key, shelf = document.getElementById('shelf-' + key);
+// The section row: a shelf on the home page scrolls into view, anything else opens.
+$('#sections').innerHTML = SECTIONS.map(s => `<a href="${s.key}" data-key="${s.key}">${esc(s.label)}</a>`).join('');
+$('#sections').addEventListener('click', e => {
+  const a = e.target.closest('a[data-key]'); if (!a) return;
+  e.preventDefault();
+  const shelf = document.getElementById('shelf-' + a.dataset.key);
   if (!route().length && shelf) shelf.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  else go(key);
-}
-function glorbDown() { const v = $('#view'); if (v) scrollTo({ top: v.offsetTop - 10, behavior: 'smooth' }); }
+  else go(a.dataset.key);
+});
 
 // ONE music player for the whole site: the ♪ key, the Audio page and the
 // stage all share it, so whatever is playing is what the swarm dances to.
