@@ -13,6 +13,7 @@ export const GH = 'https://colinwillow.github.io/';
 
 export const SITE = {
   name: 'Colin Willow',
+  role: '3D Artist & Game Developer',
   tagline: 'Games, characters, tools and strange little worlds.',
   github: 'https://github.com/colinwillow',
 };

@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=43f714e7';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=94f1fc3b';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme } from './palette.js?v=54c082b8';
 
 const BASE = window.BASE || '/';
@@ -8,6 +8,7 @@ const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const view = $('#view');
 { const t = $('#tagline'); if (t) t.textContent = SITE.tagline; }
+$('#hero').innerHTML = `<p class="role">${esc(SITE.role)}</p>`;
 
 // ---- routing ------------------------------------------------------------
 // Every section and item has a real URL, so a tutorial can link straight to
@@ -247,7 +248,7 @@ function render() {
   view.innerHTML = page ? page(slug) : missing();
   view.classList.remove('enter'); void view.offsetWidth; view.classList.add('enter');
   const s = sectionOf(sec);
-  document.title = s ? `${slug ? (slug + ' · ') : ''}${s.label} — ${SITE.name}` : SITE.name;
+  document.title = s ? `${slug ? (slug + ' · ') : ''}${s.label} — ${SITE.name}` : `${SITE.name} — ${SITE.role}`;
   if (sec) scrollTo(0, 0);
   globe?.setMode(sec && s ? 'section' : 'home', s ? sec : null); aisleKey = null;
   globe?.pause?.(!sec && GLORB_ON);   // at home Glorb is the stage
@@ -538,7 +539,7 @@ const globeReady = (USE_SWARM ? import('./stage-swarm.js?v=d68adea6').then(m => 
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? import('./intro.js?v=aa7f1fe1').then(m => m.playIntro({ ink: css('--ink'), bg: css('--bg'), into: GLORB_ON ? () => $('#glorb').getBoundingClientRect() : null }))
+  ? import('./intro.js?v=bef5f42c').then(m => m.playIntro({ role: SITE.role, ink: css('--ink'), bg: css('--bg'), into: GLORB_ON ? () => $('#glorb').getBoundingClientRect() : null }))
       .then(() => { try { sessionStorage.setItem('cw.intro', '1'); } catch {} globeReady.then(() => globe?.pulse(1.6)); })
       .catch(() => {})
   : Promise.resolve();

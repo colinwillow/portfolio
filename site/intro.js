@@ -12,13 +12,23 @@
 // the place and size he is resting behind this page, and the real Glorb is
 // already there underneath when the canvas lets go. The name is his logo.
 
-export function playIntro({ ink = '#151515', bg = '#f3f2ef', rim = '#9a1cf0', core = '#72ec5c', into = null } = {}) {
+export function playIntro({ role = '', ink = '#151515', bg = '#f3f2ef', rim = '#9a1cf0', core = '#72ec5c', into = null } = {}) {
   return new Promise(resolve => {
     const el = document.createElement('div');
     el.id = 'intro';
     const logo = document.querySelector('#hud .logo');
     el.innerHTML = `<canvas></canvas><div class="intro-word">${logo ? logo.outerHTML : '<b>COLIN</b> WILLOW'}</div>
+      ${role ? `<p class="intro-role">${role.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}</p>` : ''}
       <button class="intro-enter">Enter</button>`;
+    /* HIM. While the portal runs, his rig loads in the background; on Enter he
+       walks in from the left, straight through the particles -- they part
+       around his body as he goes -- and it is as he passes that they start
+       for Glorb. If he has not loaded by the tap, the transition simply goes
+       without him. The shape he pushes is his real silhouette: hips, chest and
+       head projected every frame, so an arm swing is what shoves them. */
+    const me = { ok: false, on: false, cv: Object.assign(document.createElement('canvas'), { className: 'intro-me' }) };
+    document.body.appendChild(me.cv);   // outside the intro: he keeps walking after it has faded
+    import('./intro-me.js?v=02ba95bb').then(m => m.mountMe(me.cv)).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
     document.body.appendChild(el);
     const cv = el.querySelector('canvas'), g = cv.getContext('2d');
     const word = el.querySelector('.intro-word');
@@ -70,10 +80,16 @@ export function playIntro({ ink = '#151515', bg = '#f3f2ef', rim = '#9a1cf0', co
     }
 
     const tgt = [0, 0];
+    let meBody = [];
     function frame(now) {
       if (done) return;
       requestAnimationFrame(frame);
       const dt = Math.min(0.05, (now - last) / 1000), k = dt * 60; last = now; fc += k;
+      if (me.on) {
+        meBody = me.api.body();
+        // he has reached the logo: the particles leave for Glorb, he keeps walking
+        if (walking && me.api.progress() > 0.42) { walking = false; converge(); }
+      }
       const wr = word.getBoundingClientRect(), rx = wr.width / 2 + 10, ry = wr.height / 2 + 8, wx = wr.left + wr.width / 2, wy = wr.top + wr.height / 2;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, W, H);
@@ -103,6 +119,11 @@ export function playIntro({ ink = '#151515', bg = '#f3f2ef', rim = '#9a1cf0', co
           const ex = px[i] - nx, ey = py[i] - ny, ed = Math.hypot(ex, ey);
           if (ed < 0.5) { const ox = px[i] - wx || 0.1, oy = py[i] - wy, om = Math.hypot(ox, oy); ax += ox / om * maxF[i] * 14; ay += oy / om * maxF[i] * 14; }
           else if (ed < 14) { ax += ex / ed * maxF[i] * 3.5 * (1 - ed / 14); ay += ey / ed * maxF[i] * 3.5 * (1 - ed / 14); }
+          // his body shoves them aside as he walks through
+          for (const b of meBody) {
+            const bx = px[i] - b.x, by = py[i] - b.y, bd = Math.hypot(bx, by);
+            if (bd < b.r && bd > 0) { const p = maxF[i] * 18 * (1 - bd / b.r); ax += bx / bd * p; ay += by / bd * p; }
+          }
           // flee the finger
           const fx = px[i] - mx, fy = py[i] - my, fd = Math.hypot(fx, fy);
           if (fd < 90 && fd > 0) { const p = maxF[i] * 6 * (1 - fd / 90); ax += fx / fd * p; ay += fy / fd * p; }
@@ -140,9 +161,19 @@ export function playIntro({ ink = '#151515', bg = '#f3f2ef', rim = '#9a1cf0', co
     const FLY = 1.15;
     const sx0 = new Float32Array(N), sy0 = new Float32Array(N), ga = new Float32Array(N),
           gr = new Float32Array(N), gz = new Float32Array(N);
-    let G = null;
+    let G = null, walking = false;
     function enter() {
-      if (blown) return;
+      if (blown || walking) return;
+      if (me.ok) {                         // he walks through first
+        walking = true; me.on = true; me.api.start(W, H);
+        el.classList.add('walk');
+        resolve('entered');
+        return;
+      }
+      converge();
+      resolve('entered');
+    }
+    function converge() {
       const box = into && into();
       if (box && box.width > 10) {
         G = { x: box.left + box.width / 2, y: box.top + box.height / 2, s: Math.min(box.width, box.height) };
@@ -154,9 +185,8 @@ export function playIntro({ ink = '#151515', bg = '#f3f2ef', rim = '#9a1cf0', co
         }
       }
       blown = 0.0001; el.classList.add('out');
-      resolve('entered');                // the globe starts its swell while the door is still opening
     }
-    function finish() { done = true; removeEventListener('resize', size); removeEventListener('keydown', key); el.remove(); }
+    function finish() { done = true; if (!me.on) { me.api?.dispose(); me.cv.remove(); } removeEventListener('resize', size); removeEventListener('keydown', key); el.remove(); }
     const key = e => { if (e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') enter(); };
     addEventListener('keydown', key);
     el.addEventListener('click', enter);
