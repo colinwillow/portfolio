@@ -281,6 +281,7 @@ function render() {
   if (sec) scrollTo(0, 0);
   globe?.setMode(sec && s ? 'section' : 'home', s ? sec : null); aisleKey = null;
   globe?.pause?.(!sec && GLORB_ON);   // at home Glorb is the stage
+  GLORB.api?.pause(!!sec);
   wireVideos();
   after?.();
   if (typeof deckSync === 'function') deckSync();
@@ -348,23 +349,21 @@ onAccent(() => pushColors());
 // own flee. Nothing on the page is wired to gestures on him -- the swipe-to-
 // navigate version was messy and fired by accident. He is the hero; the row of
 // sections under him is the navigation. When the ♪ player is on he dances to it.
-const GLORB = { frame: null, ready: false, send: () => {} };
-if (GLORB_ON) {
-  document.body.classList.add('has-glorb');
-  const f = document.createElement('iframe');
-  const th = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
-  const src = (BASE === '/portfolio/' ? '/glorp/' : 'https://colinwillow.github.io/glorp/') +
-    `?embed&theme=${th()}&bg=${css('--bg').replace('#', '')}`;
-  Object.assign(f, { src, title: 'Glorb' });
-  $('#glorb').append(f);
-  GLORB.frame = f;
-  GLORB.send = m => { try { f.contentWindow.postMessage(m, '*'); } catch {} };
-  addEventListener('message', e => {
-    if (e.source === f.contentWindow && e.data?.glorb === 'ready') GLORB.ready = true;
-  });
-  new MutationObserver(() => GLORB.send({ glorb: 'theme', theme: th(), bg: css('--bg') }))
+/* Glorb's own engine runs IN this page (tools/port-glorb.mjs copies it across
+   whole), on one canvas that is the whole screen for the intro and the top of
+   the home page after it. One field, every state: nothing is swapped. */
+const GLORB = { api: null, ready: false, send: () => {} };
+const glorbTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+if (GLORB_ON) document.body.classList.add('has-glorb');
+const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=cef06fe5').then(m => {
+  const api = m.createGlorb({ host: $('#glorb'), theme: glorbTheme(), bg: css('--bg') });
+  Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
+  new MutationObserver(() => api.post({ glorb: 'theme', theme: glorbTheme(), bg: css('--bg') }))
     .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-}
+  api.pause(!!route().length);
+  return api;
+}).catch(err => { console.warn('glorb unavailable', err); return null; }) : Promise.resolve(null);
+
 // ---- the deck ---------------------------------------------------------------
 // The site's navigation is a row of push keys on a bar at the foot of the page,
 // like the transport keys on an old cassette deck: press one and it goes down
@@ -568,9 +567,10 @@ const globeReady = (USE_SWARM ? import('./stage-swarm.js?v=a1ea0ebe').then(m => 
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? import('./intro.js?v=bef5f42c').then(m => m.playIntro({ role: SITE.role, ink: css('--ink'), bg: css('--bg'), into: GLORB_ON ? () => $('#glorb').getBoundingClientRect() : null }))
-      .then(() => { try { sessionStorage.setItem('cw.intro', '1'); } catch {} globeReady.then(() => globe?.pulse(1.6)); })
-      .catch(() => {})
+  ? Promise.all([import('./intro.js?v=09c475d8'), glorbReady]).then(([m, api]) => api
+      ? m.playIntro({ glorb: api, role: SITE.role })
+      : null)
+      .catch(err => console.warn('intro', err))
   : Promise.resolve();
 
 // Mini-Colin: 8 MB of him, so he arrives once everything else has settled.

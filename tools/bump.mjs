@@ -14,7 +14,7 @@ import path from 'path';
 import crypto from 'crypto';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const DIRS = ['site', 'lab'];
+const DIRS = ['site', 'site/glorb', 'lab'];
 const files = DIRS.flatMap(d => fs.readdirSync(path.join(ROOT, d)).filter(f => f.endsWith('.js')).map(f => path.join(ROOT, d, f)));
 const hash = f => crypto.createHash('sha1').update(fs.readFileSync(f)).digest('hex').slice(0, 8);
 const IMPORT = /(from\s+|import\(\s*)(['"])(\.{1,2}\/[^'"?]+\.js)(\?v=[0-9a-f]+)?\2/g;

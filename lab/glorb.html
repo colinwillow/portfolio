@@ -1,0 +1,10 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Glorb, in-page</title>
+<style>html,body{margin:0;height:100%;background:#0e0e0f} #host{position:fixed;inset:0} #host canvas.glorb-c{display:block;width:100%;height:100%} #host canvas.glorb-gl{position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none}</style>
+<script type="importmap">{ "imports": { "three": "../vendor/three.module.min.js" } }</script>
+</head><body><div id="host"></div>
+<script type="module">
+import { createGlorb } from '../site/glorb/engine.js';
+window.g = createGlorb({ host: document.getElementById('host'), theme: 'dark', bg: '#0e0e0f', onEvent: m => console.log('glorb', JSON.stringify(m)) });
+</script></body></html>
