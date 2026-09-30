@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=b418e1e6';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=a835c3cf';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -194,7 +194,7 @@ const PAGES = {
       const it = WRITING.find(x => x.slug === slug);
       if (!it) return missing();
       after = () => import('./reader.js?v=d5e74f37').then(async m => { mounted = await m.mountReader($('#essay'), it); });
-      return `<div class="wrap narrow">${crumbs(link('writing', 'Writing'), esc(it.title))}
+      return `<div class="wrap narrow">${crumbs(link('writing', 'Thoughts'), esc(it.title))}
         <h2 class="title">${esc(it.title)}</h2>${it.note ? `<p class="lede">${esc(it.note)}</p>` : ''}
         <div id="essay"><p class="soon">Loading…</p></div>${foot()}</div>`;
     }
@@ -498,7 +498,7 @@ function glorbShift() {
 // you scroll. Colin lives on top of this bar.
 const deck = $('.deck-keys');
 // Keys with Colin's graffiti lettering show the art; the rest keep their name until theirs lands.
-const KEYART = new Set(['play', 'assets', 'scripts', 'web', 'motion', 'studios']);
+const KEYART = new Set(SECTIONS.map(s => s.key));   // all ten have art now
 deck.innerHTML = SECTIONS.map(s => KEYART.has(s.key)
   ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}"><img src="site/keys/${s.key}.webp" alt="" draggable="false"></a>`
   : `<a class="key" href="${s.key}" data-key="${s.key}"><b>${esc(s.label)}</b></a>`).join('');
