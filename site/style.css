@@ -489,11 +489,9 @@ body.has-glorb #hero .role { display: block; margin: 0; font: 600 11px/1 var(--m
 
 /* ---- physical page travel (View Transitions) ---------------------------------- */
 #hud { view-transition-name: hud; }
-#deck { view-transition-name: deck; }
-#mini:not(.hero) { view-transition-name: colin; }
-::view-transition-group(hud), ::view-transition-group(deck), ::view-transition-group(colin) { animation: none; z-index: 5; }
-::view-transition-old(hud), ::view-transition-old(deck), ::view-transition-old(colin) { display: none; }
-::view-transition-new(hud), ::view-transition-new(deck), ::view-transition-new(colin) { animation: none; }
+::view-transition-group(hud) { animation: none; z-index: 5; }
+::view-transition-old(hud) { display: none; }
+::view-transition-new(hud) { animation: none; }
 ::view-transition-old(root), ::view-transition-new(root) {
   animation-duration: .56s; animation-timing-function: cubic-bezier(.65, 0, .25, 1); animation-fill-mode: both; mix-blend-mode: normal; }
 html[data-vt="right"]::view-transition-old(root) { animation-name: vt-out-l; }
@@ -515,3 +513,19 @@ html[data-vt="out"]::view-transition-new(root)   { animation-name: vt-return; }
 body.has-glorb #glorb { bottom: auto; height: calc(54svh + 24px); }
 @media (min-aspect-ratio: 1/1) { body.has-glorb #glorb { height: calc(72svh + 24px); } }
 .intro-front { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 102; pointer-events: none; }
+
+/* ---- the strip lives IN the page: the seam between Glorb and the content ----------
+   It is the top edge of the content sheet, Colin stands on it, and on the home
+   page it is Glorb's floor (see GLORB_FLOOR in app.js). */
+body #deck { position: relative; left: auto; right: auto; bottom: auto; z-index: 12; height: var(--deck); padding-bottom: 0;
+  margin-top: var(--band); border-radius: 22px 22px 0 0; background: var(--sheet); border-top: 1px solid var(--line);
+  box-shadow: 0 -30px 60px -40px rgba(0,0,0,.25); backdrop-filter: none; -webkit-backdrop-filter: none; }
+body.at-home #deck { margin-top: 100svh; }
+body.has-glorb.at-home #deck { margin-top: 54svh; }
+@media (min-aspect-ratio: 1/1) { body.has-glorb.at-home #deck { margin-top: 72svh; } }
+body.no-globe.at-home #deck { margin-top: 60svh; }
+html body #view, html body.at-home #view, html body.has-glorb.at-home #view, html body.no-globe.at-home #view {
+  margin-top: 0; border-top: 0; border-radius: 0; box-shadow: none; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+/* Glorb holds the whole screen behind the page; the strip is what pushes him off it */
+body.has-glorb #glorb, body.has-glorb.scrolled #glorb { top: 0; bottom: auto; height: 100svh; opacity: 1; }
+#mini:not(.hero) { position: absolute; left: 0; bottom: calc(100% - 12px); }

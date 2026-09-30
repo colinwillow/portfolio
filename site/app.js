@@ -356,7 +356,7 @@ const GLORB = { api: null, ready: false, send: () => {} };
 const GLORB_DOT = 0.65;
 const glorbTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 if (GLORB_ON) document.body.classList.add('has-glorb');
-const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=91184800').then(m => {
+const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=2072d197').then(m => {
   const api = m.createGlorb({ host: $('#glorb'), theme: glorbTheme(), bg: css('--bg') });
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
@@ -366,6 +366,22 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=91184800').then(m => {
   api.pause(!!route().length);
   return api;
 }).catch(err => { console.warn('glorb unavailable', err); return null; }) : Promise.resolve(null);
+
+/* GLORB AND THE STRIP. He holds his place on the screen while the page scrolls
+   under him -- until the strip's top edge comes up to him. That edge is a floor
+   in his physics: his particles squash against it, and his resting centre is
+   pushed up just ahead of it, so the strip shoves the whole of him up and off
+   the screen. Scroll back and he re-forms as soon as there is room. Once he is
+   entirely gone he is paused, and costs nothing while you read. */
+(function glorbFloor() {
+  requestAnimationFrame(glorbFloor);
+  const api = GLORB.api; if (!api || route().length) return;
+  const deckEl = $('#deck'); if (!deckEl) return;
+  const floor = deckEl.getBoundingClientRect().top, rest = innerHeight * 0.27, R = api.centre.scale * 0.34;
+  api.setFloor(floor - 1);
+  api.setCentreY(Math.min(rest, floor - R * 0.7));
+  api.pause(floor < -R * 1.5);
+})();
 
 // ---- the deck ---------------------------------------------------------------
 // The site's navigation is a row of push keys on a bar at the foot of the page,
@@ -589,5 +605,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=48175d8b').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=7a5878be').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

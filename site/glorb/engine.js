@@ -40,7 +40,7 @@ export function createGlorb({ host, theme: __theme = 'dark', bg: __bg = '', base
   // hidden hero costs nothing and picks up exactly where it stopped
   let __paused = false; const __parked = new Set();
   const requestAnimationFrame = (f) => __paused ? (__parked.add(f), 0) : __real.requestAnimationFrame(f);
-  let __start = null;
+  let __start = null, __floor = 1e9, __cy = null;
 
 const BANDS = 64, TAU = Math.PI * 2;
 
@@ -12284,6 +12284,7 @@ let seededFor = 0, physAcc = 0, lastShift = -999, lastFlat = -999;
 const STEP = 1000 / 60;
 
 function loop() {
+  if (__cy != null) cy = __cy;
   const n = Math.min(MAX, Math.round(cfg.count));
   const now = performance.now();
   let dt = now - lastT; lastT = now;
@@ -13097,6 +13098,12 @@ function loop() {
           const vn = vx[i] * wnx + vy[i] * wny;
           if (vn > 0) { vx[i] -= wnx * vn; vy[i] -= wny * vn; }
         }
+      }
+      // the page's strip: a flat floor he cannot go through (see tools/port-glorb.mjs)
+      if (py[i] > __floor) {
+        py[i] = __floor - Math.random() * 2;
+        if (vy[i] > 0) vy[i] *= -0.18;
+        vx[i] *= 0.9;
       }
     }
   }
@@ -14389,5 +14396,8 @@ __start = loop;
       if (!__paused) { const fs = [...__parked]; __parked.clear(); lastT = performance.now(); fs.forEach((f) => __real.requestAnimationFrame(f)); }
     },
     resize() { __resize.forEach((f) => f()); },
+    /** the strip's top edge in his canvas pixels (1e9 = no floor), and where his centre rests (null = middle) */
+    setFloor(y) { __floor = y; },
+    setCentreY(y) { __cy = y; },
   };
 }

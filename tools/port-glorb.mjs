@@ -37,6 +37,24 @@ let body = m[1];
 let sha = '?';
 try { sha = execSync('git rev-parse --short HEAD', { cwd: new URL('.', 'file://' + SRC).pathname }).toString().trim(); } catch {}
 
+// THE FLOOR. The page's strip is a flat wall under him: a particle that goes
+// below it is put back on it and loses its downward speed, so he squashes
+// against the line. And his resting centre can be moved (the strip pushes the
+// whole of him up the screen as it rises). Both are injected just after his own
+// containment wall, which is the last thing each particle meets in a step.
+const wallEnd = "          if (vn > 0) { vx[i] -= wnx * vn; vy[i] -= wny * vn; }\n        }\n      }\n";
+if (!body.includes(wallEnd)) { console.error('containment wall not found -- has the physics loop changed?'); process.exit(1); }
+body = body.replace(wallEnd, wallEnd + `      // the page's strip: a flat floor he cannot go through (see tools/port-glorb.mjs)
+      if (py[i] > __floor) {
+        py[i] = __floor - Math.random() * 2;
+        if (vy[i] > 0) vy[i] *= -0.18;
+        vx[i] *= 0.9;
+      }
+`);
+const loopHead = "function loop() {\n";
+if (!body.includes(loopHead)) { console.error('loop() not found'); process.exit(1); }
+body = body.replace(loopHead, loopHead + "  if (__cy != null) cy = __cy;\n");
+
 // The boot tail starts the loop at once; the port starts it when asked, so the
 // page decides when the field exists (and a hidden hero costs nothing).
 const tail = /\nbuildLut\(0\);\nloop\(\);\s*$/;
@@ -85,7 +103,7 @@ export function createGlorb({ host, theme: __theme = 'dark', bg: __bg = '', base
   // hidden hero costs nothing and picks up exactly where it stopped
   let __paused = false; const __parked = new Set();
   const requestAnimationFrame = (f) => __paused ? (__parked.add(f), 0) : __real.requestAnimationFrame(f);
-  let __start = null;
+  let __start = null, __floor = 1e9, __cy = null;
 
 ${body}
 
@@ -109,6 +127,9 @@ ${body}
       if (!__paused) { const fs = [...__parked]; __parked.clear(); lastT = performance.now(); fs.forEach((f) => __real.requestAnimationFrame(f)); }
     },
     resize() { __resize.forEach((f) => f()); },
+    /** the strip's top edge in his canvas pixels (1e9 = no floor), and where his centre rests (null = middle) */
+    setFloor(y) { __floor = y; },
+    setCentreY(y) { __cy = y; },
   };
 }
 `;

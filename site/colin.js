@@ -110,7 +110,9 @@ export function createMiniColin({ go, known, items, pageOf }) {
       <div><button class="mini-yes">Talk</button><button class="mini-no" aria-label="Dismiss">✕</button></div>
     </div>
     <button class="mini-body" aria-label="Colin"><canvas></canvas><span class="mini-tag"></span></button>`;
-  document.body.appendChild(dock);
+  // he lives ON the strip now, which is part of the page, so he scrolls with it
+  const perch = () => document.getElementById('deck') || document.body;
+  perch().appendChild(dock);
   const $d = s => dock.querySelector(s);
   const canvas = $d('canvas'), panel = $d('.mini-panel'), logEl = $d('.mini-log'), form = $d('form'),
         input = $d('form input'), cap = $d('.mini-cap'), tools = $d('.mini-tools'), tag = $d('.mini-tag');
@@ -222,7 +224,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
       return;
     }
     if (LIFE.x === null) { const [lo, hi] = lane(); LIFE.x = hi; }
-    const reading = document.body.classList.contains('reading');
+    const reading = false;   // he is part of the page now: scrolling away from him is not a reason to leave
     if (reading && !LIFE.gone && !LIFE.exit) { LIFE.exit = true; LIFE.walk = 'walk';
       walkTo(LIFE.x < innerWidth / 2 ? -bodyW() - 20 : innerWidth + 20); }
     if (LIFE.mode === 'walk') {
@@ -500,7 +502,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   // Hero mode: the About page borrows him, big, in its own frame.
   const home = { parent: document.body, next: null };
   function adopt(host) { if (!host) return; host.appendChild(dock); dock.classList.add('hero'); size(); }
-  function release() { if (dock.parentElement !== document.body) { document.body.appendChild(dock); dock.classList.remove('hero'); size(); } }
+  function release() { if (dock.parentElement !== perch()) { perch().appendChild(dock); dock.classList.remove('hero'); size(); } }
   /** Where his head is on screen (client px), for things that orbit it. */
   const hv = new THREE.Vector3();
   function headScreen() {
