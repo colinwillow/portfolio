@@ -5,7 +5,7 @@
 import * as __THREE from '../../vendor/three.module.min.js';
 import { GLTFLoader as __GLTFLoader } from '../../vendor/GLTFLoader.js';
 
-export function createGlorb({ host, theme: __theme = 'dark', bg: __bg = '', base: __base = '/glorp/', onEvent = () => {} }) {
+export function createGlorb({ mini: __mini = false, host, theme: __theme = 'dark', bg: __bg = '', base: __base = '/glorp/', onEvent = () => {} }) {
   const __real = globalThis;
   const canvas__ = host.querySelector('canvas.glorb-c') || host.appendChild(Object.assign(__real.document.createElement('canvas'), { className: 'glorb-c' }));
   const gl__ = host.querySelector('canvas.glorb-gl') || host.appendChild(Object.assign(__real.document.createElement('canvas'), { className: 'glorb-gl' }));
@@ -5312,6 +5312,7 @@ function shadeAt(size) {
   return lut[j];
 }
 function drawMini(now, k) {
+  if (!__mini) return;
   mini.t += (miniWant() - mini.t) * 0.055;
   if (mini.t < 0.006) return;
   const e = mini.t < 1 ? 1 - Math.pow(1 - mini.t, 3) : 1;

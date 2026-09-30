@@ -86,3 +86,10 @@ export function initTheme() {
   if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   setTheme(t);
 }
+
+/** A pair of colours for a section (by its index): its ring and its core, spread
+    round the wheel. Glorb takes both; the section pages' particle band takes the ring. */
+export function sectionColours(i) {
+  const h = (290 + i * 36) % 360;
+  return { rim: oklchHex({ l: 0.62, c: 0.19, h }), core: oklchHex({ l: 0.88, c: 0.11, h: (h + 40) % 360 }) };
+}

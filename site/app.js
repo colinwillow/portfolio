@@ -1,5 +1,5 @@
 import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=94f1fc3b';
-import { onAccent, nextPreset, randomAccent, initTheme, setTheme } from './palette.js?v=54c082b8';
+import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
 // Which build this is (the content hash npm run bump stamped on app.js) -- in the footer, so a phone can say.
@@ -281,6 +281,7 @@ function render() {
   if (sec) scrollTo(0, 0);
   globe?.setMode(sec && s ? 'section' : 'home', s ? sec : null); aisleKey = null;
   globe?.pause?.(!sec && GLORB_ON);   // at home Glorb is the stage
+  pushColors();
   GLORB.api?.pause(!!sec);
   wireVideos();
   after?.();
@@ -340,7 +341,11 @@ $('#theme').onclick = () => setTheme(document.documentElement.dataset.theme === 
 }
 
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const pushColors = () => globe?.setColors({ ink: css(USE_SWARM ? '--ink' : '--globe-ink'), accent: css('--accent'), deep: css('--accent-deep') });
+// on a section page the band takes that section's colour (the same one Glorb wears for it), never plain ink
+const pushColors = () => {
+  const i = SECTIONS.findIndex(s => s.key === route()[0]);
+  globe?.setColors({ ink: i >= 0 && USE_SWARM ? sectionColours(i).rim : css(USE_SWARM ? '--ink' : '--globe-ink'), accent: css('--accent'), deep: css('--accent-deep') });
+};
 onAccent(() => pushColors());
 
 // ---- the hero: the real Glorb ---------------------------------------------
@@ -356,7 +361,7 @@ const GLORB = { api: null, ready: false, send: () => {} };
 const GLORB_DOT = 0.65;
 const glorbTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 if (GLORB_ON) document.body.classList.add('has-glorb');
-const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=2072d197').then(m => {
+const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=1dae440e').then(m => {
   const api = m.createGlorb({ host: $('#glorb'), theme: glorbTheme(), bg: css('--bg') });
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
@@ -367,21 +372,68 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=2072d197').then(m => {
   return api;
 }).catch(err => { console.warn('glorb unavailable', err); return null; }) : Promise.resolve(null);
 
-/* GLORB AND THE STRIP. He holds his place on the screen while the page scrolls
-   under him -- until the strip's top edge comes up to him. That edge is a floor
-   in his physics: his particles squash against it, and his resting centre is
-   pushed up just ahead of it, so the strip shoves the whole of him up and off
-   the screen. Scroll back and he re-forms as soon as there is room. Once he is
-   entirely gone he is paused, and costs nothing while you read. */
-(function glorbFloor() {
-  requestAnimationFrame(glorbFloor);
-  const api = GLORB.api; if (!api || route().length) return;
-  const deckEl = $('#deck'); if (!deckEl) return;
-  const floor = deckEl.getBoundingClientRect().top, rest = innerHeight * 0.27, R = api.centre.scale * 0.34;
-  api.setFloor(floor - 1);
-  api.setCentreY(Math.min(rest, floor - R * 0.7));
-  api.pause(floor < -R * 1.5);
+/* THE HEAD OF THE HOME PAGE: Glorb and the strip under him, as one unit.
+   - Pressing a key keeps them where they are and scrolls the shelves BENEATH
+     them to that section, while Glorb forms that section's shape in its colour.
+   - Scrolling yourself slides the unit up and away with the page (the strip's
+     top edge is a floor in Glorb's physics, so the strip shoves him up and off
+     as it goes), and scrolling back brings it back down.
+   `anchor` is the scroll position the unit is sitting at: a key sets it, and
+   scrolling above it lowers it, so it always reappears on the way back up. */
+const HEAD = { anchor: 0, auto: 0, target: 0, key: null, pal: null, palFrom: null, palT: 1 };
+const headRest = () => innerHeight * (innerWidth > innerHeight ? 0.72 : 0.54);
+const deckH = () => $('#deck')?.offsetHeight || 58;
+function headOffset() {
+  if (HEAD.auto) return 0;
+  return Math.max(0, Math.min(headRest() + deckH() + 40, scrollY - HEAD.anchor));
+}
+addEventListener('scroll', () => {
+  if (route().length) return;
+  if (HEAD.auto) {                                         // a key's scroll: done when it arrives
+    if (Math.abs(scrollY - HEAD.target) < 2 || performance.now() > HEAD.auto) HEAD.auto = 0;
+    return;
+  }
+  if (scrollY < HEAD.anchor) HEAD.anchor = Math.max(0, scrollY);
+  if (scrollY < 4 && HEAD.key) glorbRest();                 // back at the very top: he is himself again
+}, { passive: true });
+(function headFrame() {
+  requestAnimationFrame(headFrame);
+  const home = !route().length, deckEl = $('#deck');
+  document.body.classList.toggle('home-head', home && GLORB_ON);
+  if (!home || !deckEl) { if (deckEl) deckEl.style.top = ''; return; }
+  const top = headRest() - headOffset();
+  deckEl.style.top = top + 'px';
+  const g = $('#glorb'); if (g) g.style.clipPath = `inset(0 0 ${Math.max(0, innerHeight - top)}px 0)`;
+  const api = GLORB.api; if (!api) return;
+  const R = api.centre.scale * 0.34;
+  api.setFloor(top - 1);
+  api.setCentreY(Math.min(innerHeight * 0.27 * (headRest() / (innerHeight * 0.54)), top - R * 0.7));
+  api.pause(top < -R * 1.5);
+  // colours ease between sections rather than switching
+  if (HEAD.palT < 1 && HEAD.pal) {
+    HEAD.palT = Math.min(1, HEAD.palT + 1 / 36);
+    const e = HEAD.palT * HEAD.palT * (3 - 2 * HEAD.palT), f = HEAD.palFrom || HEAD.pal;
+    api.post({ glorb: 'palette', rim: mixHex(f.rim, HEAD.pal.rim, e), core: mixHex(f.core, HEAD.pal.core, e) });
+  }
 })();
+const mixHex = (a, b, t) => '#' + [0, 2, 4].map(k => Math.round(parseInt(a.slice(1 + k, 3 + k), 16) * (1 - t) +
+  parseInt(b.slice(1 + k, 3 + k), 16) * t).toString(16).padStart(2, '0')).join('');
+// his own colours, as the starting point of the first ease
+const GLORB_HOME = { rim: '#9a1cf0', core: '#72ec5c' };
+async function glorbBecome(key) {
+  const api = GLORB.api; if (!api) return;
+  const i = SECTIONS.findIndex(s => s.key === key); if (i < 0) return;
+  const m = await import('./glorb-shapes.js?v=c9fd47e9');
+  HEAD.palFrom = HEAD.pal || GLORB_HOME; HEAD.pal = m.sectionColours(i); HEAD.palT = 0; HEAD.key = key;
+  const pts = await m.shapePoints(key, api.n);
+  if (pts && HEAD.key === key) api.post({ glorb: 'points', points: pts, spin: 0.35, tilt: 0.25 });
+}
+function glorbRest() {
+  const api = GLORB.api; HEAD.key = null; if (!api) return;
+  api.goHome('');
+  if (HEAD.pal) { HEAD.palFrom = HEAD.pal; HEAD.pal = GLORB_HOME; HEAD.palT = 0;
+    setTimeout(() => { if (!HEAD.key) { api.post({ glorb: 'palette' }); HEAD.pal = null; } }, 700); }
+}
 
 // ---- the deck ---------------------------------------------------------------
 // The site's navigation is a row of push keys on a bar at the foot of the page,
@@ -407,8 +459,14 @@ deck.addEventListener('click', e => {
   e.preventDefault();
   const key = a.dataset.key, shelf = document.getElementById('shelf-' + key);
   latch(key, false);
-  if (!route().length && shelf) { deckHold = performance.now() + 1200; shelf.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-  else go(key);
+  if (!route().length && shelf) {
+    // the head stays put; the shelves slide up beneath it to this one
+    const target = Math.max(0, shelf.getBoundingClientRect().top + scrollY - headRest() - deckH() - 8);
+    HEAD.anchor = target; HEAD.target = target; HEAD.auto = performance.now() + 1600;
+    deckHold = performance.now() + 1600;
+    scrollTo({ top: target, behavior: 'smooth' });
+    glorbBecome(key);
+  } else go(key);
 });
 let deckHold = 0;
 function deckSync() {
@@ -416,8 +474,9 @@ function deckSync() {
   if (sec) return latch(sectionOf(sec) ? sec : null);
   if (performance.now() < deckHold) return;
   let key = null;
-  if (scrollY > innerHeight * 0.45) {
-    const mid = innerHeight * 0.45;
+  if (scrollY > 40) {
+    // whatever shelf is just under the strip, wherever the strip is right now
+    const mid = Math.max(60, (parseFloat($('#deck')?.style.top) || 0) + deckH() + 60);
     for (const el of document.querySelectorAll('.shelf[id^="shelf-"]')) {
       const r = el.getBoundingClientRect(); if (r.top <= mid && r.bottom >= mid) { key = el.id.slice(6); break; }
     }
@@ -586,7 +645,7 @@ const globeReady = (USE_SWARM ? import('./stage-swarm.js?v=a1ea0ebe').then(m => 
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? import('./intro.js?v=3016426b').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
+  ? import('./intro.js?v=e3d109bd').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
       .catch(err => console.warn('intro', err))
   : Promise.resolve();
 

@@ -104,15 +104,19 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
       g.clearRect(0, 0, W, H);
       for (let i = 0; i < N; i++) {
         if (blown && G) {
-          // onto HIS particle, wherever it is this frame: a curved flight that
-          // swirls the way he turns and ends exactly on it
-          const u = Math.min(1, blown / FLY), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+          /* Onto HIS particle -- without ever throwing away the motion it has.
+             Whatever it was doing as it came off him (flung up, rolling over
+             his shoulder) it goes on doing; what changes is a pull toward its
+             place in Glorb that starts at nothing and firms up across the
+             flight, with a drag that does the same. So the trajectories bend
+             round into him rather than stopping and starting again, and only
+             in the last fifth is the landing made exact. */
+          const u = Math.min(1, blown / FLY);
           const j = gi[i], ox = G.f.px[j], oy = G.f.py[j] + G.top;
-          const a0 = Math.atan2(sy0[i] - oy, sx0[i] - ox), r0 = Math.hypot(sx0[i] - ox, sy0[i] - oy);
-          const a = a0 + (1 - e) * 1.6 * ((i & 1) ? 1 : -1) * e, rr = r0 * (1 - e);
-          const tx = ox + Math.cos(a) * rr, ty = oy + Math.sin(a) * rr;
-          vx[i] = (tx - px[i]) / Math.max(k, 1e-3); vy[i] = (ty - py[i]) / Math.max(k, 1e-3);
-        } else if (blown) {
+          const ks = 0.0012 + 0.045 * u * u * u, c = 0.012 + 0.25 * u * u;
+          vx[i] += ((ox - px[i]) * ks - vx[i] * c) * k;
+          vy[i] += ((oy - py[i]) * ks - vy[i] * c) * k;
+          if (u > 0.8) { const w = Math.pow((u - 0.8) / 0.2, 2) * 0.5; px[i] += (ox - px[i]) * w; py[i] += (oy - py[i]) * w; }        } else if (blown) {
           // no Glorb to go to: the old door opening
           const dx = px[i] - W / 2, dy = py[i] - H / 2, d = Math.hypot(dx, dy) || 1;
           vx[i] += dx / d * 2.2 * k; vy[i] += dy / d * 2.2 * k;
@@ -196,7 +200,7 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
     /* Where he is: the rest geometry measured off his own screenshots at a
        390 px wide frame -- ring about 0.19-0.30 of the frame's short side,
        core about 0.05-0.09, violet dots bigger than green ones. */
-    const FLY = 1.15;
+    const FLY = 1.6;
     const sx0 = new Float32Array(N), sy0 = new Float32Array(N), gi = new Int32Array(N), gz = new Float32Array(N);
     let G = null, walking = false;
     function enter() {
@@ -253,7 +257,7 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
       for (let j = 0; j < G.n; j++) {
         const d = G.owner[j];
         f.px[j] = px[d] - G.left + (Math.random() - 0.5) * 2; f.py[j] = py[d] - G.top + (Math.random() - 0.5) * 2;
-        f.vx[j] = 0; f.vy[j] = 0;          // landed means at rest on the dot, not still flying
+        f.vx[j] = vx[d]; f.vy[j] = vy[d];  // and still moving the way the dot was: no stop at the handover either
       }
     }
     function finish() { done = true; if (!me.on) { me.api?.dispose(); me.cv.remove(); } removeEventListener('resize', size); removeEventListener('keydown', key); el.remove(); cvF.remove(); }

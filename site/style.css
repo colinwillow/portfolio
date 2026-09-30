@@ -529,3 +529,9 @@ html body #view, html body.at-home #view, html body.has-glorb.at-home #view, htm
 /* Glorb holds the whole screen behind the page; the strip is what pushes him off it */
 body.has-glorb #glorb, body.has-glorb.scrolled #glorb { top: 0; bottom: auto; height: 100svh; opacity: 1; }
 #mini:not(.hero) { position: absolute; left: 0; bottom: calc(100% - 12px); }
+
+/* the home page's head: the strip is fixed under Glorb and the shelves scroll beneath both */
+body.home-head #deck { position: fixed; left: 0; right: 0; margin-top: 0 !important; top: 54svh; }
+body.home-head #glorb { z-index: 11; }
+body.home-head #view { margin-top: calc(54svh + var(--deck)) !important; }
+@media (min-aspect-ratio: 1/1) { body.home-head #deck { top: 72svh; } body.home-head #view { margin-top: calc(72svh + var(--deck)) !important; } }
