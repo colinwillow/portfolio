@@ -497,10 +497,14 @@ function glorbShift() {
 // home page the key for whichever shelf you are looking at latches by itself as
 // you scroll. Colin lives on top of this bar.
 const deck = $('.deck-keys');
-// Keys with Colin's graffiti lettering show the art; the rest keep their name until theirs lands.
-const KEYART = new Set(SECTIONS.map(s => s.key));   // all ten have art now
-deck.innerHTML = SECTIONS.map(s => KEYART.has(s.key)
-  ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}"><img src="site/keys/${s.key}.webp" alt="" draggable="false"></a>`
+// The key names are Colin's lettering, used as a STENCIL: the word is a white-on-clear
+// image, applied as a mask, so the key paints it -- quiet by default, lit in the accent
+// when it is the section you are on, right in either theme. `ar` is each word's width
+// over its height as cut from his strip, so every word keeps the same letter size.
+const KEYART = { play: 3, assets: 3.27, motion: 3.07, web: 2.64, scripts: 3.17,
+  studios: 2.86, writing: 3.196, audio: 2.533, workbench: 3.505, about: 2.215 };
+deck.innerHTML = SECTIONS.map(s => KEYART[s.key]
+  ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}"><span class="gw"><i class="glyph" style="--art:url(${new URL(`site/keys/${s.key}.webp`, document.baseURI).href});--ar:${KEYART[s.key]}"></i></span></a>`
   : `<a class="key" href="${s.key}" data-key="${s.key}"><b>${esc(s.label)}</b></a>`).join('');
 let latched = null;
 function latch(key, show = true) {

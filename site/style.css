@@ -603,3 +603,14 @@ html[data-vt="out"]::view-transition-new(view)   { animation-name: vt-return; }
 .key.art.in img { filter: none; transform: scale(1.04); }
 .key.art::after { top: 5px; right: 5px; }
 .key:not(.art) { height: 52px; }
+
+/* ---- lettered keys: his words as stencils (replaces the graffiti art) ---------------- */
+:root { --deck: 58px; }
+.key.art, .key:not(.art) { height: 40px; }
+.key.art { padding: 0 13px; justify-content: center; align-items: center; }
+.key.art .gw { display: block; transition: filter .25s; }
+.key.art .glyph { display: block; height: 17px; aspect-ratio: var(--ar); background: color-mix(in srgb, var(--ink) 58%, transparent);
+  -webkit-mask: var(--art) center / contain no-repeat; mask: var(--art) center / contain no-repeat; transition: background .25s, transform .15s; }
+.key.art:hover .glyph { background: color-mix(in srgb, var(--ink) 85%, transparent); }
+.key.art.in .glyph { background: var(--accent); transform: scale(1.05); }
+.key.art.in .gw { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 70%, transparent)); }
