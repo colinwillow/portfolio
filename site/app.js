@@ -167,7 +167,7 @@ const PAGES = {
           drops straight into three.js with GLTFLoader + DRACOLoader.</p>${foot()}</div>`;
     }
     return `<div class="wrap">${head(s, ' Every number is read off the file: triangles, joints, clips, size. Optimised, animated and running in real three.js games on phones.')}
-      <div class="grid">${ASSETS.map(it => link('assets/' + it.slug, `<div class="mono">${esc(it.title[0])}</div>
+      <div class="grid">${ASSETS.map(it => link('assets/' + it.slug, `<img class="char-shot" src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy">
         <h4>${esc(it.title)}</h4>${specs(it)}<div class="meta"><span class="pill">${esc(it.from)}</span>${it.gumroad ? '<span class="pill hot">On Gumroad</span>' : ''}</div>`, 'card')).join('')}</div>
       <h3 class="sub">Also coming</h3><ul class="soon"><li>3D-printable figures (STL)</li><li>Texture packs</li></ul>
       ${GUMROAD ? `<div class="row">${ext(GUMROAD, 'Whole store on Gumroad ↗', 'btn ghost')}</div>` : ''}${foot()}</div>`;

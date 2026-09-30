@@ -614,3 +614,7 @@ html[data-vt="out"]::view-transition-new(view)   { animation-name: vt-return; }
 .key.art:hover .glyph { background: color-mix(in srgb, var(--ink) 85%, transparent); }
 .key.art.in .glyph { background: var(--accent); transform: scale(1.05); }
 .key.art.in .gw { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 70%, transparent)); }
+/* assets: each card shows the character itself */
+.card .char-shot { display: block; width: 100%; aspect-ratio: 552 / 561; object-fit: contain; margin: -6px 0 8px;
+  background: radial-gradient(ellipse at 50% 60%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%); border-radius: 12px; }
+.grid:has(.char-shot) { grid-template-columns: repeat(auto-fill, minmax(min(46%, 260px), 1fr)); }
