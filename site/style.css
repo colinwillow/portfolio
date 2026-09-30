@@ -402,7 +402,6 @@ body.swarm.at-home .shelf-figures { background: linear-gradient(to bottom, trans
 #glorb { display: none; }
 body.has-glorb #glorb { display: block; position: fixed; left: 0; right: 0; top: 0; bottom: calc(64px + env(safe-area-inset-bottom)); z-index: 1; transition: opacity .5s; }
 body.has-glorb.at-home { background: var(--bg); }
-body.has-glorb:not(.at-home) #glorb { display: none; }
 body.has-glorb.scrolled #glorb { opacity: .3; }
 #glorb { background: var(--bg); overflow: hidden; }
 #glorb canvas.glorb-c { display: block; width: 100%; height: 100%; touch-action: pan-y; }
@@ -535,3 +534,8 @@ body.home-head #deck { position: fixed; left: 0; right: 0; margin-top: 0 !import
 body.home-head #glorb { z-index: 11; }
 body.home-head #view { margin-top: calc(54svh + var(--deck)) !important; }
 @media (min-aspect-ratio: 1/1) { body.home-head #deck { top: 72svh; } body.home-head #view { margin-top: calc(72svh + var(--deck)) !important; } }
+/* Glorb is the stage on every page now; the old particle band stays only as the ?noglorb fallback */
+body.has-glorb #stage { display: none; }
+/* his bubble floats above him and never pushes him about */
+#mini .mini-bubble { position: absolute; bottom: calc(100% + 4px); left: 0; width: 220px; margin: 0; }
+#mini.rside .mini-bubble { left: auto; right: 0; }

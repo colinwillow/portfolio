@@ -486,7 +486,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const offer = () => { if (state !== 'off' || dock.classList.contains('away')) return;
     bubble.hidden = false; offered = true; try { sessionStorage.setItem('cw.colinAsked', '1'); } catch {}
     if (ch) act('wave'); };
-  setTimeout(function nudge() { if (offered) return; if (LIFE.mode === 'idle' && !LIFE.gone) offer(); else setTimeout(nudge, 3000); }, 16000);
+  // (he used to offer by himself after a while; he does not -- talking is found, not pushed)
   $d('.mini-yes').onclick = () => { bubble.hidden = true; wake(); };
   $d('.mini-no').onclick = () => { bubble.hidden = true; };
   $d('.mini-body').onclick = () => {
