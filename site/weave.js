@@ -114,58 +114,81 @@ const MOTIFS = {
 };
 
 // ---- compositions -------------------------------------------------------------
-// [motif, height in units, options]. Stacked top to bottom and repeated down the
-// screen; `flip` mirrors a band vertically. Each section has its own weave and
-// its own hue of earth: `h` is the OKLCH hue its yarns are dyed in.
+// Every section is the same SHAPE -- a thin stitched strip, the main band, another
+// stitch, then open ground -- and only the main band's motif changes. That open
+// ground above and below is what lets it read as a textile rather than wallpaper.
+// `h` nudges the yarns' hue off the site's accent, so each section has its own
+// dye lot while all of them stay on brand.
+const LAYOUT = (main, hu = 1, o = {}) => [['stitch', 0.34], [main, hu, o], ['stitch', 0.34], ['stripe', 2.4, { col: 'g' }]];
 const WEAVES = {
-  home:      { h: 58, bands: [['arrows', 1], ['stripe', 0.55, { col: 'b' }], ['stripe', 0.07, { col: 'c' }], ['star', 3.4],
-                                ['stripe', 0.07, { col: 'c' }], ['stripe', 0.55, { col: 'b' }], ['arrows', 1], ['stripe', 1.1, { col: 'g' }]] },
-  play:      { h: 40, bands: [['hourglass', 1.1], ['stripe', 0.25, { col: 'c' }], ['zigzag', 1.6], ['stripe', 0.25, { col: 'c' }],
-                                ['hourglass', 1.1, { flip: 1 }], ['stripe', 0.9, { col: 'g' }]] },
-  assets:    { h: 75, bands: [['steps', 1.7], ['stitch', 0.35], ['chain', 1.2], ['stitch', 0.35], ['steps', 1.7, { flip: 1 }], ['stripe', 0.8, { col: 'g' }]] },
-  scripts:   { h: 210, bands: [['chain', 0.8], ['stripe', 0.12, { col: 'c' }], ['zigzag', 1.2], ['stripe', 0.12, { col: 'c' }], ['chain', 0.8], ['stripe', 0.9, { col: 'g' }]] },
-  web:       { h: 30, bands: [['arrows', 0.8], ['star', 2.6], ['arrows', 0.8], ['stripe', 0.9, { col: 'g' }]] },
-  motion:    { h: 18, bands: [['zigzag', 1.5], ['stripe', 0.1, { col: 'c' }], ['zigzag', 1.5, { flip: 1 }], ['stripe', 0.8, { col: 'g' }]] },
-  studios:   { h: 95, bands: [['steps', 1.4], ['hourglass', 0.8], ['steps', 1.4, { flip: 1 }], ['stripe', 0.8, { col: 'g' }]] },
-  writing:   { h: 65, bands: [['stitch', 0.4], ['arrows', 0.9], ['stitch', 0.4], ['stripe', 1.4, { col: 'g' }]] },
-  audio:     { h: 350, bands: [['hourglass', 0.8], ['chain', 1.3], ['hourglass', 0.8, { flip: 1 }], ['stripe', 0.9, { col: 'g' }]] },
-  workbench: { h: 50, bands: [['arrows', 0.9], ['steps', 1.6], ['arrows', 0.9], ['stripe', 0.9, { col: 'g' }]] },
-  about:     { h: 30, bands: [['star', 3.0], ['stripe', 0.4, { col: 'b' }], ['arrows', 1], ['stripe', 0.4, { col: 'b' }]] },
+  home:      { h: 0,   bands: LAYOUT('arrows') },
+  play:      { h: -25, bands: LAYOUT('zigzag', 1.2) },
+  assets:    { h: 20,  bands: LAYOUT('steps', 1.3) },
+  scripts:   { h: -60, bands: LAYOUT('chain') },
+  web:       { h: 35,  bands: LAYOUT('hourglass', 1.1) },
+  motion:    { h: -40, bands: LAYOUT('star', 2.2) },
+  studios:   { h: 10,  bands: LAYOUT('steps', 1.3, { flip: 1 }) },
+  writing:   { h: -15, bands: LAYOUT('arrows') },
+  audio:     { h: 50,  bands: LAYOUT('chain', 1.2) },
+  workbench: { h: -30, bands: LAYOUT('hourglass', 1.1, { flip: 1 }) },
+  about:     { h: 25,  bands: LAYOUT('star', 2.2) },
 };
 
-// the four yarns, dim enough to sit behind him: a lift of a few points off the page
-function yarns(hue, dark) {
-  const L = dark ? [0.165, 0.2, 0.235, 0.27] : [0.955, 0.925, 0.895, 0.87];
-  const c = [0.004, 0.018, 0.028, 0.012];
-  const [g, a, b, cc] = L.map((l, i) => oklchHex({ l, c: c[i], h: hue }));
-  return { g, a, b, c: cc };
+// The four yarns, on brand: the ground is the page, the darker yarn is the
+// site's accent, the middle one Glorb's violet, the light one a warm accent-
+// tinted neutral. Dim, so it fills the negative space and never competes with
+// him; the twinkle brightens a cell toward these, never past them.
+function yarns(acc, shift, dark) {
+  const h = acc.h + shift, v = 300 + shift * 0.4;
+  const Y = dark
+    ? [[0.165, 0.004, h], [0.26, 0.05, h], [0.28, 0.07, v], [0.34, 0.02, h]]
+    : [[0.955, 0.004, h], [0.88, 0.04, h], [0.86, 0.05, v], [0.83, 0.02, h]];
+  const [g, a, b, c] = Y.map(([l, cc, hh]) => oklchHex({ l, c: cc, h: hh }));
+  return { g, a, b, c };
 }
 
+// smooth, cheap, deterministic noise: a few slow sines over space and time
+const noise = (x, y, t) => (Math.sin(x * 0.011 + t * 0.21) + Math.sin(y * 0.017 - t * 0.16 + 1.3)
+  + Math.sin((x + y) * 0.0072 + t * 0.12 + 2.1) + Math.sin((x - y * 0.6) * 0.0131 - t * 0.09)) / 4;
+const hash = (k) => { let h = 2166136261; for (let i = 0; i < k.length; i++) h = Math.imul(h ^ k.charCodeAt(i), 16777619); return ((h >>> 0) % 10000) / 10000; };
+
+/* THE MOTION. The weave is cut into CELLS -- every band's repeat sliced into
+   squares about as wide as the band is tall -- and each one is its own little
+   thing:
+   - it TWINKLES: its brightness follows a slow noise field over the screen, so
+     patches of the cloth fade up and down together like light moving over it;
+   - where it is bright it comes FORWARD, a few percent larger;
+   - it hangs on a SPRING: the cloth scrolls with the page at a fraction of its
+     speed (parallax), and each cell is a little late to follow, with its own
+     stiffness and a touch of random drift, so a scroll sends a ripple through
+     it and it settles back into place -- Glorb's particles finding home. */
 export function createWeave(host) {
   const cv = document.createElement('canvas');
   cv.className = 'weave'; host.appendChild(cv);
   const ctx = cv.getContext('2d');
   const dpr = Math.min(devicePixelRatio || 1, 1.5);
-  const S = { key: null, dark: true, cur: null, old: null, fade: 1, paused: false, t: 0, last: 0 };
+  const S = { key: null, dark: true, acc: { h: 352 }, cur: null, old: null, fade: 1, paused: false, t: 0, last: 0,
+              scroll: scrollY, par: 0 };
+  const cells = new Map();
+  const PARALLAX = 0.35;
 
-  function unit() { return Math.max(34, Math.min(88, Math.min(innerWidth, innerHeight) * 0.15)); }
+  const unit = () => Math.max(34, Math.min(84, Math.min(innerWidth, innerHeight) * 0.14));
 
-  // bake one weave: every band into its own period-wide tile, made a pattern
   function bake(key) {
-    const W = WEAVES[key] || WEAVES.home, C = yarns(W.h, S.dark), u = unit();
+    const W = WEAVES[key] || WEAVES.home, C = yarns(S.acc, W.h, S.dark), u = unit();
     let y = 0;
     const bands = W.bands.map(([m, hu, o = {}], i) => {
       const M = MOTIFS[m], h = Math.max(2, Math.round(hu * u * dpr)), w = Math.max(2, Math.round(M.per(h)));
+      const empty = m === 'stripe' && o.col === 'g';
       const tile = document.createElement('canvas'); tile.width = w; tile.height = h;
       const g = tile.getContext('2d');
       if (o.flip) { g.translate(0, h); g.scale(1, -1); }
       M.draw(g, w, h, C, o);
-      const b = { pat: ctx.createPattern(tile, 'repeat'), y, h, w,
-                  v: (i % 2 ? -1 : 1) * u * dpr * (0.1 + 0.05 * ((i * 7) % 3)),   // px/s, alternating
-                  x0: Math.random() * w };
+      const n = Math.max(1, Math.round(w / Math.max(26 * dpr, Math.min(h, u * dpr * 1.1))));
+      const b = { i, tile, y, h, w, n, sw: w / n, empty };
       y += h; return b;
     });
-    return { key, bands, H: y, a: 0 };
+    return { key, bands, H: y };
   }
 
   function resize() {
@@ -174,36 +197,72 @@ export function createWeave(host) {
     cv.width = w; cv.height = h; return true;
   }
 
-  function paint(wv, alpha) {
+  function cellOf(k) {
+    let c = cells.get(k);
+    if (!c) { const r = hash(k), r2 = hash(k + '*');
+      c = { d: 0, v: 0, dx: 0, vx: 0, k: 26 + 40 * r, lag: 0.45 + 0.5 * r2, ph: r * 6.28, seen: 0 }; cells.set(k, c); }
+    return c;
+  }
+
+  function step(dt, dScroll) {
+    // every live cell: the scroll leaves it behind by its own share, the spring brings it home
+    for (const c of cells.values()) {
+      c.d -= dScroll * c.lag;
+      c.v += (-c.k * c.d - 2 * Math.sqrt(c.k) * 0.55 * c.v) * dt; c.d += c.v * dt;
+      c.vx += (-c.k * c.dx - 2 * Math.sqrt(c.k) * 0.55 * c.vx) * dt; c.dx += c.vx * dt;
+      if (Math.random() < dt * 0.4) { c.vx += (Math.random() - 0.5) * 6 * dpr; c.v += (Math.random() - 0.5) * 6 * dpr; }
+    }
+  }
+
+  function paint(wv, alpha, frame) {
     if (!wv || alpha <= 0.002) return;
-    ctx.globalAlpha = alpha;
-    // the weave hangs from the middle of the screen, so the star of each lands near Glorb
-    const off = ((cv.height / 2 - wv.H / 2) % wv.H + wv.H) % wv.H - wv.H;
-    for (let top = off; top < cv.height; top += wv.H) {
-      for (const b of wv.bands) {
-        const y = top + b.y; if (y > cv.height || y + b.h < 0) continue;
-        b.pat.setTransform(new DOMMatrix([1, 0, 0, 1, (b.x0 + b.v * S.t) % b.w, y]));
-        ctx.fillStyle = b.pat; ctx.fillRect(0, y, cv.width, b.h + 0.5);
+    const par = S.par * dpr, cw = cv.width, ch = cv.height, t = S.t;
+    for (const b of wv.bands) {
+      if (b.empty) continue;
+      // which repeats of the composition cover the screen, counted in absolute terms so a cell keeps its identity
+      const r0 = Math.floor((par - ch * 0.5 + wv.H * 0.5 - b.y - b.h) / wv.H) , r1 = Math.ceil((par + ch - ch * 0.5 + wv.H * 0.5 - b.y) / wv.H);
+      const x0 = ((cw / 2 - b.w / 2) % b.w + b.w) % b.w - b.w;       // a motif centred on the screen
+      for (let r = r0; r <= r1; r++) {
+        const yBase = ch * 0.5 - wv.H * 0.5 + r * wv.H + b.y - par;
+        if (yBase > ch + 40 || yBase + b.h < -40) continue;
+        for (let p = 0, x = x0; x < cw + b.w; p++, x += b.w) {
+          for (let s = 0; s < b.n; s++) {
+            const c = cellOf(wv.key + ':' + b.i + ':' + r + ':' + p + ':' + s); c.seen = frame;
+            const sx = x + s * b.sw, cx = sx + b.sw / 2, cy = yBase + b.h / 2;
+            const n = noise(cx / dpr, (cy + par) / dpr, t) + 0.25 * Math.sin(t * 0.5 + c.ph);   // about -1..1
+            const lit = Math.max(0, Math.min(1, 0.5 + n * 0.75));
+            const k = 1 + 0.07 * lit;                                    // bright cells come forward
+            ctx.globalAlpha = alpha * (0.42 + 0.58 * lit);
+            const w2 = b.sw * k, h2 = b.h * k;
+            ctx.drawImage(b.tile, s * b.sw, 0, b.sw, b.h, cx - w2 / 2 + c.dx, cy - h2 / 2 + c.d, w2 + 0.6, h2);
+          }
+        }
       }
     }
   }
 
+  let frameN = 0;
   function frame(now) {
     requestAnimationFrame(frame);
-    if (S.paused || document.hidden) { S.last = now; return; }
-    if (now - S.last < 30) return;                      // ~30 fps is plenty for cloth
-    const dt = Math.min(0.1, (now - S.last) / 1000); S.last = now; S.t += dt;
-    if (resize() && S.key) { S.cur = bake(S.key); S.old = null; }
+    const ds = scrollY - S.scroll; S.scroll = scrollY;
+    if (S.paused || document.hidden) { S.last = now; S.par += ds * PARALLAX; return; }
+    if (now - S.last < 30) { S.par += ds * PARALLAX; step(0, ds * PARALLAX * dpr); return; }
+    const dt = Math.min(0.1, (now - S.last) / 1000); S.last = now; S.t += dt; frameN++;
+    S.par += ds * PARALLAX;
+    step(dt, ds * PARALLAX * dpr);
+    if (resize() && S.key) { S.cur = bake(S.key); S.old = null; cells.clear(); }
     if (!S.cur) return;
     S.fade = Math.min(1, S.fade + dt / 0.9);
     const e = S.fade * S.fade * (3 - 2 * S.fade);
     ctx.globalAlpha = 1; ctx.clearRect(0, 0, cv.width, cv.height);
-    if (S.old) paint(S.old, 1 - e);
-    paint(S.cur, S.old ? e : 1);
+    if (S.old) paint(S.old, 1 - e, frameN);
+    paint(S.cur, S.old ? e : 1, frameN);
     if (S.fade >= 1) S.old = null;
+    if (frameN % 60 === 0) for (const [k, c] of cells) if (frameN - c.seen > 60) cells.delete(k);
   }
   requestAnimationFrame(frame);
 
+  const rebake = () => { if (S.key) { S.cur = bake(S.key); S.old = null; } };
   return {
     canvas: cv,
     /** which section's weave; crossfades from the one showing */
@@ -213,9 +272,11 @@ export function createWeave(host) {
       S.key = key; resize();
       S.old = S.cur; S.cur = bake(key); S.fade = S.old ? 0 : 1;
     },
-    theme(dark) {
-      if (dark === S.dark) return; S.dark = dark; cv.classList.toggle('light', !dark);
-      if (S.key) { S.cur = bake(S.key); S.old = null; }
+    theme(dark) { if (dark === S.dark) return; S.dark = dark; cv.classList.toggle('light', !dark); rebake(); },
+    accent(a) { S.acc = a; rebake(); },
+    /** a jolt through the cloth, e.g. when Glorb bursts: every cell kicked outward from a point */
+    kick(x, y, amt = 1) {
+      for (const [k, c] of cells) { const a = hash(k) * 6.28; c.vx += Math.cos(a) * 60 * amt * dpr; c.v += Math.sin(a) * 60 * amt * dpr; }
     },
     pause(p) { S.paused = !!p; },
     WEAVES, MOTIFS,

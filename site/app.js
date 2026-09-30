@@ -374,9 +374,10 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
-  import('./weave.js?v=374329ca').then(w => {
+  import('./weave.js?v=90f6956d').then(w => {
     WEAVE = w.createWeave($('#glorb'));
     WEAVE.theme(glorbTheme() === 'dark');
+    onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent
     WEAVE.set(route()[0] || latched || 'home');
   }).catch(err => console.warn('weave', err));
   new MutationObserver(() => { api.post({ glorb: 'theme', theme: glorbTheme(), bg: css('--bg') }); WEAVE?.theme(glorbTheme() === 'dark'); })
@@ -515,6 +516,7 @@ deck.addEventListener('click', e => {
   const key = a.dataset.key, shelf = document.getElementById('shelf-' + key);
   latch(key, false);
   glorbShift();
+  WEAVE?.kick(0, 0, 0.6);
   if (!route().length && shelf) {
     // the head stays put; the shelves slide up beneath it to this one
     const target = Math.max(0, shelf.getBoundingClientRect().top + scrollY - headRest() - deckH() - 8);
