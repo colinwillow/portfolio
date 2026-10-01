@@ -828,3 +828,10 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
 .intro-build { position: absolute; left: 14px; bottom: calc(12px + env(safe-area-inset-bottom)); font: 600 10px var(--mono); letter-spacing: .12em;
   color: var(--muted); opacity: .75; pointer-events: none; }
 #intro.walk .intro-build, #intro.out .intro-build { opacity: 0; transition: opacity .4s; }
+/* a row of things scrolls SIDEWAYS only, and what comes into it arrives from the side --
+   rising from below as it is swiped in read as the whole row bobbing up and down */
+.rail { overflow-y: hidden; overscroll-behavior-y: auto; }
+.rail > .rv { transform: translateX(28px); }
+.rail > .rv.in { transform: none; }
+/* hover lifts are for a mouse: on a phone a touch IS a hover, so cards bobbed up as a finger swiped past */
+@media (hover: none) { .tile:hover .cover, .figure:hover img { transform: none; } }
