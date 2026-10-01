@@ -535,9 +535,19 @@ function gameBackdrop() {
   const it = gameShown(), host = $('#glorb');
   if (it && host) {
     const src = `site/shots/${gameArt(it)}.webp`;
-    if (!gameBg) { gameBg = document.createElement('img'); gameBg.className = 'game-bg'; gameBg.alt = ''; host.appendChild(gameBg); }
-    if (!gameBg.src.endsWith(src)) { gameBg.classList.remove('on'); gameBg.onload = () => gameBg.classList.add('on'); gameBg.src = src; }
-    else gameBg.classList.add('on');
+    /* The WHOLE frame, never a crop: the art sits at its own shape in the middle of the space
+       above the strip, and a blurred, dimmed copy of itself fills round it, so a widescreen shot
+       reads as a screen on a tall phone rather than as a close-up of somebody's face. */
+    if (!gameBg) {
+      gameBg = document.createElement('div'); gameBg.className = 'game-bg';
+      gameBg.innerHTML = '<i class="fill"></i><img alt="">'; host.appendChild(gameBg);
+    }
+    const im = gameBg.querySelector('img');
+    if (!im.src.endsWith(src)) {
+      gameBg.classList.remove('on');
+      im.onload = () => { gameBg.querySelector('.fill').style.backgroundImage = `url("${src}")`; gameBg.classList.add('on'); };
+      im.src = src;
+    } else gameBg.classList.add('on');
   } else gameBg?.classList.remove('on');
   withColin(c => c.lookBack?.(!!it));
   return !!it;
@@ -629,6 +639,7 @@ addEventListener('scroll', () => {
   if (home) { top = headRest() - headOffset(); deckEl.style.top = top + 'px'; }
   else { deckEl.style.top = ''; top = deckEl.getBoundingClientRect().top; }
   deckEl.style.setProperty('--stage', Math.max(0, top) + 'px');   // how tall the box above the strip is
+  if (gameBg) gameBg.style.height = Math.max(0, top) + 'px';   // a game's screen fills exactly the space above the strip
   const g = $('#glorb'); if (g) g.style.clipPath = `inset(0 0 ${Math.max(0, g.clientHeight - top)}px 0)`;
   const api = GLORB.api; if (!api) return;
   // he rests in the middle of whatever space is above the strip when the page is at the top
