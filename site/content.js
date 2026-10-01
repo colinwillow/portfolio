@@ -22,7 +22,8 @@ export const SITE = {
 // `tier` sets how big it is: 1 = the main three, 2 = supporting, 3 = the rest.
 export const SECTIONS = [
   { key: 'play',      label: 'Games',      tier: 1, lat:  18, lon:  -20, blurb: 'Games and web apps you can open right now.' },
-  { key: 'assets',    label: 'Assets',    tier: 1, lat: -22, lon:   40, blurb: 'Rigged, animated characters built for web and mobile games.' },
+  { key: 'characters', label: 'Characters', tier: 1, lat: -22, lon:   40, blurb: 'Rigged, animated characters built for web and mobile games.' },
+  { key: 'assets',    label: 'Assets',    tier: 2, lat: -12, lon:   75, blurb: 'Buildings, props, texture packs and whole levels, optimised for three.js.' },
   { key: 'scripts',   label: 'Scripts',   tier: 1, lat:  38, lon:  100, blurb: 'Cinema 4D and pipeline scripts from the tutorials.' },
   { key: 'web',       label: 'Web',       tier: 2, lat: -40, lon:  150, blurb: 'Sites built for brands and friends.' },
   { key: 'motion',    label: 'Motion',    tier: 2, lat:   8, lon: -120, blurb: 'CGI loops, logo reveals, character tests.' },
@@ -77,35 +78,37 @@ export const PLAY = [
 // Characters. Every number was read off the GLB itself (the viewer re-measures
 // it live in the browser). `glb` is the preview file in models/assets/; `price`
 // stays '' until decided; `gumroad` is the product link once it exists.
+/* Characters (the section is CHARACTERS; the export keeps its old name). `h` is how tall
+   each one stands in the line-up, in metres, so Clancy is a dog and the warrior looms. */
 export const ASSETS = [
-  { slug: 'zap', title: 'Zap', from: "Zap 'n Clancy", glb: 'models/assets/zap.glb', mb: 4.1,
+  { slug: 'zap', h: 1.75, title: 'Zap', from: "Zap 'n Clancy", glb: 'models/assets/zap.glb', mb: 4.1,
     tris: 11059, joints: 62, clips: 61, prefer: ['idle_01'],
     notes: ['61 clips: parkour, ledges, melee, rifle, skateboard', 'Weapon mounts on both hands', 'Draco + WebP, one material'] },
-  { slug: 'alien-warrior', title: 'Alien Warrior', from: "Zap 'n Clancy", glb: 'models/assets/alien_warrior.glb', mb: 4.0,
+  { slug: 'alien-warrior', h: 2.05, title: 'Alien Warrior', from: "Zap 'n Clancy", glb: 'models/assets/alien_warrior.glb', mb: 4.0,
     tris: 11071, joints: 59, clips: 52, prefer: ['standing_idle'],
     notes: ['Full melee combat set, blocks and hit reactions', 'Weapon mount for the mace', 'Draco + WebP'] },
-  { slug: 'purple-alien', title: 'Purple Alien', from: "Zap 'n Clancy", glb: 'models/assets/alien_female_purple.glb', mb: 1.4,
+  { slug: 'purple-alien', h: 1.75, title: 'Purple Alien', from: "Zap 'n Clancy", glb: 'models/assets/alien_female_purple.glb', mb: 1.4,
     tris: 10966, joints: 193, clips: 3, prefer: ['idle_01'],
     notes: ['Hair and tail chains, ready for secondary motion', 'Single 2K texture'] },
-  { slug: 'hick', title: 'Skinny Hick', from: "Zap 'n Clancy", glb: 'models/assets/hick_skinny.glb', mb: 2.1,
+  { slug: 'hick', h: 1.8, title: 'Skinny Hick', from: "Zap 'n Clancy", glb: 'models/assets/hick_skinny.glb', mb: 2.1,
     tris: 10785, joints: 66, clips: 23, prefer: ['drunk_idle'],
     notes: ['Sober and drunk locomotion sets', 'Cigarette-tip joint for smoke'] },
-  { slug: 'hobo', title: 'Hobo', from: "Zap 'n Clancy", glb: 'models/assets/hobo_01.glb', mb: 2.5,
+  { slug: 'hobo', h: 1.75, title: 'Hobo', from: "Zap 'n Clancy", glb: 'models/assets/hobo_01.glb', mb: 2.5,
     tris: 10318, joints: 65, clips: 29, prefer: ['drunk_idle'],
     notes: ['Hit reactions, knock-down and get-up', 'In-air pose for launches'] },
-  { slug: 'clancy', title: 'Clancy', from: "Zap 'n Clancy", glb: 'models/assets/clancy.glb', mb: 1.5,
+  { slug: 'clancy', h: 0.85, title: 'Clancy', from: "Zap 'n Clancy", glb: 'models/assets/clancy.glb', mb: 1.5,
     tris: 11035, joints: 27, clips: 36, prefer: ['clancy_idle_01'],
     notes: ['Zap\'s alien dog sidekick', 'Attack, fall, roll and hard-landing clips'] },
-  { slug: 'construction-worker', title: 'Construction Worker', from: "Zap 'n Clancy", glb: 'models/assets/contruction_worker.glb', mb: 1.7,
+  { slug: 'construction-worker', h: 1.82, title: 'Construction Worker', from: "Zap 'n Clancy", glb: 'models/assets/contruction_worker.glb', mb: 1.7,
     tris: 10894, joints: 68, clips: 16, prefer: ['idle'],
     notes: ['Tool swings, vehicle enter/exit, knock-downs', 'Weapon mount for tools'] },
-  { slug: 'roller-alien', title: 'Roller Alien', from: "Zap 'n Clancy", glb: 'models/assets/alien_rollerskate_blue.glb', mb: 1.2,
+  { slug: 'roller-alien', h: 1.6, title: 'Roller Alien', from: "Zap 'n Clancy", glb: 'models/assets/alien_rollerskate_blue.glb', mb: 1.2,
     tris: 10000, joints: 65, clips: 12, prefer: ['idle'],
     notes: ['Walk, run, strafe and turn set'] },
-  { slug: 'rollergirl', title: 'Rollergirl', from: 'Rollergirl', glb: 'models/assets/roller_girl.glb', mb: 1.4,
+  { slug: 'rollergirl', h: 1.7, title: 'Rollergirl', from: 'Rollergirl', glb: 'models/assets/roller_girl.glb', mb: 1.4,
     tris: 9857, joints: 66, clips: 5, prefer: ['coasting', 'idle'],
     notes: ['Skating and jump clips', 'Draco + WebP'] },
-  { slug: 'big-don', title: 'Big Don', from: 'Big Don', glb: 'models/assets/big_donny.glb', mb: 10.3,
+  { slug: 'big-don', h: 1.9, title: 'Big Don', from: 'Big Don', glb: 'models/assets/big_donny.glb', mb: 10.3,
     tris: 20573, joints: 58, clips: 54, prefer: ['idle_1'],
     notes: ['Ledge, cover, crouch and strike sets', 'Mirrored left/right strikes'] },
 ].map(a => ({ gumroad: '', price: '', ...a }));

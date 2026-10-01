@@ -123,6 +123,7 @@ const LAYOUT = (main, hu = 1, o = {}) => [['stitch', 0.4], [main, hu * 0.9, o], 
 const WEAVES = {
   home:      { h: 0,   bands: LAYOUT('arrows') },
   play:      { h: -25, bands: LAYOUT('zigzag', 1.2) },
+  characters: { h: 15, bands: LAYOUT('star', 2.0) },
   assets:    { h: 20,  bands: LAYOUT('steps', 1.3) },
   scripts:   { h: -60, bands: LAYOUT('chain') },
   web:       { h: 35,  bands: LAYOUT('hourglass', 1.1) },

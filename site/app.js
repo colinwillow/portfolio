@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=c57f3b9e';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=cd5052e9';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -100,7 +100,7 @@ const PAGES = {
     const rail = inner => `<div class="rail" tabindex="0">${inner}</div>`;
     const games = PLAY.map(it => link('play/' + it.slug, `${appIcon(it)}
       <div class="tile-meta"><b>${esc(it.title)}</b><span>${esc(it.kind)} · ${STATUS[it.status]}</span></div>`, 'tile game'));
-    const figs = ASSETS.map(it => link('assets/' + it.slug, `<img src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy">
+    const figs = ASSETS.map(it => link('characters/' + it.slug, `<img src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy">
       <div class="tile-meta"><b>${esc(it.title)}</b><span>${it.clips} clips · ${(it.tris / 1000).toFixed(1)}k tris</span></div>`, 'figure'));
     const clips = MOTION.slice(0, 9).map(m => `<figure><video data-src="${esc(m.src)}" poster="${esc(m.poster)}" muted loop playsinline preload="none"></video><figcaption>${esc(m.title)}</figcaption></figure>`);
     const essays = WRITING.map(w => link('writing/' + w.slug, `<span class="kicker">${w.reading ? '▶ ' + esc(w.voice || 'Listen') : 'Read'}</span>
@@ -108,7 +108,7 @@ const PAGES = {
     const sites = [...WEB, ...STUDIOS.filter(s => s.slug !== 'unknown')];
     return `<div class="aisle" id="index">
       ${shelf('play', rail(games.join('')), { more: 'All games' })}
-      ${shelf('assets', `<div class="rail figures">${figs.join('')}</div>`, { more: 'All characters', cls: 'shelf-figures' })}
+      ${shelf('characters', `<div class="rail figures">${figs.join('')}</div>`, { more: 'All characters', cls: 'shelf-figures' })}
       ${shelf('motion', `<div class="wall">${clips.join('')}</div>`, { more: `All ${MOTION.length} clips` })}
       ${shelf('writing', `<div class="rail">${essays.join('')}</div>`)}
       ${shelf('web', rail(sites.map(it => (it.url ? ext : (h, i, c) => `<div class="${c}">${i}</div>`)(it.url, `${cover(it)}
@@ -145,8 +145,8 @@ const PAGES = {
       <h3 class="sub">Apps</h3><div class="grid">${PLAY.filter(x => x.kind !== 'Game').map(card).join('')}</div>${foot()}</div>`;
   },
 
-  assets(slug) {
-    const s = sectionOf('assets');
+  characters(slug) {
+    const s = sectionOf('characters');
     const specs = it => `<dl class="specs">
       <dt>Tris</dt><dd>${it.tris.toLocaleString()}</dd>
       <dt>Joints</dt><dd>${esc(it.joints)}</dd><dt>Clips</dt><dd>${esc(it.clips)}</dd>
@@ -158,7 +158,7 @@ const PAGES = {
       const it = ASSETS.find(x => x.slug === slug);
       if (!it) return missing();
       after = () => import('./viewer.js?v=728192eb').then(m => { mounted = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer }); });
-      return `<div class="wrap">${crumbs(link('assets', 'Assets'), esc(it.title))}
+      return `<div class="wrap">${crumbs(link('characters', 'Characters'), esc(it.title))}
         <h2 class="title">${esc(it.title)}</h2>
         <p class="lede">From ${esc(it.from)}. ${it.notes.map(esc).join(' · ')}.</p>
         <div id="viewer" class="viewer"></div>
@@ -166,11 +166,49 @@ const PAGES = {
         <p class="soon">Rigged to a Mixamo-style skeleton, faces +Z, draco-compressed geometry with WebP textures —
           drops straight into three.js with GLTFLoader + DRACOLoader.</p>${foot()}</div>`;
     }
+    // The line-up stands above (the backdrop); here: a row of everyone small, and the
+    // one you picked, bigger, with what they are and where to go next.
+    const detail = it => it ? `<img class="char-shot" src="site/shots/char-${esc(it.slug)}.webp" alt="">
+        <div><h3>${esc(it.title)}</h3><p class="from">From ${esc(it.from)}</p>${specs(it)}
+        <p class="notes">${it.notes.map(esc).join(' · ')}</p>
+        <div class="row">${link('characters/' + it.slug, 'Animations &amp; 3D →', 'btn accent')}${buy(it)}</div></div>`
+      : `<p class="soon">Tap anyone in the line-up, or a face below.</p>`;
+    after = () => {
+      const panel = view.querySelector('.char-detail');
+      const show = slug => {
+        const it = ASSETS.find(x => x.slug === slug);
+        panel.innerHTML = detail(it); panel.classList.toggle('on', !!it);
+        view.querySelectorAll('.char-thumbs button').forEach(b => b.classList.toggle('on', b.dataset.char === slug));
+      };
+      CHARPICK.show = show;
+      view.querySelector('.char-thumbs').onclick = e => {
+        const b = e.target.closest('button[data-char]'); if (!b) return;
+        LINEUP?.focus(b.dataset.char); show(b.dataset.char);
+        scrollTo({ top: 0, behavior: 'smooth' });                    // up to the line-up, where the camera is going
+      };
+      mounted = { destroy() { CHARPICK.show = null; LINEUP?.focus(null); } };
+    };
     return `<div class="wrap">${head(s, ' Every number is read off the file: triangles, joints, clips, size. Optimised, animated and running in real three.js games on phones.')}
-      <div class="grid">${ASSETS.map(it => link('assets/' + it.slug, `<img class="char-shot" src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy">
+      <div class="char-thumbs">${ASSETS.map(it => `<button data-char="${esc(it.slug)}" aria-label="${esc(it.title)}">
+        <img src="site/shots/char-${esc(it.slug)}.webp" alt="" loading="lazy"><span>${esc(it.title)}</span></button>`).join('')}</div>
+      <div class="char-detail">${detail(null)}</div>
+      <h3 class="sub">Everyone</h3>
+      <div class="grid">${ASSETS.map(it => link('characters/' + it.slug, `<img class="char-shot" src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy">
         <h4>${esc(it.title)}</h4>${specs(it)}<div class="meta"><span class="pill">${esc(it.from)}</span>${it.gumroad ? '<span class="pill hot">On Gumroad</span>' : ''}</div>`, 'card')).join('')}</div>
-      <h3 class="sub">Also coming</h3><ul class="soon"><li>3D-printable figures (STL)</li><li>Texture packs</li></ul>
+      <h3 class="sub">Also coming</h3><ul class="soon"><li>3D-printable figures (STL)</li></ul>
       ${GUMROAD ? `<div class="row">${ext(GUMROAD, 'Whole store on Gumroad ↗', 'btn ghost')}</div>` : ''}${foot()}</div>`;
+  },
+
+  // Assets: everything that is not a character. Nothing is up yet; characters that
+  // used to live here have moved, and an old link to one goes straight to it.
+  assets(slug) {
+    if (slug && ASSETS.some(x => x.slug === slug)) { queueMicrotask(() => { history.replaceState(null, '', BASE + 'characters/' + slug); render(); }); return ''; }
+    const s = sectionOf('assets');
+    return `<div class="wrap">${head(s)}
+      <div class="grid">${[['Buildings', 'Modular, low-draw-call buildings and kits.'], ['Props', 'Street furniture, vehicles, set dressing.'],
+        ['Texture packs', 'Tileable, KTX2-ready, sized for phones.'], ['Levels', 'Whole scenes from the games, ready to walk around.']]
+        .map(([t, b]) => `<div class="card"><div class="mono">${t[0]}</div><h4>${t}</h4><p>${b}</p><div class="meta"><span class="pill">Coming soon</span></div></div>`).join('')}</div>
+      <p class="soon">Everything optimised for three.js on a phone: draco geometry, compressed textures, few draw calls.</p>${foot()}</div>`;
   },
 
   scripts(slug) {
@@ -371,14 +409,22 @@ let WEAVE = null;   // the woven band pattern behind him, one per section (weave
    own instead -- Scripts is code raining past (coderain.js), loaded the first time
    it is needed. One place decides, so the backdrops can never both be showing. */
 let RAIN = null, rainLoading = null;
-const OWN_BACKDROP = { scripts: 'rain' };
+const OWN_BACKDROP = { scripts: 'rain', characters: 'lineup' };
+let LINEUP = null, lineupLoading = null;
+window.cw = { get LINEUP() { return LINEUP; }, get WEAVE() { return WEAVE; }, get RAIN() { return RAIN; } };   // console handles
+const CHARPICK = { show: null };
 function backdrop(key) {
   key = key || 'home';
   const own = OWN_BACKDROP[key];
   WEAVE?.set(key);
-  WEAVE?.visible(!own);
+  WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
+  WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
+  if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
+    lineupLoading = import('./lineup.js?v=578bb5b9').then(m => {
+      LINEUP = m.createLineup($('#glorb'), ASSETS, { onPick: slug => CHARPICK.show?.(slug) }); backdrop(current()); });
+  LINEUP?.visible(own === 'lineup');
   if (own === 'rain' && !RAIN && !rainLoading && GLORB.ready)
-    rainLoading = import('./coderain.js?v=6830cc9a').then(m => { RAIN = m.createCodeRain($('#glorb'), () => GLORB.api); backdrop(current()); });
+    rainLoading = import('./coderain.js?v=6a5fd671').then(m => { RAIN = m.createCodeRain($('#glorb'), () => GLORB.api); backdrop(current()); });
   RAIN?.visible(own === 'rain');
 }
 const current = () => route()[0] || latched || 'home';   // only called after boot
@@ -390,7 +436,7 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
-  import('./weave.js?v=fae96af3').then(w => {
+  import('./weave.js?v=78f4cd2d').then(w => {
     WEAVE = w.createWeave($('#glorb'), () => GLORB.api);   // Glorb's particles carve the cloth
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent
@@ -452,6 +498,7 @@ addEventListener('scroll', () => {
   api.setCentreY(Math.min(room * 0.5, top - R * 0.5));
   api.pause(top < -R * 1.5);
   WEAVE?.pause(top < 0); RAIN?.pause(top < 0);
+  LINEUP?.ground(top); LINEUP?.pause(top < 0);
   // the main band runs behind Glorb's resting centre (not his live one, so a squash does not drag the cloth)
   WEAVE?.anchor(room * 0.5);
 })();
@@ -718,7 +765,7 @@ const KNOWN = [
 ].join(' ').slice(0, 2900);
 const ITEMS = [
   ...PLAY.map(p => ({ title: p.title, path: 'play/' + p.slug })),
-  ...ASSETS.map(a => ({ title: a.title, path: 'assets/' + a.slug })),
+  ...ASSETS.map(a => ({ title: a.title, path: 'characters/' + a.slug })),
   ...SCRIPTS.map(s => ({ title: s.title, path: 'scripts/' + s.slug })),
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
