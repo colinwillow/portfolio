@@ -52,20 +52,22 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
   // line -- they walk to the middle and step forward, the rest walk aside -- and a
   // spacing rule keeps anyone from walking through anyone.
   const hash = k => { let h = 2166136261; for (let i = 0; i < k.length; i++) h = Math.imul(h ^ k.charCodeAt(i), 16777619); return ((h >>> 0) % 10000) / 10000; };
-  const ENTRANCES = ['left', 'back', 'right', 'drop'];
+  // ASSIGNED SEATS: the order they are handed in is the order they stand, centred on
+  // Colin (who is already here). Anyone left of him comes in from the left, anyone
+  // right of him from the right, the ones nearest him first -- so nobody ever has to
+  // get past anybody, and there is nothing to get caught on.
+  const home = Math.max(0, chars.findIndex(c => c.colin));
   const slots = chars.map((c, i) => ({ c, i, x: 0, z: 0, y: 0, vy: 0, tx: 0, tz: 0, yaw: 0, rest: (hash(c.slug) - 0.5) * 0.5,
-    spd: 1.15 + 0.55 * hash(c.slug + 'v'), how: ENTRANCES[i % ENTRANCES.length], state: 'wait',
+    spd: 1.15 + 0.55 * hash(c.slug + 'v'), run: 3.0 + 0.8 * hash(c.slug + 'r'), how: c.colin ? 'here' : i < home ? 'left' : 'right',
+    rank: Math.abs(i - home), delay: 0, state: 'wait',
     group: new THREE.Group(), mixer: null, clips: {}, cur: null, mats: [], lit: 1, loaded: false }));
   slots.forEach(s => { s.group.visible = false; scene.add(s.group); });
-  let order = slots.map((s, i) => i);
-  const S = { on: false, started: false, sel: null, camX: 0, wantX: 0, ground: 0, last: 0, paused: false, drag: null };
-  const span = () => (slots.length - 1) / 2 * LINE.gap;
+  const S = { exitUntil: 0, on: false, started: false, sel: null, camX: 0, wantX: 0, ground: 0, last: 0, paused: false, drag: null };
+  const span = () => Math.max(home, slots.length - 1 - home) * LINE.gap;
 
   // where everyone should be: the line in `order`, every other one a step back, the picked one forward
   function layout() {
-    const m = (order.length - 1) / 2;
-    order.forEach((i, k) => { const s = slots[i];
-      s.tx = (k - m) * LINE.gap; s.tz = S.sel === s.c.slug ? 0.45 : (k % 2 ? -LINE.stagger : 0); });
+    slots.forEach((s, k) => { s.tx = (k - home) * LINE.gap; s.tz = S.sel === s.c.slug ? 0.5 : (k % 2 ? -LINE.stagger : 0); });
   }
   layout();
 
@@ -73,15 +75,13 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
     const c = s.clips[name] || s.clips.idle; if (!c || s.cur === c) return; s.cur = c;
     play(s.mixer, c, { fade: 0.25 });
   }
-  function enter(s) {
-    const far = span() + 2.6;
-    s.x = s.how === 'left' ? -far : s.how === 'right' ? far : s.tx;
-    s.z = s.how === 'back' ? -8 : s.tz;
-    s.y = s.how === 'drop' ? 4.5 : 0; s.vy = 0;
-    s.yaw = s.how === 'left' ? Math.PI / 2 : s.how === 'right' ? -Math.PI / 2 : 0;
-    s.state = s.how === 'drop' ? 'fall' : 'walk';
-    s.group.visible = true;
-    clip(s, s.how === 'drop' ? 'air' : 'walk');
+  const off = s => (s.how === 'left' ? -1 : 1) * (span() + 3);       // just past the edge of the frame, on their side
+  // offstage, waiting for their turn (`delay` seconds)
+  function stageLeft(s, delay) {
+    s.delay = delay; s.y = 0; s.z = s.tz; s.state = s.how === 'here' ? 'idle' : 'wait';
+    s.x = s.how === 'here' ? s.tx : off(s); s.yaw = s.how === 'here' ? s.rest : (s.how === 'left' ? 1 : -1) * Math.PI / 2;
+    s.group.visible = s.how === 'here';
+    if (s.how === 'here') clip(s, 'idle');
   }
 
   async function loadAll() {
@@ -101,6 +101,7 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
         shrinkTextures(ch.model);
         const has = re => ch.clips.find(c => re.test(c.name));
         s.clips = { idle: pickClip(ch.clips, ...(s.c.prefer || []), 'idle'),
+          run: has(/^run_fwd$|run_fwd|^running$|^run$|drunk_run_forward/i),
           walk: has(/walk_fwd_neutral|^walk_fwd|^walking$|^walk$|walk/i),
           air: has(/floating|in_air|falling_idle|jump_going_up|air|fall/i),
           land: has(/landing_soft|^landing$|landing|hard_landing/i) };
@@ -111,13 +112,25 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
         ch.model.position.set(-(box.min.x + box.max.x) / 2 * k, -box.min.y * k, -(box.min.z + box.max.z) / 2 * k);
         ch.model.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) if (m.color) s.mats.push({ m, base: m.color.clone() }); });
         s.group.add(ch.model); s.loaded = true;
-        enter(s);
-        await new Promise(r => setTimeout(r, 180));                 // a beat between arrivals
+        stageLeft(s, 0.1);
       } catch (e) { console.warn('line-up', s.c.slug, e); }
     }
   }
 
   function step(s, dt) {
+    if (s.state === 'wait') {
+      s.delay -= dt; if (s.delay > 0) return;
+      s.state = 'enter'; s.group.visible = true; clip(s, s.clips.run ? 'run' : 'walk');
+    }
+    if (s.state === 'enter' || s.state === 'exit') {                // running in to their seat, or out past the edge
+      const to = s.state === 'exit' ? s.exitX : s.tx, dx = to - s.x, v = s.clips.run ? s.run : s.spd * 1.3;
+      s.wantYaw = Math.sign(dx || 1) * Math.PI / 2;
+      if (Math.abs(dx) < 0.5 && s.state === 'enter') { s.state = 'walk'; clip(s, 'walk'); }
+      else s.x += Math.sign(dx) * Math.min(Math.abs(dx), v * dt);
+      if (s.state === 'exit' && Math.abs(dx) < 0.05) s.group.visible = false;
+      let dy = s.wantYaw - s.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); s.yaw += dy * (1 - Math.exp(-10 * dt));
+      return;
+    }
     if (s.state === 'fall') {
       s.vy -= 14 * dt; s.y += s.vy * dt;
       if (s.y <= 0) { s.y = 0; s.vy = 0; s.state = 'land'; s.landT = 0.5; clip(s, s.clips.land ? 'land' : 'idle'); }
@@ -172,13 +185,12 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
   const clock = new THREE.Clock();
   function frame(now) {
     requestAnimationFrame(frame);
-    if (!S.on || S.paused || document.hidden) { clock.getDelta(); return; }
+    if ((!S.on && performance.now() > S.exitUntil) || S.paused || document.hidden) { clock.getDelta(); return; }
     const dt = Math.min(0.05, clock.getDelta());
     resize();
     if (!S.drag) S.camX += (S.wantX - S.camX) * (1 - Math.exp(-5 * dt));
     frameCamera();
-    for (const s of slots) if (s.loaded && s.group.visible) step(s, dt);
-    separate();
+    for (const s of slots) if (s.loaded) step(s, dt);
     for (const s of slots) {
       if (!s.loaded) continue;
       s.mixer.update(dt);
@@ -218,17 +230,28 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
   const api = {
     canvas: cv,
     visible(v) {
-      S.on = !!v; cv.classList.toggle('off', !v);
-      if (v && !S.started) { S.started = true; loadAll(); }
+      v = !!v; if (v === S.on) return;
+      S.on = v; cv.classList.toggle('off', !v);
+      if (v) {
+        // back again: everyone offstage first, then in, nearest Colin first -- and draw that
+        // empty stage NOW, so the canvas never shows the last frame of them running out
+        S.sel = null; S.camX = S.wantX = 0; layout();
+        for (const s of slots) if (s.loaded) stageLeft(s, 0.12 + s.rank * 0.16);
+        for (const s of slots) if (s.loaded) s.group.position.set(s.x, s.y, s.z);
+        renderer.render(scene, camera);
+        if (!S.started) { S.started = true; loadAll(); }
+      } else {
+        for (const s of slots) if (s.loaded && s.how !== 'here') {   // they run off the way they came
+          s.state = 'exit'; s.exitX = off(s); clip(s, s.clips.run ? 'run' : 'walk');
+        }
+        S.exitUntil = performance.now() + 900;
+      }
     },
     /** centre the camera on one character, light them and dim the rest (null: everyone lit) */
     focus(slug) {
-      S.sel = slug || null; S.wantX = 0;
-      const k = slots.findIndex(s => s.c.slug === slug);
-      if (k >= 0) {                                                  // they walk to the middle; everyone else makes room
-        const rest = slots.map((s, i) => i).filter(i => i !== k).sort((a, b) => slots[a].x - slots[b].x);
-        rest.splice(Math.floor(slots.length / 2), 0, k); order = rest;
-      }
+      S.sel = slug || null;
+      const s = slots.find(s => s.c.slug === slug);
+      S.wantX = s ? s.tx : 0;                                         // the camera goes to them; they step forward
       layout();
     },
     /** the strip's top edge in CSS px from the top of the host: their floor */

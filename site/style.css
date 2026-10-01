@@ -725,3 +725,33 @@ canvas.lineup { position: fixed !important; left: 0; top: 0; width: 100% !import
 canvas.lineup.off { opacity: 0; pointer-events: none; }
 /* on Characters, Colin is IN the line-up, so the little one on the strip steps out */
 body[data-sec="characters"] #mini:not(.hero) { opacity: 0; pointer-events: none; }
+
+/* ---- THE STAGE: a box Glorb sits in ------------------------------------------------
+   The strip's top face alone was a floor with no walls, ending in mid-air. Now the
+   whole space above the strip is a recessed box: a floor (the face they stand on),
+   two side walls and a ceiling, each a trapezoid running from the screen's edge in
+   to one inner rectangle, with a violet line where they meet it. Glorb, the weave and
+   the backdrops are the back wall. --ledge is the depth; --stage is the box's height,
+   set every frame from where the strip actually is. */
+#deck::after { display: none; }
+.stage-frame { position: absolute; left: 0; right: 0; bottom: 100%; height: var(--stage, 50vh); pointer-events: none; z-index: 0;
+  --d: var(--ledge); --edge: color-mix(in srgb, #a94dff 60%, transparent); }
+.stage-frame i { position: absolute; inset: 0; }
+.stage-frame .floor { clip-path: polygon(0 100%, 100% 100%, calc(100% - var(--d)) calc(100% - var(--d)), var(--d) calc(100% - var(--d)));
+  background: linear-gradient(to bottom, var(--edge) 0 1px, transparent 1px calc(100% - var(--d) + 1px)) 0 calc(100% - var(--d)) / 100% 100% no-repeat,
+    linear-gradient(to top, color-mix(in srgb, var(--sheet) 88%, #2a1640), color-mix(in srgb, var(--sheet) 55%, #000) var(--d)); }
+.stage-frame .wl { clip-path: polygon(0 0, var(--d) var(--d), var(--d) calc(100% - var(--d)), 0 100%);
+  background: linear-gradient(to right, color-mix(in srgb, var(--sheet) 70%, #000), color-mix(in srgb, var(--sheet) 40%, #000) var(--d)); }
+.stage-frame .wr { clip-path: polygon(100% 0, calc(100% - var(--d)) var(--d), calc(100% - var(--d)) calc(100% - var(--d)), 100% 100%);
+  background: linear-gradient(to left, color-mix(in srgb, var(--sheet) 70%, #000), color-mix(in srgb, var(--sheet) 40%, #000) var(--d)); }
+.stage-frame .ceil { clip-path: polygon(0 0, 100% 0, calc(100% - var(--d)) var(--d), var(--d) var(--d));
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--sheet) 45%, #000), color-mix(in srgb, var(--sheet) 30%, #000) var(--d)); }
+/* the inner rectangle: a thin violet line round the back wall, where the box's faces meet it */
+.stage-frame::after { content: ''; position: absolute; inset: var(--d); border: 1px solid var(--edge); border-bottom-width: 1px;
+  box-shadow: 0 0 14px -4px #a94dff; }
+#mini { z-index: 2; }
+/* About: Colin stands IN the box, on its floor -- his layer goes above the strip so the floor cannot cover his feet.
+   His canvas frames him so his soles sit 9.7% up from its bottom (camera at 0.62h looking at 0.5h); that comes off,
+   then half the floor's depth, so he stands in the middle of it */
+body.stage-page #view { z-index: 13; }
+body.stage-page .about-slot { transform: translateY(calc(9.7% - var(--ledge) * .5)); }

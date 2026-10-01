@@ -444,7 +444,7 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=6855701d').then(m => {
+    lineupLoading = import('./lineup.js?v=33a449db').then(m => {
       LINEUP = m.createLineup($('#glorb'), [...ASSETS.slice(0, 4), { slug: 'colin', colin: true, h: 1.78, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...ASSETS.slice(4)], { onPick: slug => CHARPICK.show?.(slug) });
       LINEUP.fog(css('--bg') || '#0e0e0f'); backdrop(current()); });
   LINEUP?.visible(own === 'lineup');
@@ -511,6 +511,7 @@ addEventListener('scroll', () => {
   let top;
   if (home) { top = headRest() - headOffset(); deckEl.style.top = top + 'px'; }
   else { deckEl.style.top = ''; top = deckEl.getBoundingClientRect().top; }
+  deckEl.style.setProperty('--stage', Math.max(0, top) + 'px');   // how tall the box above the strip is
   const g = $('#glorb'); if (g) g.style.clipPath = `inset(0 0 ${Math.max(0, g.clientHeight - top)}px 0)`;
   const api = GLORB.api; if (!api) return;
   // he rests in the middle of whatever space is above the strip when the page is at the top
