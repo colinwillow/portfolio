@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=ac71b109';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=56b19c13';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -188,8 +188,10 @@ const PAGES = {
         <div class="row">${ext(it.url, 'Open ' + esc(it.title) + ' ↗', 'btn accent')}
           <span class="pill ${it.status === 'live' ? 'hot' : ''}">${STATUS[it.status]}</span>
           ${it.tags.map(t => `<span class="pill">${esc(t)}</span>`).join('')}</div>
-        ${(it.gallery || (it.shot ? [it.shot] : [])).length ? `<div class="gallery">${(it.gallery || [it.shot]).map(g =>
-          `<img src="site/shots/${esc(g)}.webp" alt="${esc(it.title)}" loading="lazy">`).join('')}</div>` : ''}
+        ${(() => {   // its app icon first, then whatever current art it has (never the throwaways)
+          const pics = [...(it.icon ? [`<img class="app" src="site/icons/${esc(it.icon)}.webp" alt="${esc(it.title)} icon" loading="lazy">`] : []),
+            ...(it.gallery || (it.shot ? [it.shot] : [])).map(g => `<img src="site/shots/${esc(g)}.webp" alt="${esc(it.title)}" loading="lazy">`)];
+          return pics.length ? `<div class="gallery">${pics.join('')}</div>` : ''; })()}
         <p class="soon">App Store and Google Play badges go here when it ships.</p>${foot()}</div>`;
     }
     const card = it => link('play/' + it.slug, `${appIcon(it)}<div class="card-head"><h4>${esc(it.title)}</h4></div><p>${esc(it.blurb)}</p>

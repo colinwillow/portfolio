@@ -805,3 +805,6 @@ body[data-sec="characters"] #deck { margin-top: 54svh; }
 .shelf-figures .figure.on b { color: var(--ink); }
 .shelf-figures .figure.on::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 2px; height: 3px; border-radius: 3px;
   background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+/* a game page leads with its app icon, rounded like a home screen, then its current art */
+.gallery img.app { width: min(62%, 280px); justify-self: center; border: 0; border-radius: 22.5%;
+  box-shadow: 0 14px 30px -18px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.06); }
