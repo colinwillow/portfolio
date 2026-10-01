@@ -689,3 +689,22 @@ body.stage-page .about-slot { inset: 22% 0 0 0; }
 .char-detail .from { margin: 2px 0 8px; color: var(--muted); font-size: 13px; }
 .char-detail .notes { color: var(--muted); font-size: 13px; }
 .char-detail .row { flex-wrap: wrap; gap: 8px; }
+
+/* ---- the strip is a SLAB: its top face ---------------------------------------------
+   A flat edge gives the eye nothing to stand a foot on, so everyone stood ON a line
+   and read as floating. The strip gets a top surface -- a trapezoid narrowing to the
+   back, a slab seen from just above -- and the line-up, little Colin and the About
+   stage all stand in the middle of it. --ledge is how deep that face looks. */
+:root { --ledge: 26px; }
+#deck::after { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--ledge); pointer-events: none;
+  clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%);
+  background:
+    linear-gradient(to bottom, color-mix(in srgb, #a94dff 55%, transparent) 0 1px, transparent 1px),     /* the lit back edge */
+    linear-gradient(to bottom, color-mix(in srgb, var(--sheet) 55%, #000) 0%, color-mix(in srgb, var(--sheet) 88%, #2a1640) 100%); }
+#deck { border-radius: 0; }
+#mini:not(.hero) { bottom: calc(100% - 12px + var(--ledge) * .5); }
+/* About: he stands on the slab too; the ground plane and its glow are gone, the contact shadow stays */
+body.stage-page .about-slot { inset: 22% 0 0 0; transform: translateY(calc(10.5% - var(--ledge) * .5)); }
+body.stage-page .about-floor { height: var(--ledge); bottom: 0; }
+body.stage-page .about-floor .plane, body.stage-page .about-floor .pool { display: none; }
+body.stage-page .about-floor .shadow { inset: auto 36% calc(var(--ledge) * .5 - 8px); height: 16px; }

@@ -498,7 +498,8 @@ addEventListener('scroll', () => {
   api.setCentreY(Math.min(room * 0.5, top - R * 0.5));
   api.pause(top < -R * 1.5);
   WEAVE?.pause(top < 0); RAIN?.pause(top < 0);
-  LINEUP?.ground(top); LINEUP?.pause(top < 0);
+  // they stand in the middle of the strip's top face, not on its front edge
+  LINEUP?.ground(top - (parseFloat(css('--ledge')) || 26) * 0.5); LINEUP?.pause(top < 0);
   // the main band runs behind Glorb's resting centre (not his live one, so a squash does not drag the cloth)
   WEAVE?.anchor(room * 0.5);
 })();
