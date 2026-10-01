@@ -737,18 +737,12 @@ body.colin-in-line #mini:not(.hero) { opacity: 0; pointer-events: none; transiti
 .stage-frame { position: absolute; left: 0; right: 0; bottom: 100%; height: var(--stage, 50vh); pointer-events: none; z-index: 0;
   --d: var(--ledge); --edge: color-mix(in srgb, #a94dff 60%, transparent); }
 .stage-frame i { position: absolute; inset: 0; }
-.stage-frame .floor { clip-path: polygon(0 100%, 100% 100%, calc(100% - var(--d)) calc(100% - var(--d)), var(--d) calc(100% - var(--d)));
-  background: linear-gradient(to bottom, var(--edge) 0 1px, transparent 1px calc(100% - var(--d) + 1px)) 0 calc(100% - var(--d)) / 100% 100% no-repeat,
-    linear-gradient(to top, color-mix(in srgb, var(--sheet) 88%, #2a1640), color-mix(in srgb, var(--sheet) 55%, #000) var(--d)); }
-.stage-frame .wl { clip-path: polygon(0 0, var(--d) var(--d), var(--d) calc(100% - var(--d)), 0 100%);
-  background: linear-gradient(to right, color-mix(in srgb, var(--sheet) 70%, #000), color-mix(in srgb, var(--sheet) 40%, #000) var(--d)); }
-.stage-frame .wr { clip-path: polygon(100% 0, calc(100% - var(--d)) var(--d), calc(100% - var(--d)) calc(100% - var(--d)), 100% 100%);
-  background: linear-gradient(to left, color-mix(in srgb, var(--sheet) 70%, #000), color-mix(in srgb, var(--sheet) 40%, #000) var(--d)); }
-.stage-frame .ceil { clip-path: polygon(0 0, 100% 0, calc(100% - var(--d)) var(--d), var(--d) var(--d));
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--sheet) 45%, #000), color-mix(in srgb, var(--sheet) 30%, #000) var(--d)); }
-/* the inner rectangle: a thin violet line round the back wall, where the box's faces meet it */
-.stage-frame::after { content: ''; position: absolute; inset: var(--d); border: 1px solid var(--edge); border-bottom-width: 1px;
-  box-shadow: 0 0 14px -4px #a94dff; }
+/* just the GROUND now: a full-width band, no walls, no ceiling, no violet frame. It runs past
+   both screen edges (inset -40px) so no corner or end of it is ever in view, and its far edge
+   fades into the back wall rather than drawing a line. */
+.stage-frame .floor { inset: auto -40px 0; height: var(--d);
+  background: linear-gradient(to top, color-mix(in srgb, var(--sheet) 88%, #2a1640), color-mix(in srgb, var(--sheet) 55%, #000) 75%, transparent); }
+.stage-frame .wl, .stage-frame .wr, .stage-frame .ceil { display: none; }
 #mini { z-index: 2; }
 /* About: Colin stands IN the box, on its floor -- his layer goes above the strip so the floor cannot cover his feet.
    His canvas frames him so his soles sit 9.7% up from its bottom (camera at 0.62h looking at 0.5h); that comes off,
@@ -773,9 +767,11 @@ body.stage-page .about-slot { transform: translateY(calc(9.7% - var(--ledge) * .
 body.at-home #home-stage { display: flex; justify-content: center; align-items: flex-end; }
 #home-stage #mini.hero .mini-body { width: auto; aspect-ratio: 0.7; height: 100%; }
 /* His canvas reaches below his feet (to frame him); that strip must never sit over the menu
-   and take its taps -- so it is clipped at his soles, and his panel and buttons sit above them.
-   (This is what locked the menu on the About page.) */
-#mini.hero .mini-body { clip-path: inset(0 0 9.6% 0); }
+   and take its taps -- so the BOX lets taps through and only the part above his soles takes them
+   (a ::before), which keeps the menu live without clipping his feet off. */
+#mini.hero .mini-body { pointer-events: none; }
+#mini.hero .mini-body canvas { pointer-events: none; }
+#mini.hero .mini-body::before { content: ''; position: absolute; inset: 0 0 9.7% 0; pointer-events: auto; }
 #mini.hero .mini-panel, #mini.hero .mini-tools { bottom: calc(9.7% + 64px); }
 #mini.hero .mini-tools { bottom: calc(9.7% + 14px); }
 #mini.hero .mini-tag { bottom: calc(9.7% + 66px); }
