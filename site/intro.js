@@ -200,7 +200,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           /* Walking toward you, the name's collider lets go AS THE NAME FADES (the same .35s
              delay and .5s fade the CSS gives the word), so the field falls in on him to be
              walked into, instead of holding a hole the shape of a word nobody can see. */
-          const cs = !walking ? 1 : me.api.depth ? Math.max(0, Math.min(1, 1 - (now - walkT0 - 350) / 500)) : me.api.progress() > 0.5 ? 0 : 1;
+          const cs = !walking ? 1 : me.api.depth ? Math.max(0, Math.min(1, 1 - (now - walkT0 - rel[i]) / 260)) : me.api.progress() > 0.5 ? 0 : 1;
           const ex = px[i] - nx, ey = py[i] - ny, ed = cs <= 0 ? 1e9 : Math.hypot(ex, ey);
           if (ed < 0.5) { const ox = px[i] - wx || 0.1, oy = py[i] - wy, om = Math.hypot(ox, oy); ax += ox / om * maxF[i] * 14 * cs; ay += oy / om * maxF[i] * 14 * cs; }
           else if (ed < 14) { ax += ex / ed * maxF[i] * 3.5 * (1 - ed / 14) * cs; ay += ey / ed * maxF[i] * 3.5 * (1 - ed / 14) * cs; }
@@ -211,7 +211,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           // just knocked: the strand's pull comes back gently rather than at once
           const back = 1 - 0.85 * knock[i];
           vx[i] = (vx[i] + ax * back * k) * Math.pow(0.95, k); vy[i] = (vy[i] + ay * back * k) * Math.pow(0.95, k);
-          knock[i] *= Math.pow(0.975, k);
+          if (!hitT[i]) knock[i] *= Math.pow(0.975, k);   // touched by him: the strand never takes it back
           /* HIM, AS AIR SEES A CAR. In his own frame the air rushes backwards
              past him; near his body that stream is bent to run ALONG his
              surface (the part heading into him is removed, the rest kept).
@@ -219,26 +219,29 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
              little and slide up or down, over his head and under his feet they
              hardly move while he passes, and behind him they fill back in. They
              are not carried off with him, and the strand pulls them home after. */
-          /* THE WAKE (walking toward you). Not a bounce and not a kick: ONE airflow that
-             grows smoothly from the moment he reaches the field. Round him it streams outward
-             off his body, each side turning its own way (mirror image, a butterfly), so what he
-             walks through is carried out and round rather than knocked; the nearer his body, the
-             stronger, and the more it swells toward you. It steers -- it never adds a sudden
-             velocity -- and the strands let go of a dot exactly as fast as the wake takes it. */
-          if (me.on && me.api.depth && crossT && ch0) {
-            const ramp = Math.min(1, (now - crossT) / 700), rp = ramp * ramp * (3 - 2 * ramp);
+          /* THE WAKE (walking toward you). A ripple leaves his body as he reaches the field and
+             spreads outward, so EVERY dot is touched -- the ones on him first, the far ones a
+             moment later -- and there are no two groups. Each one, when touched, is steered for
+             a short while (a firm, smooth push, never a jump) out and round, the two sides
+             curling opposite ways; how hard varies a lot from dot to dot, and the hardest-hit
+             ones are thrown TOWARD you (see the swell, which rides on the same clock). */
+          if (me.on && me.api.depth && crossT) {
             const c0 = me.api.chest() || ch0, rx = px[i] - c0.x, ry = (py[i] - c0.y) * 0.8, rm = Math.hypot(rx, ry) || 1;
-            const hit = me.api.hit(px[i], py[i]), inside = hit ? Math.min(1, hit.d * 1.4) : 0;
-            const near = Math.max(inside, Math.exp(-Math.pow(rm / (c0.r * 0.85), 2)));
-            const fl = rp * near;
-            if (fl > 0.01) {
-              const side = rx < 0 ? -1 : 1, ws = ry < 0 ? side : -side;
-              const sp = (4 + 5 * near) * flS[i];
-              const tx = rx / rm * sp + (-ry / rm) * ws * sp * 0.55, ty = ry / rm * sp * 0.9 + (rx / rm) * ws * sp * 0.55 - 0.6;
-              const st = 1 - Math.pow(1 - 0.06 * fl, k);
-              vx[i] += (tx - vx[i]) * st; vy[i] += (ty - vy[i]) * st;
-              zA[i] = Math.max(zA[i], 1.7 * near * rp);
-              knock[i] = Math.max(knock[i], fl);   // the strand's pull eases off as the wake takes over
+            if (!hitT[i]) {
+              const front = c0.r * (0.25 + 1.5 * (now - crossT) / 850), hit = me.api.hit(px[i], py[i]);
+              if (rm < front || (hit && hit.d > 0.03)) {
+                hitT[i] = now; knock[i] = 1;
+                const side = rx < 0 ? -1 : 1; hitS[i] = ry < 0 ? side : -side;
+              }
+            }
+            if (hitT[i]) {
+              const e = (now - hitT[i]) / 320;
+              if (e < 1) {
+                const sp = 2.2 + 7.5 * amp[i], ws = hitS[i];
+                const tx = rx / rm * sp + (-ry / rm) * ws * sp * 0.5, ty = ry / rm * sp * 0.85 + (rx / rm) * ws * sp * 0.5 - 0.5;
+                const st = 1 - Math.pow(1 - 0.14 * Math.sin(Math.PI * e), k);   // eases in and out: a push, not a hit
+                vx[i] += (tx - vx[i]) * st; vy[i] += (ty - vy[i]) * st;
+              }
             }
           }
           if (me.on && !me.api.depth) {
@@ -280,8 +283,15 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
          it goes, in front on the way out and behind on the way back, which is the whole read. */
       if (crossT) for (let i = 0; i < N; i++) {
         // swells while he is pushing it, eases back to its own size as it comes round behind him
-        const want = 1 + (blown ? zA[i] * Math.max(0, 1 - blown / 0.9) : zA[i]);
-        zm[i] += (want - zm[i]) * (1 - Math.pow(0.85, k));
+        // it comes toward you over the same half-second it is flying outward, and goes back
+        // as it curls round behind him -- one motion, not a size change
+        let want = 1;
+        if (hitT[i]) {
+          const e = Math.min(1, (now - hitT[i]) / 600), up = e * e * (3 - 2 * e);
+          const back = blown ? Math.max(0, 1 - blown / 1.1) : 1;
+          want = 1 + amp[i] * amp[i] * 2.4 * up * back;
+        }
+        zm[i] += (want - zm[i]) * (1 - Math.pow(0.8, k));
         front[i] = zm[i] > 1.18 ? 1 : 0;
       }
       const qs = (i) => {
@@ -361,7 +371,13 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
       FO.x = st.left + st.width / 2; FO.y = foot - tall * 0.55; FO.on = true;
     }
     const zm = new Float32Array(N).fill(1), zA = new Float32Array(N), wingS = new Int8Array(N);
-    const flS = new Float32Array(N); for (let i = 0; i < N; i++) flS[i] = 0.75 + Math.random() * 0.5;   // each its own speed in the wake
+    /* Per dot: when the name lets it go (one at a time, not a row at once), when he touched
+       it, which way it curls, and how hard he hit it -- mostly a brush, now and then a throw. */
+    const rel = new Float32Array(N), hitT = new Float64Array(N), hitS = new Int8Array(N), amp = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      rel[i] = 200 + Math.random() * 800;
+      const r = Math.random(); amp[i] = r < 0.18 ? 0.8 + Math.random() * 0.5 : r < 0.75 ? 0.3 + Math.random() * 0.4 : 0.05 + Math.random() * 0.2;
+    }
     /* The wings: everything is thrown out to its own side -- up or down by where it is against
        his chest -- and each side is given the opposite turn, so the two halves sweep out and
        curl back in mirror image, round behind him, onto the orb. */
@@ -369,7 +385,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
       const ch = me.api.chest() || ch0 || { x: W / 2, y: H * 0.5, r: H * 0.3 };
       for (let i = 0; i < N; i++) {
         const side = px[i] < ch.x ? -1 : 1, oy = Math.max(-1.1, Math.min(0.8, (py[i] - ch.y) / (ch.r || 1)));
-        wingS[i] = oy < 0 ? side : -side;   // no push here: the wake already set them moving   // top half curls over, bottom half under: the four lobes of a wing pair
+        wingS[i] = hitS[i] || (oy < 0 ? side : -side);   // no push here: the wake already set them moving   // top half curls over, bottom half under: the four lobes of a wing pair
       }
     }
     function enter() {
