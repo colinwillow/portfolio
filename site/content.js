@@ -53,7 +53,7 @@ export const PLAY = [
   { slug: 'robits', icon: 'robits', shot: 'robits', title: 'Robits Neon Blast', kind: 'Game', status: 'dev', thumb: 'robits',
     url: GH + 'robits/', tags: ['three.js', 'twin-stick'],
     blurb: 'Neon robot arena shooter with wall-crawling and crazy gravity. The first Majia title.' },
-  { slug: 'weirdport', icon: 'zap-n-clancy', aliases: ['melee', 'zap-n-clancy'], shot: 'zap-n-clancy-key', gallery: ['zap-n-clancy-key', 'weirdport', 'weirdport-key', 'weirdport-zap'],
+  { slug: 'weirdport', icon: 'zap-n-clancy', aliases: ['melee', 'zap-n-clancy'], shot: 'zap-n-clancy-key', gallery: ['zap-n-clancy-key'],
     title: "Zap 'n Clancy", kind: 'Game', status: 'dev', thumb: 'weirdport',
     url: GH + 'weirdport/', tags: ['three.js', 'twin-stick', 'open city'],
     blurb: 'Zap and his alien dog Clancy loose in Weirdport, a toon Portland: blaster, hammer, a DNA gun that turns you into whoever you shoot, skateboarding and buildings that come apart.' },
@@ -151,7 +151,7 @@ export const SCRIPTS = [
 export const WEB = [
   { slug: 'thatswassupps', shot: 'web-thatswassupps', logo: 'logos/thatswassupps_logo_512px.jpg.jpg', title: 'Thatswassupps', url: 'https://thatswassupps.com', role: 'Site and brand work',
     blurb: 'A friend\'s company I ended up helping build.' },
-  { slug: 'unknown', shot: 'unknown-key', gallery: ['unknown-key', 'web-unknown'], title: 'Unknown — SS25', url: GH + 'unknown/', role: 'Storefront',
+  { slug: 'unknown', shot: 'unknown-key', title: 'Unknown — SS25', url: GH + 'unknown/', role: 'Storefront',
     blurb: 'Product drops for my clothing label.' },
   { slug: 'faith', shot: 'web-faith', title: 'Faith Udall', url: 'https://faithudall.com', role: 'Personal site',
     blurb: 'A personal site for Faith.' },
@@ -160,7 +160,7 @@ export const WEB = [
 export const STUDIOS = [
   { slug: 'seawillow', title: 'SeaWillow', url: GH + 'seawillow/', blurb: 'Holding company and design studio.' },
   { slug: 'majia', shot: 'studio-majia', title: 'Majia', url: GH + 'majia/', thumb: 'majia', blurb: 'Game studio. Makers of Robits.' },
-  { slug: 'unknown', shot: 'unknown-key', gallery: ['unknown-key', 'unknown-look'], title: 'Unknown', url: GH + 'unknown/', blurb: 'Clothing label.' },
+  { slug: 'unknown', shot: 'unknown-key', title: 'Unknown', url: GH + 'unknown/', blurb: 'Clothing label.' },
 ];
 
 const MOTION_FILES = [
