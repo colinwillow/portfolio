@@ -34,7 +34,7 @@ function shrinkTextures(model) {
 
 export function createLineup(host, chars, { onPick = () => {} } = {}) {
   const cv = document.createElement('canvas');
-  cv.className = 'lineup off'; host.appendChild(cv);
+  cv.className = 'lineup off'; document.body.appendChild(cv);   // above the strip, so their feet stand on its top face
   const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
   const dpr = Math.min(devicePixelRatio || 1, 2);
   renderer.setPixelRatio(dpr);
@@ -44,34 +44,107 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
   scene.add(new THREE.HemisphereLight(0xffffff, 0x3a2a4a, 2.1));
   const key = new THREE.DirectionalLight(0xffffff, 1.9); key.position.set(2, 4, 5); scene.add(key);
   const rim = new THREE.DirectionalLight(0xb06bff, 2.2); rim.position.set(-3, 3, -4); scene.add(rim);     // Glorb's violet from behind
+  scene.fog = new THREE.Fog(0x0e0e0f, 18, 26);                      // the mist they walk out of
   const rim2 = new THREE.DirectionalLight(0x7dff6a, 0.9); rim2.position.set(4, 2, -3); scene.add(rim2);
 
-  // where each one stands: a line along X, centred, every other one a step back
-  const mid = (chars.length - 1) / 2;
-  const slots = chars.map((c, i) => ({ c, i, x: (i - mid) * LINE.gap * (c.h < 1.2 ? 0.8 : 1), z: (i % 2 ? -LINE.stagger : 0),
-    group: new THREE.Group(), mixer: null, mats: [], lit: 1, loaded: false }));
-  slots.forEach(s => { s.group.position.set(s.x, 0, s.z); scene.add(s.group); });
+  // Everyone is a little agent: where they are (x, z), where they are going (tx, tz),
+  // their own walking speed, and which way they face. Picking someone reorders the
+  // line -- they walk to the middle and step forward, the rest walk aside -- and a
+  // spacing rule keeps anyone from walking through anyone.
+  const hash = k => { let h = 2166136261; for (let i = 0; i < k.length; i++) h = Math.imul(h ^ k.charCodeAt(i), 16777619); return ((h >>> 0) % 10000) / 10000; };
+  const ENTRANCES = ['left', 'back', 'right', 'drop'];
+  const slots = chars.map((c, i) => ({ c, i, x: 0, z: 0, y: 0, vy: 0, tx: 0, tz: 0, yaw: 0, rest: (hash(c.slug) - 0.5) * 0.5,
+    spd: 1.15 + 0.55 * hash(c.slug + 'v'), how: ENTRANCES[i % ENTRANCES.length], state: 'wait',
+    group: new THREE.Group(), mixer: null, clips: {}, cur: null, mats: [], lit: 1, loaded: false }));
+  slots.forEach(s => { s.group.visible = false; scene.add(s.group); });
+  let order = slots.map((s, i) => i);
   const S = { on: false, started: false, sel: null, camX: 0, wantX: 0, ground: 0, last: 0, paused: false, drag: null };
+  const span = () => (slots.length - 1) / 2 * LINE.gap;
+
+  // where everyone should be: the line in `order`, every other one a step back, the picked one forward
+  function layout() {
+    const m = (order.length - 1) / 2;
+    order.forEach((i, k) => { const s = slots[i];
+      s.tx = (k - m) * LINE.gap; s.tz = S.sel === s.c.slug ? 0.45 : (k % 2 ? -LINE.stagger : 0); });
+  }
+  layout();
+
+  function clip(s, name) {
+    const c = s.clips[name] || s.clips.idle; if (!c || s.cur === c) return; s.cur = c;
+    play(s.mixer, c, { fade: 0.25 });
+  }
+  function enter(s) {
+    const far = span() + 2.6;
+    s.x = s.how === 'left' ? -far : s.how === 'right' ? far : s.tx;
+    s.z = s.how === 'back' ? -8 : s.tz;
+    s.y = s.how === 'drop' ? 4.5 : 0; s.vy = 0;
+    s.yaw = s.how === 'left' ? Math.PI / 2 : s.how === 'right' ? -Math.PI / 2 : 0;
+    s.state = s.how === 'drop' ? 'fall' : 'walk';
+    s.group.visible = true;
+    clip(s, s.how === 'drop' ? 'air' : 'walk');
+  }
 
   async function loadAll() {
     // the middle of the line first, then outward, so the screen fills from the centre
-    const order = [...slots].sort((a, b) => Math.abs(a.i - mid) - Math.abs(b.i - mid));
-    for (const s of order) {
+    const mid = (slots.length - 1) / 2;
+    const seq = [...slots].sort((a, b) => Math.abs(a.i - mid) - Math.abs(b.i - mid));
+    for (const s of seq) {
       try {
         const ch = await loadCharacter(new URL('../' + s.c.glb, import.meta.url).href);
+        if (s.c.colin) {                                           // Colin's own file: donor heads out, his face shape on
+          const loose = []; let sk = 0; ch.model.traverse(o => { if (o.isSkinnedMesh) sk++; else if (o.isMesh) loose.push(o); });
+          if (sk) loose.forEach(o => o.removeFromParent());
+          let headMat = null; ch.model.traverse(o => { if (o.isMesh && /head/i.test(o.name) && o.material.map) headMat = o.material; });
+          ch.model.traverse(o => { if (o.isMesh && /teeth/i.test(o.name) && !o.material.map && headMat) o.material = headMat;
+            if (o.isMesh && o.morphTargetDictionary) for (const [n, k] of Object.entries(o.morphTargetDictionary)) if (/colin.?head/i.test(n)) o.morphTargetInfluences[k] = 1; });
+        }
         shrinkTextures(ch.model);
-        const idle = pickClip(ch.clips, ...(s.c.prefer || []), 'idle');
-        const a = play(ch.mixer, idle, { fade: 0 });
-        if (a && idle) a.time = Math.random() * idle.duration;     // nobody in step with anybody
-        ch.mixer.update(0.01);
+        const has = re => ch.clips.find(c => re.test(c.name));
+        s.clips = { idle: pickClip(ch.clips, ...(s.c.prefer || []), 'idle'),
+          walk: has(/walk_fwd_neutral|^walk_fwd|^walking$|^walk$|walk/i),
+          air: has(/floating|in_air|falling_idle|jump_going_up|air|fall/i),
+          land: has(/landing_soft|^landing$|landing|hard_landing/i) };
+        s.mixer = ch.mixer; s.cur = null; clip(s, 'idle'); ch.mixer.update(0.01);
+        const a = ch.mixer.existingAction(s.clips.idle); if (a) a.time = Math.random() * s.clips.idle.duration;   // out of step
         const box = skinnedBounds(ch.model), tall = box.max.y - box.min.y || 1, k = (s.c.h || 1.75) / tall;
         ch.model.scale.setScalar(k);
         ch.model.position.set(-(box.min.x + box.max.x) / 2 * k, -box.min.y * k, -(box.min.z + box.max.z) / 2 * k);
-        ch.model.rotation.y = (Math.random() - 0.5) * 0.5;          // a little turned, as people stand
         ch.model.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) if (m.color) s.mats.push({ m, base: m.color.clone() }); });
-        s.group.add(ch.model); s.mixer = ch.mixer; s.loaded = true;
-        s.group.scale.setScalar(0.001); s.pop = 0;                   // grows in
+        s.group.add(ch.model); s.loaded = true;
+        enter(s);
+        await new Promise(r => setTimeout(r, 180));                 // a beat between arrivals
       } catch (e) { console.warn('line-up', s.c.slug, e); }
+    }
+  }
+
+  function step(s, dt) {
+    if (s.state === 'fall') {
+      s.vy -= 14 * dt; s.y += s.vy * dt;
+      if (s.y <= 0) { s.y = 0; s.vy = 0; s.state = 'land'; s.landT = 0.5; clip(s, s.clips.land ? 'land' : 'idle'); }
+    } else if (s.state === 'land') {
+      s.landT -= dt; if (s.landT <= 0) s.state = 'idle';
+    } else {
+      const dx = s.tx - s.x, dz = s.tz - s.z, d = Math.hypot(dx, dz);
+      if (d > 0.06) {
+        if (s.state !== 'walk') { s.state = 'walk'; clip(s, 'walk'); }
+        const v = Math.min(d * 3, s.spd);                             // eases into the stop
+        s.x += dx / d * v * dt; s.z += dz / d * v * dt;
+        s.wantYaw = Math.atan2(dx, dz);
+      } else {
+        if (s.state !== 'idle') { s.state = 'idle'; clip(s, 'idle'); }
+        s.wantYaw = s.rest;                                          // back to (nearly) facing us
+      }
+      let dy = (s.wantYaw ?? 0) - s.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+      s.yaw += dy * (1 - Math.exp(-8 * dt));
+    }
+  }
+  // nobody walks through anybody: anyone closer than a body width is nudged apart along the line
+  function separate() {
+    const live = slots.filter(s => s.loaded && s.group.visible && s.state !== 'fall');
+    for (let a = 0; a < live.length; a++) for (let b = a + 1; b < live.length; b++) {
+      const A = live[a], B = live[b]; if (Math.abs(A.z - B.z) > 0.32) continue;
+      const min = 0.3 * ((A.c.h || 1.75) + (B.c.h || 1.75)) / 1.75 + 0.06, d = B.x - A.x;
+      if (Math.abs(d) < min) { const push = (min - Math.abs(d)) / 2 * (d >= 0 ? 1 : -1); A.x -= push; B.x += push; }
     }
   }
 
@@ -79,7 +152,7 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
   // seen, so rendering it would be wasted fill (and a full-screen WebGL layer over
   // Glorb's full-screen canvas did not composite at all in headless Chromium).
   function resize() {
-    const w = host.clientWidth, h = Math.max(60, Math.round(S.ground || host.clientHeight * 0.55));
+    const w = innerWidth, h = Math.max(60, Math.round(S.ground || host.clientHeight * 0.55));
     if (cv.style.height !== h + 'px') cv.style.height = h + 'px';
     if (cv.width === Math.round(w * dpr) && cv.height === Math.round(h * dpr)) return;
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
@@ -92,6 +165,7 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
     const D = (H * 1.8) / (LINE.tall * g * 2 * t);
     const ppm = H / (2 * D * t), y = 1.0 + (g - H / 2 - ppm) / ppm;
     camera.position.set(S.camX, y, D); camera.lookAt(S.camX, y, 0);
+    scene.fog.near = D + 1.2; scene.fog.far = D + 7.5;
     return ppm;
   }
 
@@ -103,10 +177,12 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
     resize();
     if (!S.drag) S.camX += (S.wantX - S.camX) * (1 - Math.exp(-5 * dt));
     frameCamera();
+    for (const s of slots) if (s.loaded && s.group.visible) step(s, dt);
+    separate();
     for (const s of slots) {
       if (!s.loaded) continue;
       s.mixer.update(dt);
-      if (s.pop < 1) { s.pop = Math.min(1, s.pop + dt * 2.2); const e = 1 - Math.pow(1 - s.pop, 3); s.group.scale.setScalar(Math.max(0.001, e)); }
+      s.group.position.set(s.x, s.y, s.z); s.group.rotation.y = s.yaw;
       const want = !S.sel || S.sel === s.c.slug ? 1 : LINE.dim;
       s.lit += (want - s.lit) * (1 - Math.exp(-6 * dt));
       for (const { m, base } of s.mats) m.color.copy(base).multiplyScalar(s.lit);
@@ -116,7 +192,6 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
   requestAnimationFrame(frame);
 
   // drag to walk the line; a tap picks whoever is under the thumb
-  const span = () => (slots.length - 1) / 2 * LINE.gap;
   cv.addEventListener('pointerdown', e => { S.drag = { x: e.clientX, camX: S.camX, moved: 0 }; });
   addEventListener('pointermove', e => {
     if (!S.drag) return;
@@ -148,13 +223,18 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
     },
     /** centre the camera on one character, light them and dim the rest (null: everyone lit) */
     focus(slug) {
-      S.sel = slug || null;
-      const s = slots.find(s => s.c.slug === slug);
-      if (s) S.wantX = s.x;
+      S.sel = slug || null; S.wantX = 0;
+      const k = slots.findIndex(s => s.c.slug === slug);
+      if (k >= 0) {                                                  // they walk to the middle; everyone else makes room
+        const rest = slots.map((s, i) => i).filter(i => i !== k).sort((a, b) => slots[a].x - slots[b].x);
+        rest.splice(Math.floor(slots.length / 2), 0, k); order = rest;
+      }
+      layout();
     },
     /** the strip's top edge in CSS px from the top of the host: their floor */
     ground(y) { S.ground = y; },
     pause(p) { S.paused = !!p; },
+    fog(hex) { scene.fog.color.set(hex); },
     LINE, _slots: slots, _camera: camera, _S: S, _renderer: renderer, _scene: scene,
   };
   return api;

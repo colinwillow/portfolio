@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=ef3c7e11';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=a1e35d3c';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -341,6 +341,7 @@ function render() {
   const [sec, slug] = route();
   const page = sec ? PAGES[sec] : PAGES.home;
   document.body.classList.toggle('at-home', !sec);
+  document.body.dataset.sec = sec || 'home';
   document.body.classList.toggle('stage-page', sec === 'about' && !slug);   // a full-screen stage above the strip
   view.innerHTML = page ? page(slug) : missing();
   view.classList.remove('enter');
@@ -443,8 +444,9 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=578bb5b9').then(m => {
-      LINEUP = m.createLineup($('#glorb'), ASSETS, { onPick: slug => CHARPICK.show?.(slug) }); backdrop(current()); });
+    lineupLoading = import('./lineup.js?v=6855701d').then(m => {
+      LINEUP = m.createLineup($('#glorb'), [...ASSETS.slice(0, 4), { slug: 'colin', colin: true, h: 1.78, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...ASSETS.slice(4)], { onPick: slug => CHARPICK.show?.(slug) });
+      LINEUP.fog(css('--bg') || '#0e0e0f'); backdrop(current()); });
   LINEUP?.visible(own === 'lineup');
   if (own === 'rain' && !RAIN && !rainLoading && GLORB.ready)
     rainLoading = import('./coderain.js?v=2119d60c').then(m => { RAIN = m.createCodeRain($('#glorb'), () => GLORB.api); backdrop(current()); });

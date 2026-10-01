@@ -58,9 +58,6 @@ export const PLAY = [
   { slug: 'rollergirl', shot: 'rollergirl', title: 'Rollergirl', kind: 'Game', status: 'dev',
     url: GH + 'rollergirl/', tags: ['three.js', 'skate park'],
     blurb: 'Rollerblading in a procedural park: half pipes, a bowl, kickers and real transition physics.' },
-  { slug: 'big-don', icon: 'big-don', shot: 'big-don', title: 'Big Don', kind: 'Game', status: 'dev', thumb: 'bigdon',
-    url: GH + 'BigDon/', tags: ['three.js', 'twin-stick'],
-    blurb: 'Toon-shaded action with ledge hangs, cover, long jumps and mirrored strike combos. Two thumbs, no buttons.' },
   { slug: 'peggy', icon: 'peggy', shot: 'peggy', title: 'Peggy', kind: 'Game', status: 'dev', thumb: 'peggy',
     url: GH + 'peggy/', tags: ['three.js', 'adventure'],
     blurb: 'A cyclops-octopus pirate with a hook for a hand and a peg for a leg — and a game built around both.' },
@@ -114,9 +111,6 @@ export const ASSETS = [
   { slug: 'rollergirl', h: 1.7, title: 'Rollergirl', from: 'Rollergirl', glb: 'models/assets/roller_girl.glb', mb: 1.4,
     tris: 9857, joints: 66, clips: 5, prefer: ['coasting', 'idle'],
     notes: ['Skating and jump clips', 'Draco + WebP'] },
-  { slug: 'big-don', h: 1.9, title: 'Big Don', from: 'Big Don', glb: 'models/assets/big_donny.glb', mb: 10.3,
-    tris: 20573, joints: 58, clips: 54, prefer: ['idle_1'],
-    notes: ['Ledge, cover, crouch and strike sets', 'Mirrored left/right strikes'] },
 ].map(a => ({ gumroad: '', price: '', ...a }));
 
 // Essays. `reading` is optional -- without one the page is just the text.
