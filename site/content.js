@@ -69,7 +69,7 @@ export const PLAY = [
   { slug: 'peggy', icon: 'peggy', shot: 'peggy', title: 'Peggy', kind: 'Game', status: 'dev', thumb: 'peggy',
     url: GH + 'peggy/', tags: ['three.js', 'adventure'],
     blurb: 'A cyclops-octopus pirate with a hook for a hand and a peg for a leg — and a game built around both.' },
-  { slug: 'portland', shot: 'portland', title: 'Portland', kind: 'Game', status: 'dev',
+  { slug: 'portland', icon: 'portland', shot: 'portland', title: 'Portland', kind: 'Game', status: 'dev',
     url: GH + 'portland/', tags: ['three.js', 'open data'],
     blurb: 'A walkable Portland built from open map data — streets, bridges, crowds, traffic and boats on the Willamette.' },
   { slug: 'sky', shot: 'sky', title: 'Sky', kind: 'Game', status: 'dev',
