@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=a1e35d3c';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=621f0a64';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -83,8 +83,19 @@ const sectionOf = k => SECTIONS.find(s => s.key === k);
 const crumbs = (...parts) => `<nav class="crumbs">${[link('./', 'Home'), ...parts].join(' / ')}</nav>`;
 const head = (s, extra = '') => `${crumbs(esc(s.label))}<h2 class="title">${esc(s.label)}</h2><p class="lede">${esc(s.blurb)}${extra}</p>`;
 // The support card: on every page, quiet, and honest when the link is not set yet.
-const support = (big = false) => `<aside class="support${big ? ' big' : ''}"><div><b>☕ Free, and staying free</b><p>${esc(SUPPORT.note)}</p></div>
-  ${SUPPORT.url ? ext(SUPPORT.url, esc(SUPPORT.label) + ' ↗', 'btn accent') : `<span class="btn accent" aria-disabled="true">${esc(SUPPORT.label)} · soon</span>`}</aside>`;
+const support = (big = false) => {
+  const free = SOCIALS.filter(x => x.url).map(x => ext(x.url, esc(big ? x.label : x.short), 'btn ghost sm'));
+  const coffee = SUPPORT.url ? ext(SUPPORT.url, '☕ ' + esc(SUPPORT.label), 'btn accent') : '';
+  return `<aside class="support${big ? ' big' : ''}"><div><b>Found this useful?</b><p>${esc(SUPPORT.note)}</p></div>
+  <div class="ways"><span class="lbl">Free</span>${free.join('')}<button class="btn ghost sm share" type="button">Share it</button></div>
+  ${coffee ? `<div class="ways"><span class="lbl">Tip</span>${coffee}</div>` : ''}</aside>`;
+};
+// "Share it": the phone's own share sheet, or the link copied where there is none
+document.addEventListener('click', async e => {
+  const b = e.target.closest('.support .share'); if (!b) return;
+  const data = { title: document.title, url: location.href };
+  try { if (navigator.share) await navigator.share(data); else { await navigator.clipboard.writeText(location.href); b.textContent = 'Link copied'; setTimeout(() => (b.textContent = 'Share it'), 1600); } } catch {}
+});
 const foot = (sup = true) => `${sup ? support() : ''}<footer class="foot"><span>© ${new Date().getFullYear()} ${esc(SITE.name)}</span>
   <span>${ext(SITE.github, 'GitHub')} · <a href="classic.html">Previous portfolio</a> · build ${esc(BUILD)}</span></footer>`;
 

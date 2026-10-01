@@ -755,3 +755,7 @@ body[data-sec="characters"] #mini:not(.hero) { opacity: 0; pointer-events: none;
    then half the floor's depth, so he stands in the middle of it */
 body.stage-page #view { z-index: 13; }
 body.stage-page .about-slot { transform: translateY(calc(9.7% - var(--ledge) * .5)); }
+.support { flex-direction: column; align-items: stretch; }
+.support .ways { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.support .lbl { font: 600 10px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); width: 3.4em; }
+.btn.sm { padding: 7px 12px; font-size: 13px; }

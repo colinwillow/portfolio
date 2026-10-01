@@ -12,7 +12,15 @@ export const GUMROAD = '';
    link. Paste your page's address in `url` (Buy Me a Coffee, Ko-fi, GitHub Sponsors --
    any of them works) and the support card goes live on every page. Empty = the card
    says it is coming rather than linking nowhere. */
-export const SUPPORT = { url: '', label: 'Buy me a coffee', note: 'Everything on this site is free: the games, the code, the models, the tutorials. If something here saved you time or taught you something, a coffee keeps it coming.' };
+/* SOCIALS, for the support card and the footer. Paste a link and its button appears;
+   empty ones stay hidden, so nothing ever links nowhere. */
+export const SOCIALS = [
+  { key: 'youtube',   label: 'Subscribe on YouTube', short: 'YouTube',   url: '' },
+  { key: 'instagram', label: 'Follow on Instagram',  short: 'Instagram', url: '' },
+  { key: 'tiktok',    label: 'Follow on TikTok',     short: 'TikTok',    url: '' },
+  { key: 'github',    label: 'Star it on GitHub',    short: 'GitHub',    url: 'https://github.com/colinwillow' },
+];
+export const SUPPORT = { url: '', label: 'Buy me a coffee', note: 'Everything on this site is free: the games, the code, the models, the tutorials. If any of it was useful, here is how to help, free or otherwise. Anything helps.' };
 
 export const GH = 'https://colinwillow.github.io/';
 
