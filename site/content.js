@@ -72,15 +72,19 @@ export const PLAY = [
   { slug: 'portland', icon: 'portland', shot: 'portland', title: 'Portland', kind: 'Game', status: 'dev',
     url: GH + 'portland/', tags: ['three.js', 'open data'],
     blurb: 'A walkable Portland built from open map data — streets, bridges, crowds, traffic and boats on the Willamette.' },
-  { slug: 'sky', shot: 'sky', title: 'Sky', kind: 'Game', status: 'dev',
-    url: GH + 'sky/', tags: ['three.js', 'planets'],
-    blurb: 'Procedural planets you can walk on and fly between, with a scattered-light sky.' },
   { slug: 'colin', shot: 'colin', title: 'Talk to Colin', kind: 'App', status: 'dev',
     url: GH + 'colin/', tags: ['voice', 'AI'],
     blurb: 'A rigged mini-me in a baked kitchen. Push to talk and he answers in my voice, lip-synced.' },
   { slug: 'glorb', icon: 'glorb', shot: 'glorb', title: 'Glorb', kind: 'App', status: 'live', thumb: 'glorb',
     url: GH + 'glorp/', tags: ['audio', 'voice'],
     blurb: 'An audio-reactive particle orb you can talk to.' },
+];
+
+// Off the site until they are further along. Move one back into PLAY to show it again.
+export const PARKED = [
+  { slug: 'sky', shot: 'sky', title: 'Sky', kind: 'Game', status: 'dev',
+    url: GH + 'sky/', tags: ['three.js', 'planets'],
+    blurb: 'Procedural planets you can walk on and fly between, with a scattered-light sky.' },
   { slug: 'eye', icon: 'eye', title: 'Eye', kind: 'App', status: 'live', thumb: 'eye',
     url: GH + 'eye/', tags: ['camera', 'experiment'],
     blurb: 'Eye tracking off a phone\'s front camera. Calibrate, then paint with your eyes.' },
