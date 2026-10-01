@@ -4,6 +4,7 @@
 // particles can be shoved out of his way. When he has walked off the right he
 // takes his canvas with him.
 import * as THREE from '../vendor/three.module.min.js';
+import { neonJacket } from './jacket.js?v=b598c162';
 import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=0090c5af';
 
 export async function mountMe(cv) {
@@ -13,6 +14,7 @@ export async function mountMe(cv) {
   if (skinned) loose.forEach(o => o.removeFromParent());
   let headMat = null;
   c.model.traverse(o => { if (o.isMesh && /head/i.test(o.name) && o.material.map) headMat = o.material; });
+  neonJacket(THREE, c.model, new URL('./colin-jacket.webp', import.meta.url).href);
   const face = [];
   c.model.traverse(o => {
     if (o.isMesh && /teeth/i.test(o.name) && !o.material.map && headMat) o.material = headMat;
