@@ -237,6 +237,7 @@ const PAGES = {
     after = () => mountAbout();
     return `<div class="wrap about">
       <div id="about-hero">
+        <div class="about-floor" aria-hidden="true"><i class="pool"></i><i class="ring"></i><i class="ring r2"></i><i class="shadow"></i></div>
         <div class="about-slot"></div>
         <button class="btn accent about-talk">Talk to me</button></div>
       <h2 class="title">Hi, I'm Colin.</h2>
@@ -374,7 +375,7 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
-  import('./weave.js?v=15a11a80').then(w => {
+  import('./weave.js?v=b8f0b668').then(w => {
     WEAVE = w.createWeave($('#glorb'), () => GLORB.api);   // Glorb's particles carve the cloth
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent

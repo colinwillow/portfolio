@@ -618,3 +618,25 @@ html[data-vt="out"]::view-transition-new(view)   { animation-name: vt-return; }
 .card .char-shot { display: block; width: 100%; aspect-ratio: 552 / 561; object-fit: contain; margin: -6px 0 8px;
   background: radial-gradient(ellipse at 50% 60%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%); border-radius: 12px; }
 .grid:has(.char-shot) { grid-template-columns: repeat(auto-fill, minmax(min(46%, 260px), 1fr)); }
+
+/* ---- the floor he stands on (About stage) -----------------------------------------
+   A neon disc, not a box: a pool of Glorb's violet light on the ground, two glowing
+   elliptical rings (a ground plane seen from just above), and a dark contact
+   shadow right under his feet, which is what actually makes him stand ON it. */
+.about-floor { display: none; }
+body.stage-page .about-floor { display: block; position: absolute; left: 50%; bottom: 0; width: min(78vw, 440px);
+  aspect-ratio: 4 / 1; transform: translate(-50%, 42%); z-index: 1; pointer-events: none; }
+.about-floor i { position: absolute; inset: 0; border-radius: 50%; }
+.about-floor .pool { background: radial-gradient(closest-side, rgba(170, 60, 255, .42), rgba(170, 60, 255, .14) 55%, transparent 100%);
+  filter: blur(6px); animation: floor-breathe 5s ease-in-out infinite; }
+.about-floor .ring { inset: 6% 3%; border: 1.5px solid #c27bff;
+  box-shadow: 0 0 10px #a94dff, 0 0 26px rgba(169, 77, 255, .55), inset 0 0 12px rgba(169, 77, 255, .5); }
+.about-floor .ring.r2 { inset: 26% 22%; border-color: #8dff72; opacity: .75;
+  box-shadow: 0 0 8px #6ee05a, 0 0 18px rgba(110, 224, 90, .45); animation: floor-breathe 5s ease-in-out infinite reverse; }
+.about-floor .shadow { inset: 30% 30% 34%; background: radial-gradient(closest-side, rgba(0,0,0,.75), rgba(0,0,0,0)); }
+@keyframes floor-breathe { 50% { opacity: .65; transform: scale(1.03); } }
+@media (prefers-reduced-motion: reduce) { .about-floor i { animation: none !important; } }
+/* he stands on the disc, so the stage leaves room under his feet for all of it */
+body.stage-page .about-slot { inset: 0 0 44px 0; transform: none; }
+body.stage-page .about-floor { bottom: 44px; transform: translate(-50%, 50%); }
+body.stage-page .about-floor { bottom: calc(44px + 0.085 * (100% - 44px)); }

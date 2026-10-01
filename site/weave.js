@@ -149,29 +149,42 @@ function yarns(acc, shift, dark) {
   return { g, a, b, c };
 }
 
-/* OUTLINES, NOT FILLS. Every motif is written as filled shapes (that is the
-   easiest way to describe one), and this pen traces their edges instead: a
-   polygon becomes its outline, a full-width band becomes the two lines along it
-   (so no seams at the repeat), and ground fills disappear. Each line carries a
-   soft glow of its own colour, baked once into the tile. */
-function outlinePen(g, w, C, lw, glow) {
-  let col = C.a;
-  const ink = c => c === C.g ? C.a : c;
-  const stroke = () => { g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = glow; g.lineWidth = lw; g.lineJoin = 'round'; g.stroke(); };
-  return {
+/* SHAPES, NOT TILES. Every motif is written as filled shapes (the easiest way to
+   describe one), and this pen RECORDS them instead of painting: each fill becomes
+   one shape -- its outline as a list of points -- and a full-width band becomes two
+   long lines. The weave is then a list of real vectors, and each one can move on
+   its own. A shape belongs to the period its centre falls in, so a diamond that
+   straddles the repeat is drawn once, not twice. Ground fills disappear. */
+function recordShapes(M, w, h, C, o) {
+  const shapes = [];
+  let col = C.a, path = [], cur = null, m = [1, 0, 0, 1, 0, 0];      // affine: a b c d e f
+  const T = (x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+  const ink = c => (c === C.g ? C.a : c);
+  const push = (pts, closed, full = false) => {
+    if (pts.length < 2) return;
+    let cx = 0, cy = 0; for (const [x, y] of pts) { cx += x; cy += y; } cx /= pts.length; cy /= pts.length;
+    if (!full && (cx < 0 || cx >= w)) return;
+    shapes.push({ pts, closed, full, col: ink(col), cx, cy });
+  };
+  const pen = {
     set fillStyle(v) { col = v; }, get fillStyle() { return col; },
     fillRect(x, y, ww, hh) {
       if (col === C.g) return;
-      g.beginPath();
-      if (ww >= w - 1) { g.moveTo(-2, y + lw / 2); g.lineTo(w + 2, y + lw / 2); g.moveTo(-2, y + hh - lw / 2); g.lineTo(w + 2, y + hh - lw / 2); }
-      else g.rect(x, y, ww, hh);
-      stroke();
+      if (ww >= w - 1) { push([T(0, y), T(w, y)], false, true); push([T(0, y + hh), T(w, y + hh)], false, true); }
+      else push([T(x, y), T(x + ww, y), T(x + ww, y + hh), T(x, y + hh)], true);
     },
-    beginPath: () => g.beginPath(), moveTo: (x, y) => g.moveTo(x, y), lineTo: (x, y) => g.lineTo(x, y),
-    closePath: () => g.closePath(), arc: (...a) => g.arc(...a),
-    fill() { col = ink(col); stroke(); },
-    translate: (x, y) => g.translate(x, y), scale: (x, y) => g.scale(x, y),
+    beginPath() { path = []; cur = null; },
+    moveTo(x, y) { cur = [T(x, y)]; path.push(cur); },
+    lineTo(x, y) { if (!cur) { cur = []; path.push(cur); } cur.push(T(x, y)); },
+    closePath() {},
+    arc(x, y, r) { const c = []; for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2; c.push(T(x + Math.cos(a) * r, y + Math.sin(a) * r)); } path.push(c); cur = null; },
+    fill() { if (col === C.g && path.length === 0) return; for (const p of path) push(p, true); },
+    translate(x, y) { m[4] += m[0] * x + m[2] * y; m[5] += m[1] * x + m[3] * y; },
+    scale(x, y) { m[0] *= x; m[1] *= x; m[2] *= y; m[3] *= y; },
   };
+  if (o.flip) { pen.translate(0, h); pen.scale(1, -1); }
+  M.draw(pen, w, h, C, o);
+  return shapes;
 }
 
 // smooth, cheap, deterministic noise: a few slow sines over space and time
@@ -179,16 +192,18 @@ const noise = (x, y, t) => (Math.sin(x * 0.011 + t * 0.21) + Math.sin(y * 0.017 
   + Math.sin((x + y) * 0.0072 + t * 0.12 + 2.1) + Math.sin((x - y * 0.6) * 0.0131 - t * 0.09)) / 4;
 const hash = (k) => { let h = 2166136261; for (let i = 0; i < k.length; i++) h = Math.imul(h ^ k.charCodeAt(i), 16777619); return ((h >>> 0) % 10000) / 10000; };
 
-/* THE MOTION. The weave is cut into CELLS -- every band's repeat sliced into
-   squares about as wide as the band is tall -- and each one is its own little
+
+/* THE MOTION, per shape. Every triangle, diamond, chevron and line is its own
    thing:
    - it TWINKLES: its brightness follows a slow noise field over the screen, so
      patches of the cloth fade up and down together like light moving over it;
-   - where it is bright it comes FORWARD, a few percent larger;
+   - where it is bright it comes FORWARD, a few percent larger about its own centre;
+   - it WIGGLES: a small slow drift and turn of its own, out of step with its
+     neighbours;
    - it hangs on a SPRING: the cloth scrolls with the page at a fraction of its
-     speed (parallax), and each cell is a little late to follow, with its own
-     stiffness and a touch of random drift, so a scroll sends a ripple through
-     it and it settles back into place -- Glorb's particles finding home. */
+     speed (parallax), and each shape is a little late to follow, with its own
+     stiffness, so a scroll sends a ripple through it and it settles back --
+     Glorb's particles finding home. */
 export function createWeave(host, field = () => null) {
   const cv = document.createElement('canvas');
   cv.className = 'weave'; host.appendChild(cv);
@@ -196,8 +211,9 @@ export function createWeave(host, field = () => null) {
   const dpr = Math.min(devicePixelRatio || 1, 1.5);
   const S = { key: null, dark: true, acc: { h: 352 }, cur: null, old: null, fade: 1, paused: false, t: 0, last: 0,
               scroll: scrollY, par: 0, anchor: null };
-  const cells = new Map();
+  const live = new Map();
   const PARALLAX = 0.35;
+  const LINE = { w: 1.4, glow: 5, glowA: 0.22 };
 
   const unit = () => Math.max(34, Math.min(84, Math.min(innerWidth, innerHeight) * 0.14));
 
@@ -206,18 +222,9 @@ export function createWeave(host, field = () => null) {
     let y = 0;
     const bands = W.bands.map(([m, hu, o = {}], i) => {
       const M = MOTIFS[m], h = Math.max(2, Math.round(hu * u * dpr)), w = Math.max(2, Math.round(M.per(h)));
-      const empty = m === 'stripe' && o.col === 'g';
-      const pad = Math.round(8 * dpr);                     // room for the glow above and below
-      const tile = document.createElement('canvas'); tile.width = w; tile.height = h + 2 * pad;
-      const g = tile.getContext('2d');
-      g.translate(0, pad);
-      if (o.flip) { g.translate(0, h); g.scale(1, -1); }
-      M.draw(outlinePen(g, w, C, 1.4 * dpr, 6 * dpr), w, h, C, o);
-      const n = Math.max(1, Math.round(w / Math.max(26 * dpr, Math.min(h, u * dpr * 1.1))));
-      const b = { i, tile, y, h, w, n, sw: w / n, empty, pad };
+      const b = { i, y, h, w, shapes: recordShapes(M, w, h, C, o) };
       y += h; return b;
     });
-    // the MAIN band is what sits behind Glorb, with open ground above and below it -- never the gap
     const main = bands[1] || bands[0];
     return { key, bands, H: y, mid: main.y + main.h / 2 };
   }
@@ -228,49 +235,65 @@ export function createWeave(host, field = () => null) {
     cv.width = w; cv.height = h; return true;
   }
 
-  function cellOf(k) {
-    let c = cells.get(k);
+  function stateOf(k) {
+    let c = live.get(k);
     if (!c) { const r = hash(k), r2 = hash(k + '*');
-      c = { d: 0, v: 0, dx: 0, vx: 0, k: 26 + 40 * r, lag: 0.45 + 0.5 * r2, ph: r * 6.28, seen: 0 }; cells.set(k, c); }
+      c = { d: 0, v: 0, dx: 0, vx: 0, k: 26 + 40 * r, lag: 0.45 + 0.5 * r2, ph: r * 6.28, ph2: r2 * 6.28, seen: 0 }; live.set(k, c); }
     return c;
   }
 
   function step(dt, dScroll) {
-    // every live cell: the scroll leaves it behind by its own share, the spring brings it home
-    for (const c of cells.values()) {
+    for (const c of live.values()) {
       c.d -= dScroll * c.lag;
       c.v += (-c.k * c.d - 2 * Math.sqrt(c.k) * 0.55 * c.v) * dt; c.d += c.v * dt;
       c.vx += (-c.k * c.dx - 2 * Math.sqrt(c.k) * 0.55 * c.vx) * dt; c.dx += c.vx * dt;
-      if (Math.random() < dt * 0.4) { c.vx += (Math.random() - 0.5) * 6 * dpr; c.v += (Math.random() - 0.5) * 6 * dpr; }
     }
+  }
+
+  const trace = (pts, closed) => {
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    if (closed) ctx.closePath();
+  };
+  function strokeShape(s, alpha) {
+    ctx.strokeStyle = s.col;
+    ctx.globalAlpha = alpha * LINE.glowA; ctx.lineWidth = LINE.glow * dpr; trace(s.pts, s.closed); ctx.stroke();   // the glow
+    ctx.globalAlpha = alpha; ctx.lineWidth = LINE.w * dpr; ctx.stroke();                                            // the line
   }
 
   function paint(wv, alpha, frame) {
     if (!wv || alpha <= 0.002) return;
     const par = S.par * dpr, cw = cv.width, ch = cv.height, t = S.t;
+    const ay = S.anchor != null ? S.anchor * dpr : ch * 0.5;   // Glorb's centre, when known
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     for (const b of wv.bands) {
-      if (b.empty) continue;
-      // which repeats of the composition cover the screen, counted in absolute terms so a cell keeps its identity
-      const ay = S.anchor != null ? S.anchor * dpr : ch * 0.5;   // Glorb's centre, when known
+      if (!b.shapes.length) continue;
       const r0 = Math.floor((par - ay + wv.mid - b.y - b.h) / wv.H), r1 = Math.ceil((par + ch - ay + wv.mid - b.y) / wv.H);
       const x0 = ((cw / 2 - b.w / 2) % b.w + b.w) % b.w - b.w;       // a motif centred on the screen
       for (let r = r0; r <= r1; r++) {
         const yBase = ay - wv.mid + r * wv.H + b.y - par;
         if (yBase > ch + 40 || yBase + b.h < -40) continue;
         for (let p = 0, x = x0; x < cw + b.w; p++, x += b.w) {
-          for (let s = 0; s < b.n; s++) {
-            const c = cellOf(wv.key + ':' + b.i + ':' + r + ':' + p + ':' + s); c.seen = frame;
-            const sx = x + s * b.sw, cx = sx + b.sw / 2, cy = yBase + b.h / 2;
-            const n = noise(cx / dpr, (cy + par) / dpr, t) + 0.25 * Math.sin(t * 0.5 + c.ph);   // about -1..1
+          b.shapes.forEach((s, si) => {
+            if (s.full && p > 0) return;                       // a full-width line is one shape across the screen
+            const c = stateOf(wv.key + ':' + b.i + ':' + r + ':' + (s.full ? 'f' : p) + ':' + si); c.seen = frame;
+            const ox = s.full ? 0 : x, cx = ox + s.cx, cy = yBase + s.cy;
+            const n = noise(cx / dpr, (cy + par) / dpr, t) + 0.25 * Math.sin(t * 0.5 + c.ph);
             const lit = Math.max(0, Math.min(1, 0.5 + n * 0.75));
-            const k = 1 + 0.07 * lit;                                    // bright cells come forward
-            ctx.globalAlpha = alpha * (0.32 + 0.68 * lit);
-            const th = b.h + 2 * b.pad, w2 = b.sw * k, h2 = th * k;
-            ctx.drawImage(b.tile, s * b.sw, 0, b.sw, th, cx - w2 / 2 + c.dx, cy - h2 / 2 + c.d, w2 + 0.6, h2);
-          }
+            const k = s.full ? 1 : 1 + 0.08 * lit;                // bright shapes come forward
+            const rot = s.full ? 0 : 0.04 * Math.sin(t * 0.37 + c.ph2);
+            const wx = (s.full ? 0 : 2.2 * Math.sin(t * 0.43 + c.ph)) * dpr + c.dx, wy = 1.8 * Math.sin(t * 0.31 + c.ph2) * dpr + c.d;
+            const co = Math.cos(rot) * k, sn = Math.sin(rot) * k;
+            // place it: about its own centre, then where it lives plus its wiggle and lag
+            ctx.setTransform(co, sn, -sn, co, cx + wx - (co * s.cx - sn * s.cy), cy + wy - (sn * s.cx + co * s.cy));
+            if (s.full) ctx.setTransform(1, 0, 0, 1, wx, yBase + wy);
+            else ctx.transform(1, 0, 0, 1, 0, 0);
+            strokeShape(s.full ? { ...s, pts: [[0, s.pts[0][1]], [cw, s.pts[1][1]]] } : s, alpha * (0.32 + 0.68 * lit));
+          });
         }
       }
     }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
   /* THE BOOLEAN SUBTRACT. Wherever Glorb's particles are, the cloth is cut away,
@@ -305,16 +328,16 @@ export function createWeave(host, field = () => null) {
     const dt = Math.min(0.1, (now - S.last) / 1000); S.last = now; S.t += dt; frameN++;
     S.par += ds * PARALLAX;
     step(dt, ds * PARALLAX * dpr);
-    if (resize() && S.key) { S.cur = bake(S.key); S.old = null; cells.clear(); }
+    if (resize() && S.key) { S.cur = bake(S.key); S.old = null; live.clear(); }
     if (!S.cur) return;
     S.fade = Math.min(1, S.fade + dt / 0.9);
     const e = S.fade * S.fade * (3 - 2 * S.fade);
-    ctx.globalAlpha = 1; ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.clearRect(0, 0, cv.width, cv.height);
     if (S.old) paint(S.old, 1 - e, frameN);
     paint(S.cur, S.old ? e : 1, frameN);
     if (S.fade >= 1) S.old = null;
     carve();
-    if (frameN % 60 === 0) for (const [k, c] of cells) if (frameN - c.seen > 60) cells.delete(k);
+    if (frameN % 60 === 0) for (const [k, c] of live) if (frameN - c.seen > 60) live.delete(k);
   }
   requestAnimationFrame(frame);
 
@@ -330,12 +353,12 @@ export function createWeave(host, field = () => null) {
     },
     theme(dark) { if (dark === S.dark) return; S.dark = dark; cv.classList.toggle('light', !dark); rebake(); },
     accent(a) { S.acc = a; rebake(); },
-    /** a jolt through the cloth, e.g. when Glorb bursts: every cell kicked outward from a point */
+    /** a jolt through the cloth, e.g. when Glorb bursts: every shape kicked a different way */
     kick(x, y, amt = 1) {
-      for (const [k, c] of cells) { const a = hash(k) * 6.28; c.vx += Math.cos(a) * 60 * amt * dpr; c.v += Math.sin(a) * 60 * amt * dpr; }
+      for (const [k, c] of live) { const a = hash(k) * 6.28; c.vx += Math.cos(a) * 60 * amt * dpr; c.v += Math.sin(a) * 60 * amt * dpr; }
     },
     pause(p) { S.paused = !!p; },
-    CARVE,
+    CARVE, LINE,
     /** where the main band should run (CSS px from the top): behind Glorb's centre */
     anchor(y) { S.anchor = y; },
     WEAVES, MOTIFS,
