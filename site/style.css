@@ -848,3 +848,6 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
 :root[data-theme="dark"] { --logo-c: #a855f7; --logo-o: #72ec5c; }
 .logo > path { color: var(--logo-c); }
 .logo > g > path { color: var(--logo-o); }
+/* walking toward you, the name sits higher, so Enter comes up under the role line rather than
+   being left at the foot of the screen */
+#intro.depth .intro-enter { bottom: auto; top: calc(36% + min(15vw, 84px) + 64px); }

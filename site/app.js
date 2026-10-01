@@ -551,7 +551,9 @@ function gameBackdrop() {
         const v = document.createElement('video');
         Object.assign(v, { muted: true, loop: true, autoplay: true, playsInline: true, poster: still, preload: 'auto' });
         v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
-        v.innerHTML = `<source src="site/video/${it.video}.webm" type='video/webm; codecs="av01.0.05M.08"'><source src="site/video/${it.video}.mp4" type="video/mp4">`;
+        // both MP4 with the index at the FRONT, so playback starts on the first bytes. (The AV1 one
+        // was WebM, whose index is at the end; Safari waited for the whole file before playing.)
+        v.innerHTML = `<source src="site/video/${it.video}.av1.mp4" type='video/mp4; codecs="av01.0.05M.08"'><source src="site/video/${it.video}.mp4" type="video/mp4">`;
         gameBg.appendChild(v); show(); v.play?.().catch(() => {});
       } else {
         const im = new Image(); im.alt = ''; im.onload = show; im.src = still; gameBg.appendChild(im);
@@ -989,5 +991,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=98c25a93').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=cab93673').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); if (wantIntro && !route().length) colin.wave?.(); }))
   .catch(err => console.warn('mini colin unavailable', err));

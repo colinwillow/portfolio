@@ -165,7 +165,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const pxPerM = () => { const r = canvas.getBoundingClientRect(); return r.height / (2 * camera.position.z * Math.tan(camera.fov * Math.PI / 360)); };
   const bodyW = () => canvas.getBoundingClientRect().width || 120;
   const lane = () => [8, Math.max(8, innerWidth - bodyW() - 8)];
-  let heroDir = 0, groove = false, lookBackOn = false;
+  let heroDir = 0, groove = false, lookBackOn = false, waveWant = false, waveT = 0;
   // MUSIC ON: wherever he would stand idle he bops instead. The calmest dance in his file
   // (measured: the least rotation of the six); dance_hiphop_03 is the next most casual.
   const DANCE = 'dance_wiggle_feet';
@@ -231,7 +231,10 @@ export function createMiniColin({ go, known, items, pageOf }) {
       // (or, in the line-up, walks with the line when it shifts: `heroWalk`)
       if (LIFE.mode !== 'idle') { LIFE.mode = 'idle'; LIFE.t = 3; }
       const hd = state !== 'off' ? 0 : heroDir;   // talking: always facing out, never walking
-      LIFE.face = hd; lifeClip(hd ? 'walk' : 'idle');
+      // one wave hello, when asked (the homepage, as he arrives off the intro): the clip once, then idle
+      if (waveWant && !hd && state === 'off' && LIFE.clips.wave) { waveWant = false; waveT = LIFE.clips.wave.duration * 0.95; }
+      if (waveT > 0) waveT -= dt;
+      LIFE.face = hd; lifeClip(hd ? 'walk' : waveT > 0 ? 'wave' : 'idle');
       LIFE.faceNow += (hd - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
       // on a game's page he turns round to look at the game behind him (not while walking or talking)
       const back = lookBackOn && !hd && state === 'off' ? 1 : 0;
@@ -598,5 +601,5 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const grooveSet = on => { on = !!on; if (on === groove) return; groove = on;
     if (ch && (LIFE.cur === LIFE.clips.idle || LIFE.cur === LIFE.clips.dance)) lifeClip('idle'); };
   const watch = f => { watchers.add(f); f(state !== 'off'); return () => watchers.delete(f); };
-  return { act, ask, wake, sleep, adopt, release, present, heroWalk, lookBack: v => { lookBackOn = !!v; }, watch, groove: grooveSet, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
+  return { act, ask, wake, sleep, adopt, release, present, heroWalk, lookBack: v => { lookBackOn = !!v; }, wave: () => { waveWant = true; }, watch, groove: grooveSet, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
 }
