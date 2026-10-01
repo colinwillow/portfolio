@@ -835,3 +835,5 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
 .rail > .rv.in { transform: none; }
 /* hover lifts are for a mouse: on a phone a touch IS a hover, so cards bobbed up as a finger swiped past */
 @media (hover: none) { .tile:hover .cover, .figure:hover img { transform: none; } }
+/* no vertical travel in a row of faces either: the picked one is marked by its underline and light, not a lift */
+.shelf-figures .figure.on img, .char-thumbs button.on img { transform: none; }

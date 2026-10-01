@@ -62,7 +62,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     rank: Math.abs(i - home), delay: 0, state: 'wait',
     group: new THREE.Group(), mixer: null, clips: {}, cur: null, mats: [], lit: 1, loaded: false }));
   slots.forEach(s => { s.group.visible = false; scene.add(s.group); });
-  const S = { below: 14, shift: 0, restH: 0, exitUntil: 0, on: false, started: false, sel: null, camX: 0, wantX: 0, ground: 0, last: 0, paused: false, drag: null };
+  const S = { fling: 0, below: 14, shift: 0, restH: 0, exitUntil: 0, on: false, started: false, sel: null, camX: 0, wantX: 0, ground: 0, last: 0, paused: false, drag: null };
   const span = () => Math.max(home, slots.length - 1 - home) * LINE.gap;
 
   // where everyone should be: the line in `order`, every other one a step back, the picked one forward
@@ -203,6 +203,14 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     if ((!S.on && performance.now() > S.exitUntil) || S.paused || document.hidden) { clock.getDelta(); return; }
     const dt = Math.min(0.05, clock.getDelta());
     resize();
+    // THROWN: after a swipe the camera carries on at the speed it was let go, slowing with
+    // friction like a flicked scroll; thrown past either end it runs on a little, then eases back
+    if (!S.drag && S.fling) {
+      S.wantX += S.fling * dt; S.camX = S.wantX;
+      const out = S.wantX > span() || S.wantX < -span();
+      S.fling *= Math.exp(-(out ? 9 : 2.6) * dt);
+      if (Math.abs(S.fling) < 0.04) { S.fling = 0; S.wantX = Math.max(-span(), Math.min(span(), S.wantX)); }
+    }
     if (!S.drag) S.camX += (S.wantX - S.camX) * (1 - Math.exp(-5 * dt));
     frameCamera();
     for (const s of slots) if (s.loaded) step(s, dt);
@@ -230,18 +238,26 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
   }
 
   // drag to walk the line; a tap picks whoever is under the thumb
-  cv.addEventListener('pointerdown', e => { S.drag = { x: e.clientX, camX: S.camX, moved: 0 }; });
+  cv.addEventListener('pointerdown', e => { S.fling = 0; S.drag = { x: e.clientX, camX: S.camX, moved: 0, lx: e.clientX, lt: performance.now(), v: 0, iv: 16 }; });
   const onMove = e => {
     if (!S.drag) return;
     const dx = e.clientX - S.drag.x; S.drag.moved = Math.max(S.drag.moved, Math.abs(dx));
     const ppm = frameCamera();
-    S.camX = S.wantX = Math.max(-span(), Math.min(span(), S.drag.camX - dx / ppm));
+    S.camX = S.wantX = Math.max(-span() - 0.6, Math.min(span() + 0.6, S.drag.camX - dx / ppm));
+    // how fast it is going, in metres a second, smoothed over the last few moves
+    const now = performance.now(), dt = Math.max(1, now - S.drag.lt) / 1000; S.drag.iv = S.drag.iv * 0.7 + dt * 1000 * 0.3;
+    S.drag.v = S.drag.v * 0.6 + (-(e.clientX - S.drag.lx) / ppm / dt) * 0.4; S.drag.lx = e.clientX; S.drag.lt = now;
   };
   addEventListener('pointermove', onMove);
   const onUp = e => {
     if (!S.drag) return;
-    const tap = S.drag.moved < 8; S.drag = null;
-    if (!tap) return;
+    const tap = S.drag.moved < 8, d = S.drag; S.drag = null;
+    if (!tap) {   // let go mid-swipe: throw it (a finger that stopped before lifting throws nothing)
+      const idle = performance.now() - d.lt > Math.max(100, d.iv * 3);   // stopped: well past the rhythm the moves were coming in at
+      S.fling = idle ? 0 : Math.max(-14, Math.min(14, d.v));
+      if (!S.fling) S.wantX = Math.max(-span(), Math.min(span(), S.camX));
+      return;
+    }
     const r = cv.getBoundingClientRect(), v = new THREE.Vector3();
     let best = null, bd = 1e9;
     for (const s of slots) {
@@ -263,7 +279,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
       if (v) {
         // back again: everyone offstage first, then in, nearest Colin first -- and draw that
         // empty stage NOW, so the canvas never shows the last frame of them running out
-        S.sel = null; S.shift = 0; S.camX = S.wantX = 0; resize(); layout();
+        S.sel = null; S.shift = 0; S.camX = S.wantX = 0; S.fling = 0; resize(); layout();
         for (const s of slots) if (s.loaded) stageLeft(s, 0.12 + s.rank * 0.16);
         for (const s of slots) if (s.loaded) s.group.position.set(s.x, s.y, s.z);
         renderer.render(scene, camera);
@@ -280,7 +296,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     focus(slug) {
       S.sel = slug || null;
       const k = slots.findIndex(s => s.c.slug === slug);
-      S.shift = k >= 0 ? k - home : 0; S.wantX = 0;                    // the line walks over until they are in the middle
+      S.shift = k >= 0 ? k - home : 0; S.wantX = 0; S.fling = 0;                    // the line walks over until they are in the middle
       layout();
     },
     /** the strip's top edge in CSS px from the top of the host: their floor */

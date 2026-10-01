@@ -527,7 +527,7 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=6cabc335').then(m => {
+    lineupLoading = import('./lineup.js?v=2885fb40').then(m => {
       const cast = ASSETS.filter(a => a.from === CAST.game || a.also?.includes(CAST.game)), half = Math.ceil(cast.length / 2);
       LINEUP = m.createLineup($('#glorb'), [...cast.slice(0, half), { slug: 'colin', colin: true, h: 1.9, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...cast.slice(half)], { onPick: slug => CHARPICK.show?.(slug),
         colin: { place: p => { SEAT = p; }, joined: v => { document.body.classList.toggle('colin-in-line', v); heroSync(); } } });
