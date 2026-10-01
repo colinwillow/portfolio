@@ -151,7 +151,7 @@ export const SCRIPTS = [
 export const WEB = [
   { slug: 'thatswassupps', logo: 'logos/thatswassupps_logo_512px.jpg.jpg', title: 'Thatswassupps', url: 'https://thatswassupps.com', role: 'Site and brand work',
     blurb: 'A friend\'s company I ended up helping build.' },
-  { slug: 'unknown', shot: 'web-unknown', title: 'Unknown — SS25', url: GH + 'unknown/', role: 'Storefront',
+  { slug: 'unknown', shot: 'unknown-key', gallery: ['unknown-key', 'web-unknown'], title: 'Unknown — SS25', url: GH + 'unknown/', role: 'Storefront',
     blurb: 'Product drops for my clothing label.' },
   { slug: 'faith', title: 'Faith Udall', url: 'https://faithudall.com', role: 'Personal site',
     blurb: 'A personal site for Faith.' },
@@ -160,7 +160,7 @@ export const WEB = [
 export const STUDIOS = [
   { slug: 'seawillow', title: 'SeaWillow', url: GH + 'seawillow/', blurb: 'Holding company and design studio.' },
   { slug: 'majia', shot: 'studio-majia', title: 'Majia', url: GH + 'majia/', thumb: 'majia', blurb: 'Game studio. Makers of Robits.' },
-  { slug: 'unknown', shot: 'unknown-look', title: 'Unknown', url: GH + 'unknown/', blurb: 'Clothing label.' },
+  { slug: 'unknown', shot: 'unknown-key', gallery: ['unknown-key', 'unknown-look'], title: 'Unknown', url: GH + 'unknown/', blurb: 'Clothing label.' },
 ];
 
 const MOTION_FILES = [
