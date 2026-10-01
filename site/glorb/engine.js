@@ -4029,6 +4029,9 @@ const radA = new Float32Array(MAX);
 // how long the radius ease keeps running after a 3D formation lets go
 let radTail = 0;
 const sxA = new Float32Array(MAX), syA = new Float32Array(MAX);
+// what was DRAWN last frame, per particle: where, how big, which colour -- so the intro can land
+// its dots on exactly the picture he is about to show (drR 0 = not drawn)
+const drX = new Float32Array(MAX), drY = new Float32Array(MAX), drR = new Float32Array(MAX), drL = new Uint16Array(MAX);
 const szA = new Float32Array(MAX), visA = new Uint8Array(MAX);
 const ord = new Int32Array(MAX);
 for (let i = 0; i < MAX; i++) ord[i] = i;
@@ -13664,6 +13667,7 @@ function loop() {
          with no points on it stops looking like it is made of anything. */
       rad *= 1 - 0.55 * wireT;
     }
+    drX[i] = sx; drY[i] = sy; drL[i] = li; drR[i] = !hidden && rad > 0.2 ? rad : 0;
     if (!hidden && rad > 0.2) {
       ctx.beginPath();
       ctx.arc(sx, sy, rad, 0, 6.2832);
@@ -14388,6 +14392,8 @@ __start = loop;
     get n() { return Math.min(MAX, Math.round(cfg.count)); },
     // the particles themselves, for anything that needs to hand them over or take them back
     field: { px, py, vx, vy, pz, bx, by, formX, formY, formZ, formOn, pr },
+    /** last frame as drawn: x, y, radius (0 = not drawn), colour index into lut */
+    drawn: { x: drX, y: drY, r: drR, li: drL, lut },
     /** which particles are his core: pr[i] < core */
     get core() { return cfg.core; },
     get centre() { return { x: cx, y: cy, scale }; },

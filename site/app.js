@@ -542,7 +542,7 @@ const current = () => route()[0] || (route().length ? latched : pressed) || 'hom
 const GLORB_DOT = 0.65;
 const glorbTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 if (GLORB_ON) document.body.classList.add('has-glorb');
-const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
+const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=1d4253d4').then(m => {
   const api = m.createGlorb({ host: $('#glorb'), theme: glorbTheme(), bg: css('--bg') });
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
@@ -917,7 +917,7 @@ const globeReady = GLORB_ON ? Promise.resolve() : (USE_SWARM ? import('./stage-s
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? import('./intro.js?v=1659d07a').then(m => m.playIntro({ build: BUILD, role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
+  ? import('./intro.js?v=b1358f3f').then(m => m.playIntro({ build: BUILD, role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
       .catch(err => console.warn('intro', err))
   : Promise.resolve();
 

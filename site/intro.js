@@ -114,6 +114,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
       const wr = word.getBoundingClientRect(), rx = wr.width / 2 + 10, ry = wr.height / 2 + 8, wx = wr.left + wr.width / 2, wy = wr.top + wr.height / 2;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, W, H);
+      const Dr = G && G.gb.drawn;   // his last frame as drawn (absent on an older engine: the ring alone)
       for (let i = 0; i < N; i++) {
         if (blown && G) {
           /* Onto HIS particle -- without ever throwing away the motion it has.
@@ -130,8 +131,16 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
              those can still be drifting in from where he started (they came in as a clump
              from the right edge and dragged the whole flight with them). The place is his
              ring or his core round his live centre, turning slowly so it is alive. */
-          const gc = G.gb.centre, a = tA[i] + blown * 0.35 * tS[i], rr = tR[i] * gc.scale;
-          const ox = G.left + gc.x + Math.cos(a) * rr, oy = G.top + gc.y + Math.sin(a) * rr * 1.22;
+          const gc = G.gb.centre, a = tA[i] + blown * 0.35 * tS[i] * (1 - u), rr = tR[i] * gc.scale;
+          let ox = G.left + gc.x + Math.cos(a) * rr, oy = G.top + gc.y + Math.sin(a) * rr * 1.22;
+          /* ...and then onto THE particle itself, as he is drawing it. The ring above is only
+             the way in (his particles may still be drifting home early on); across the second
+             half of the approach the target slides onto the dot's own particle, so the place it
+             settles is not near his picture, it IS his picture. */
+          if (Dr && Dr.r[gi[i]] > 0) {
+            const w = Math.max(0, Math.min(1, (u - 0.3) / 0.7)), ww = w * w * (3 - 2 * w);
+            ox += (G.left + Dr.x[gi[i]] - ox) * ww; oy += (G.top + Dr.y[gi[i]] - oy) * ww;
+          }
           /* HOME, BY STEERING -- the flow only BENDS the way. Each dot wants to head for its
              place; the curl-noise flow (two scales: big lazy eddies and small tight ones) tilts
              that heading, so neighbours braid into strands and clumps, strongest far out and gone
@@ -213,19 +222,61 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
       // two passes, one fill each: neutral dots, then the accent ones on top
       // round dots, as he draws them; they grow to his size as they arrive
       const grow = blown && G ? Math.min(1, blown / FLY) : 0;
+      /* THE LOCK. Over the last stretch every dot is drawn exactly where its particle is drawn,
+         at its size and in its colour, and his other particles bud out of the dots to their
+         own places -- so at the handover this canvas is HIS PICTURE, dot for dot, and the
+         crossfade is between two identical frames. After the handover it keeps tracking him
+         while it fades, so nothing can drift apart under it. */
+      const Dl = blown && G && G.gb.drawn, lk = Dl ? Math.max(0, Math.min(1, (blown - (FLY - LOCK)) / LOCK)) : 0;
+      const lock = lk * lk * (3 - 2 * lk);
+      const qx = (i) => { const j = gi[i]; return lock && Dl.r[j] > 0 ? px[i] + (G.left + Dl.x[j] - px[i]) * lock : px[i]; };
+      const qy = (i) => { const j = gi[i]; return lock && Dl.r[j] > 0 ? py[i] + (G.top + Dl.y[j] - py[i]) * lock : py[i]; };
+      const qs = (i) => {
+        const s0 = rad[i] * (1 + Math.min(4, Math.hypot(vx[i], vy[i]) * 0.04)) * 1.3;
+        const r1 = Dl && Dl.r[gi[i]] > 0 ? Dl.r[gi[i]] : gz[i];
+        return s0 + (r1 - s0) * grow * grow;
+      };
       gF.setTransform(dpr, 0, 0, dpr, 0, 0); gF.clearRect(0, 0, W, H);
-      for (const L of [0, 1]) for (const h of [0, 1]) {
+      if (lock < 1) for (const L of [0, 1]) for (const h of [0, 1]) {
         const g = L ? gF : g0;
         g.fillStyle = h ? core : rim;
-        g.globalAlpha = blown && !G ? Math.max(0, 1 - blown * 1.4) : h ? 0.9 : 0.75;
+        g.globalAlpha = (blown && !G ? Math.max(0, 1 - blown * 1.4) : h ? 0.9 : 0.75) * (1 - lock);
         g.beginPath();
         for (let i = 0; i < N; i++) {
           if (hot[i] !== h || front[i] !== L) continue;
-          const s0 = rad[i] * (1 + Math.min(4, Math.hypot(vx[i], vy[i]) * 0.04)) * 1.3;
-          const s = s0 + (gz[i] - s0) * grow * grow;
-          g.moveTo(px[i] + s, py[i]); g.arc(px[i], py[i], s, 0, 6.2832);
+          const s = qs(i), x = qx(i), y = qy(i);
+          g.moveTo(x + s, y); g.arc(x, y, s, 0, 6.2832);
         }
         g.fill();
+      }
+      if (Dl && blown > FLY - LOCK - BUD) {
+        /* In HIS colours, bucketed by his palette index so it is one fill per colour.
+           The dots fade up into them over the lock; the budding particles start as a point
+           on their dot and grow out to their own place, each on its own clock, so the orb
+           fills in by division rather than appearing. Everything on the back canvas: at the
+           handover there is no Colin in front of the orb for any of it to be in front of. */
+        const n = G.n, lut = Dl.lut, head = G.bh.fill(-1), nx = G.bn, ax = G.bx, ay = G.by, ar = G.br, aa = G.ba;
+        let m = 0;
+        const put = (li, x, y, r, al) => { if (r <= 0.2 || al <= 0.01) return; ax[m] = x; ay[m] = y; ar[m] = r; aa[m] = al; nx[m] = head[li]; head[li] = m++; };
+        if (lock > 0) for (let i = 0; i < N; i++) { const j = gi[i]; if (Dl.r[j] > 0) put(Dl.li[j], qx(i), qy(i), qs(i), lock); }
+        for (let j = 0; j < n; j++) {
+          const d = G.owner[j]; if (d < 0 || Dl.r[j] <= 0) continue;
+          let b = Math.max(0, Math.min(1, (blown - G.st[j]) / (FLY - G.st[j])));
+          if (b <= 0) continue; b = b * b * (3 - 2 * b);
+          const sx = qx(d), sy = qy(d);
+          put(Dl.li[j], sx + (G.left + Dl.x[j] - sx) * b, sy + (G.top + Dl.y[j] - sy) * b, Dl.r[j] * (0.35 + 0.65 * b), Math.min(1, b * 3));
+        }
+        g0.globalAlpha = 1;
+        for (let li = 0; li < head.length; li++) {
+          if (head[li] < 0) continue;
+          g0.fillStyle = lut[li];
+          // full-strength ones in one fill; fading ones get their own, at their alpha
+          g0.beginPath(); let any = false;
+          for (let q = head[li]; q >= 0; q = nx[q]) if (aa[q] >= 0.99) { g0.moveTo(ax[q] + ar[q], ay[q]); g0.arc(ax[q], ay[q], ar[q], 0, 6.2832); any = true; }
+          if (any) g0.fill();
+          for (let q = head[li]; q >= 0; q = nx[q]) if (aa[q] < 0.99) { g0.globalAlpha = aa[q]; g0.beginPath(); g0.arc(ax[q], ay[q], ar[q], 0, 6.2832); g0.fill(); }
+          g0.globalAlpha = 1;
+        }
       }
       g.globalAlpha = 1;
       if (blown) {
@@ -241,6 +292,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
        390 px wide frame -- ring about 0.19-0.30 of the frame's short side,
        core about 0.05-0.09, violet dots bigger than green ones. */
     const FLY = 2.0;   // long enough for the arrival to bounce and settle
+    const LOCK = 0.45, BUD = 0.75;   // the last LOCK s draw his picture exactly; his other particles bud out over the BUD s before it
     const sx0 = new Float32Array(N), sy0 = new Float32Array(N), gi = new Int32Array(N), gz = new Float32Array(N);
     const tA = new Float32Array(N), tR = new Float32Array(N), tS = new Float32Array(N);   // each dot's place in his orb
     const tD = new Float32Array(N), tC = new Float32Array(N);   // when each dot starts for home, and its swirl
@@ -279,8 +331,30 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           const src = dots.length ? dots : other; owner[p] = src[Math.floor(k * src.length / pool.length)];
         });
         give(cores, hots, colds); give(rims, colds, hots);
+        // a particle a dot is flying to IS that dot: it is not budded, it is arrived at
+        for (let i = 0; i < N; i++) owner[gi[i]] = -1;
+        // which dot each remaining particle buds out of: the nearest of its own colour by angle,
+        // so it grows out to a place beside its parent rather than across the orb
+        const D0 = gb.drawn;
+        if (D0) {
+          const ang = (j) => Math.atan2(D0.y[j] - gb.centre.y, D0.x[j] - gb.centre.x);
+          const byA = (list, key) => list.map(v => [key(v), v]).sort((p, q) => p[0] - q[0]);
+          for (const [pool, dots] of [[cores, hots.length ? hots : colds], [rims, colds.length ? colds : hots]]) {
+            const da = byA(dots, d => ang(gi[d]));
+            for (const j of pool) {
+              if (owner[j] < 0) continue;
+              const a = ang(j); let lo = 0, hi = da.length - 1;
+              while (lo < hi) { const md = (lo + hi) >> 1; if (da[md][0] < a) lo = md + 1; else hi = md; }
+              owner[j] = da[lo][1];
+            }
+          }
+        }
         const r = document.getElementById('glorb').getBoundingClientRect();
-        G = { f, n, owner, gb, top: r.top, left: r.left, k: gb.centre.scale / 390, landed: false };
+        const st = new Float32Array(n);   // when each budding particle starts to divide off its dot
+        for (let j = 0; j < n; j++) st[j] = FLY - LOCK - BUD + Math.random() * (BUD * 0.7);
+        const M = N + n;
+        G = { f, n, owner, gb, st, top: r.top, left: r.left, k: gb.centre.scale / 390, landed: false,
+              bh: new Int32Array(gb.drawn ? gb.drawn.lut.length : 1), bn: new Int32Array(M), bx: new Float32Array(M), by: new Float32Array(M), br: new Float32Array(M), ba: new Float32Array(M) };
         // his rest geometry, measured off his own frames: ring 0.19-0.30 of the short side, core inside 0.09
         for (let i = 0; i < N; i++) {
           tA[i] = Math.random() * Math.PI * 2; tS[i] = Math.random() < 0.5 ? 1 : -0.6;
@@ -315,6 +389,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
        a swarm spiralling home rather than arriving in formation. */
     function land() {
       G.landed = true;
+      if (G.gb.drawn) return;   // the picture on top IS his frame: nothing of his has to move
       if (window.__introDebug) { let y0 = 1e9, y1 = -1e9, far = 0; for (let i = 0; i < N; i++) { y0 = Math.min(y0, py[i]); y1 = Math.max(y1, py[i]); if (py[i] < 0 || py[i] > H) far++; } window.__introDebug = { y0, y1, far, N }; }
       const f = G.f, gb = typeof glorb === 'function' ? glorb() : glorb, c = gb?.centre || { x: W / 2 - G.left, y: H / 2 - G.top };
       const seen = new Uint16Array(N);
