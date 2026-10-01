@@ -548,9 +548,12 @@ addEventListener('scroll', () => {
   // as the strip rises it catches him low, so his underside visibly flattens on it before he goes
   api.setCentreY(Math.min(room * 0.5, top - R * 0.5));
   if (home) {
-    const lg = parseFloat(css('--ledge')) || 26, floor = top - lg * 0.5, head = Math.min(room * 0.5, top - R * 0.5);
-    const H = Math.max(80, (floor - head) / 0.749);
-    HOMESTAGE.style.cssText = `top:${floor + 0.0968 * H - H}px;height:${H}px`;
+    // sized off the page AT REST, so scrolling only moves him: resizing his canvas every frame
+    // as the hero shrank cleared it (the flashing) and shrank him with it
+    const lg = parseFloat(css('--ledge')) || 26, rest = headRest(), floor = rest - lg * 0.5;
+    const H = Math.round(Math.max(80, (floor - rest * 0.5) / 0.749)), y = Math.round(floor + 0.0968 * H - H);
+    if (HOMESTAGE._h !== H) { HOMESTAGE._h = H; HOMESTAGE.style.height = H + 'px'; HOMESTAGE.style.top = y + 'px'; }
+    HOMESTAGE.style.transform = `translateY(${Math.round(top - rest)}px)`;
   }
   api.pause(top < -R * 1.5);
   WEAVE?.pause(top < 0); RAIN?.pause(top < 0);
