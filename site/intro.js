@@ -130,14 +130,18 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
              ring or his core round his live centre, turning slowly so it is alive. */
           const gc = G.gb.centre, a = tA[i] + blown * 0.35 * tS[i], rr = tR[i] * gc.scale;
           const ox = G.left + gc.x + Math.cos(a) * rr, oy = G.top + gc.y + Math.sin(a) * rr * 1.22;
-          const ks = 0.0012 + 0.045 * u * u * u, c = 0.012 + 0.25 * u * u;
+          /* ARRIVAL IS A SPRING, UNDERDAMPED: the pull firms up smoothly and the drag stays
+             light, so a dot overshoots its place, swings back and settles in a bounce or two
+             (each with its own damping, so they do not bounce in step) -- instead of the old
+             heavy drag that made them shoot in and stop dead. */
+          const ks = 0.002 + 0.03 * u * u, c = 0.01 + 0.085 * tC[i] * u;
           // the flow: curl noise at two scales (big lazy eddies and small tight ones), so the
           // swarm braids into strands and clumps of different sizes; strongest far out, gone by
           // the landing, so the landing stays exact
           const [fx, fy] = curl(px[i], py[i], blown), sw = tC[i] * (1 - u) * (1 - u) * 0.16;
           vx[i] += ((ox - px[i]) * ks - vx[i] * c + fx * sw) * k;
           vy[i] += ((oy - py[i]) * ks - vy[i] * c + fy * sw) * k;
-          if (u > 0.8) { const w = Math.pow((u - 0.8) / 0.2, 2) * 0.5; px[i] += (ox - px[i]) * w; py[i] += (oy - py[i]) * w; }        } else if (blown) {
+          // (no forced snap at the end: the handover copies where they are and how they move)        } else if (blown) {
           // no Glorb to go to: the old door opening
           const dx = px[i] - W / 2, dy = py[i] - H / 2, d = Math.hypot(dx, dy) || 1;
           vx[i] += dx / d * 2.2 * k; vy[i] += dy / d * 2.2 * k;
@@ -223,7 +227,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     /* Where he is: the rest geometry measured off his own screenshots at a
        390 px wide frame -- ring about 0.19-0.30 of the frame's short side,
        core about 0.05-0.09, violet dots bigger than green ones. */
-    const FLY = 1.6;
+    const FLY = 2.0;   // long enough for the arrival to bounce and settle
     const sx0 = new Float32Array(N), sy0 = new Float32Array(N), gi = new Int32Array(N), gz = new Float32Array(N);
     const tA = new Float32Array(N), tR = new Float32Array(N), tS = new Float32Array(N);   // each dot's place in his orb
     const tD = new Float32Array(N), tC = new Float32Array(N);   // when each dot starts for home, and its swirl
