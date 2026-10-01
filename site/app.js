@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=621f0a64';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=008db562';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -609,8 +609,8 @@ const deck = $('.deck-keys');
 // image, applied as a mask, so the key paints it -- quiet by default, lit in the accent
 // when it is the section you are on, right in either theme. `ar` is each word's width
 // over its height as cut from his strip, so every word keeps the same letter size.
-const KEYART = { play: 3, assets: 3.27, motion: 3.07, web: 2.64, scripts: 3.17,
-  studios: 2.86, writing: 3.196, audio: 2.533, workbench: 3.505, about: 2.215 };
+const KEYART = { play: 2.913, assets: 3.038, motion: 2.923, web: 2.625, scripts: 2.971, studios: 2.962, writing: 3.24,
+  audio: 2.673, workbench: 3.225, about: 2.647, characters: 3.373, tutorials: 2.951 };
 deck.innerHTML = SECTIONS.map(s => KEYART[s.key]
   ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}"><span class="gw"><i class="glyph" style="--art:url(${new URL(`site/keys/${s.key}.webp`, document.baseURI).href});--ar:${KEYART[s.key]}"></i></span></a>`
   : `<a class="key" href="${s.key}" data-key="${s.key}"><b>${esc(s.label)}</b></a>`).join('');

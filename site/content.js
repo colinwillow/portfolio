@@ -43,7 +43,7 @@ export const SECTIONS = [
   { key: 'studios',   label: 'Studios',   tier: 2, lat:  52, lon:  -70, blurb: 'SeaWillow, Majia and Unknown.' },
   { key: 'writing',   label: 'Thoughts',   tier: 2, lat:  30, lon:  165, blurb: 'Essays about art and making, read aloud.' },
   { key: 'audio',     label: 'Audio',     tier: 2, lat: -30, lon:  -95, blurb: 'Game soundtracks, and free sound effects to download.' },
-  { key: 'workbench', label: 'Workbench', tier: 3, lat: -55, lon:  -30, blurb: 'Illustration, logos, and everything made by hand.' },
+  { key: 'workbench', label: 'Illustrations', tier: 3, lat: -55, lon:  -30, blurb: 'Illustration, logos, and everything made by hand.' },
   { key: 'tutorials', label: 'Tutorials', tier: 1, lat:  45, lon:  130, blurb: 'How the games and characters are made, step by step. Free, with the files.' },
   { key: 'about',     label: 'Colin',     tier: 3, lat:  -8, lon: -170, blurb: 'Who made this.' },
 ];
