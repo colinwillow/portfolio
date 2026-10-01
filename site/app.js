@@ -459,7 +459,7 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=c6d9b5e3').then(m => {
+    lineupLoading = import('./lineup.js?v=9b16ba87').then(m => {
       LINEUP = m.createLineup($('#glorb'), [...ASSETS.slice(0, 4), { slug: 'colin', colin: true, h: 1.9, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...ASSETS.slice(4)], { onPick: slug => CHARPICK.show?.(slug),
         colin: { from: () => colin?.body?.(), to: cx => colin?.standAt?.(cx), joined: v => document.body.classList.toggle('colin-in-line', v) } });
       LINEUP.fog(css('--bg') || '#0e0e0f'); backdrop(current()); });
@@ -534,14 +534,14 @@ addEventListener('scroll', () => {
   // on a stage page he is the backdrop: bigger, and centred behind Colin's chest and head
   const stage = document.body.classList.contains('stage-page');
   HEAD.sk += ((stage ? 2.8 : 1) - HEAD.sk) * 0.08; api.setScale(HEAD.sk);
-  const R = api.centre.scale * 0.34, room = home ? headRest() : stage ? top * 0.76 : innerHeight * 0.38;
+  const R = api.centre.scale * 0.34, room = home ? headRest() : stage ? top * 0.76 : top;
   api.setFloor(top - 1);
   // as the strip rises it catches him low, so his underside visibly flattens on it before he goes
   api.setCentreY(Math.min(room * 0.5, top - R * 0.5));
   api.pause(top < -R * 1.5);
   WEAVE?.pause(top < 0); RAIN?.pause(top < 0);
   // they stand in the middle of the strip's top face, not on its front edge
-  LINEUP?.ground(top - (parseFloat(css('--ledge')) || 26) * 0.5); LINEUP?.pause(top < 0);
+  { const lg = parseFloat(css('--ledge')) || 26; LINEUP?.ground(top - lg * 0.5, lg * 0.5); } LINEUP?.pause(top < 0);
   // the main band runs behind Glorb's resting centre (not his live one, so a squash does not drag the cloth)
   WEAVE?.anchor(room * 0.5);
 })();

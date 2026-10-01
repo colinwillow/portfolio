@@ -62,7 +62,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     rank: Math.abs(i - home), delay: 0, state: 'wait',
     group: new THREE.Group(), mixer: null, clips: {}, cur: null, mats: [], lit: 1, loaded: false }));
   slots.forEach(s => { s.group.visible = false; scene.add(s.group); });
-  const S = { shift: 0, restH: 0, exitUntil: 0, on: false, started: false, sel: null, camX: 0, wantX: 0, ground: 0, last: 0, paused: false, drag: null };
+  const S = { below: 14, shift: 0, restH: 0, exitUntil: 0, on: false, started: false, sel: null, camX: 0, wantX: 0, ground: 0, last: 0, paused: false, drag: null };
   const span = () => Math.max(home, slots.length - 1 - home) * LINE.gap;
 
   // where everyone should be: the line in `order`, every other one a step back, the picked one forward
@@ -181,9 +181,11 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
   function resize() {
     // one size, measured with the page at the top; scrolling SLIDES it up with the strip
     if (!S.restH || scrollY < 2) S.restH = S.ground;
-    const w = innerWidth, h = Math.max(60, Math.round(S.restH || host.clientHeight * 0.55));
+    // and it reaches DOWN past their floor line to the front of the floor (`S.below`), so a
+    // foot that dips, or someone stepping forward, is never cut off at the canvas edge
+    const w = innerWidth, room = Math.max(60, Math.round(S.restH || host.clientHeight * 0.55)), h = room + S.below;
     if (cv.style.height !== h + 'px') cv.style.height = h + 'px';
-    cv.style.transform = `translateY(${Math.round((S.ground || h) - h)}px)`;
+    cv.style.transform = `translateY(${Math.round((S.ground || room) - room)}px)`;
     if (cv.width === Math.round(w * dpr) && cv.height === Math.round(h * dpr)) return;
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
   }
@@ -191,8 +193,8 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
   // the camera stands back far enough that a 1.8 m person is `tall` of the room above the strip,
   // and is raised or lowered so the floor (y = 0) lands exactly on the strip's top edge
   function frameCamera() {
-    const H = cv.clientHeight || 1, g = H - 2, t = Math.tan(LINE.fov * Math.PI / 360);
-    const D = (H * 1.8) / (LINE.tall * g * 2 * t);
+    const H = cv.clientHeight || 1, g = H - S.below - 2, t = Math.tan(LINE.fov * Math.PI / 360);
+    const D = (H * 1.8) / (LINE.tall * (H - S.below) * 2 * t);
     const ppm = H / (2 * D * t), y = 1.0 + (g - H / 2 - ppm) / ppm;
     camera.position.set(S.camX, y, D); camera.lookAt(S.camX, y, 0);
     scene.fog.near = D + 1.2; scene.fog.far = D + 7.5;
@@ -281,7 +283,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
       layout();
     },
     /** the strip's top edge in CSS px from the top of the host: their floor */
-    ground(y) { S.ground = y; },
+    ground(y, below) { S.ground = y; if (below != null) S.below = Math.round(below); },
     pause(p) { p = !!p; if (p === S.paused) return; S.paused = p; cv.style.visibility = p ? 'hidden' : ''; },   // off the top: gone, not a frozen frame
     fog(hex) { scene.fog.color.set(hex); },
     LINE, _slots: slots, _camera: camera, _S: S, _renderer: renderer, _scene: scene,

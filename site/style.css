@@ -6,7 +6,7 @@
   --globe-ink: #8a8782;
   --ui: 'Inter Tight', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
-  --band: 38svh;            /* height of the globe's strip above a section; globe.js matches it */
+  --band: 31svh;            /* height of the globe's strip above a section; globe.js matches it */
   --gut: clamp(16px, 4vw, 40px);
   --r: 14px;
 }
