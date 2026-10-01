@@ -365,7 +365,7 @@ function render() {
   if (sec) scrollTo(0, 0);
   globe?.setMode(sec && s ? 'section' : 'home', s ? sec : null); aisleKey = null;
   globe?.pause?.(!sec && GLORB_ON);   // at home Glorb is the stage
-  if (WEAVE) backdrop(sec || latched || 'home');   // (WEAVE exists only after boot, when the deck is defined)
+  if (WEAVE) backdrop(sec || pressed || 'home');   // (WEAVE exists only after boot, when the deck is defined)
   pushColors();
   wireVideos();
   after?.();
@@ -479,7 +479,7 @@ function backdrop(key) {
     rainLoading = import('./coderain.js?v=2119d60c').then(m => { RAIN = m.createCodeRain($('#glorb'), () => GLORB.api); backdrop(current()); });
   RAIN?.visible(own === 'rain');
 }
-const current = () => route()[0] || latched || 'home';   // only called after boot
+const current = () => route()[0] || (route().length ? latched : pressed) || 'home';   // only called after boot
 const GLORB_DOT = 0.65;
 const glorbTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 if (GLORB_ON) document.body.classList.add('has-glorb');
@@ -492,7 +492,7 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
     WEAVE = w.createWeave($('#glorb'), () => GLORB.api);   // Glorb's particles carve the cloth
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent
-    backdrop(route()[0] || latched || 'home');
+    backdrop(current());
   }).catch(err => console.warn('weave', err));
   new MutationObserver(() => { api.post({ glorb: 'theme', theme: glorbTheme(), bg: css('--bg') }); WEAVE?.theme(glorbTheme() === 'dark'); })
     .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -651,10 +651,13 @@ deck.innerHTML = SECTIONS.map(s => KEYART[s.key]
   ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}"><span class="gw"><i class="glyph" style="--art:url(${new URL(`site/keys/${s.key}.webp`, document.baseURI).href});--ar:${KEYART[s.key]}"></i></span></a>`
   : `<a class="key" href="${s.key}" data-key="${s.key}"><b>${esc(s.label)}</b></a>`).join('');
 let latched = null;
-function latch(key, show = true) {
-  if (key === latched) return;
+let pressed = null;   // at home the backdrop follows a key you PRESS, never the scroll -- a nudge
+                      // of the page swapping the pattern behind the hero read as a glitch
+function latch(key, show = true, press = false) {
+  if (press) pressed = key; else if (!key) pressed = null;   // back at the top: the hero's own
+  if (key === latched && !press) return;
   latched = key;
-  if (!route().length) backdrop(key || 'home');   // at home the weave follows the shelf you are on
+  if (!route().length) backdrop(pressed || 'home');
   deck.querySelectorAll('.key').forEach(k => k.classList.toggle('in', k.dataset.key === key));
   const k = key && deck.querySelector(`.key[data-key="${key}"]`);
   if (k && show) { const r = k.getBoundingClientRect(), d = deck.getBoundingClientRect();
@@ -666,7 +669,7 @@ deck.addEventListener('click', e => {
   const a = e.target.closest('.key'); if (!a) return;
   e.preventDefault();
   const key = a.dataset.key, shelf = document.getElementById('shelf-' + key);
-  latch(key, false);
+  latch(key, false, true);
   glorbShift();
   WEAVE?.kick(0, 0, 0.6);
   if (!route().length && shelf) {
