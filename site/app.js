@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=ca05af42';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=40d241d0';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -528,27 +528,37 @@ function castFor(slug) {
 function gameArt(it) { return (it?.gallery || [])[0] || it?.shot || null; }
 function gameShown() {
   const r = route(); if (r[0] !== 'play' || !r[1]) return null;
-  const it = PLAY.find(x => x.slug === r[1] || x.aliases?.includes(r[1])); return it && gameArt(it) ? it : null;
+  const it = PLAY.find(x => x.slug === r[1] || x.aliases?.includes(r[1])); return it && (it.video || gameArt(it)) ? it : null;
 }
 let gameBg = null;
 function gameBackdrop() {
   const it = gameShown(), host = $('#glorb');
   if (it && host) {
-    const src = `site/shots/${gameArt(it)}.webp`;
-    /* The WHOLE frame, never a crop: the art sits at its own shape in the middle of the space
-       above the strip, and a blurred, dimmed copy of itself fills round it, so a widescreen shot
-       reads as a screen on a tall phone rather than as a close-up of somebody's face. */
+    /* Footage when the game has some (a silent loop, AV1 where the browser can play it and
+       H.264 where it cannot, its first frame as the poster), its wide art when it does not. Either
+       fills the 3:2 stage; a blurred, dimmed copy sits behind in case anything ever does not. */
     if (!gameBg) {
       gameBg = document.createElement('div'); gameBg.className = 'game-bg';
-      gameBg.innerHTML = '<i class="fill"></i><img alt="">'; host.appendChild(gameBg);
+      gameBg.innerHTML = '<i class="fill"></i>'; host.appendChild(gameBg);
     }
-    const im = gameBg.querySelector('img');
-    if (!im.src.endsWith(src)) {
-      gameBg.classList.remove('on');
-      im.onload = () => { gameBg.querySelector('.fill').style.backgroundImage = `url("${src}")`; gameBg.classList.add('on'); };
-      im.src = src;
+    const key = it.video ? 'v:' + it.video : 'i:' + gameArt(it);
+    if (gameBg.dataset.key !== key) {
+      gameBg.dataset.key = key; gameBg.classList.remove('on');
+      gameBg.querySelector('video, img')?.remove();
+      const still = it.video ? `site/video/${it.video}.jpg` : `site/shots/${gameArt(it)}.webp`;
+      const show = () => { gameBg.querySelector('.fill').style.backgroundImage = `url("${still}")`; gameBg.classList.add('on'); };
+      if (it.video) {
+        const v = document.createElement('video');
+        Object.assign(v, { muted: true, loop: true, autoplay: true, playsInline: true, poster: still, preload: 'auto' });
+        v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
+        v.innerHTML = `<source src="site/video/${it.video}.webm" type='video/webm; codecs="av01.0.05M.08"'><source src="site/video/${it.video}.mp4" type="video/mp4">`;
+        gameBg.appendChild(v); show(); v.play?.().catch(() => {});
+      } else {
+        const im = new Image(); im.alt = ''; im.onload = show; im.src = still; gameBg.appendChild(im);
+      }
     } else gameBg.classList.add('on');
-  } else gameBg?.classList.remove('on');
+    gameBg.querySelector('video')?.play?.().catch(() => {});
+  } else { gameBg?.classList.remove('on'); gameBg?.querySelector('video')?.pause(); }
   withColin(c => c.lookBack?.(!!it));
   return !!it;
 }

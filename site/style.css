@@ -834,7 +834,7 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
 #glorb .game-bg { position: absolute; left: 0; right: 0; top: 0; height: 50%; overflow: hidden; opacity: 0; transition: opacity .6s; pointer-events: none; }
 #glorb .game-bg.on { opacity: 1; }
 #glorb .game-bg .fill { position: absolute; inset: -30px; background: center / cover no-repeat; filter: blur(22px) brightness(.55) saturate(1.2); }
-#glorb .game-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#glorb .game-bg img, #glorb .game-bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .game-head { display: flex; align-items: center; gap: 18px; margin-bottom: 6px; }
 .game-head img.app { width: clamp(84px, 24vw, 132px); aspect-ratio: 1; flex: none; border-radius: 22.5%; object-fit: cover;
   box-shadow: 0 8px 24px -10px rgb(0 0 0 / .5); }
