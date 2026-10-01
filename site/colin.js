@@ -114,6 +114,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const perch = () => document.getElementById('deck') || document.body;
   perch().appendChild(dock);
   const $d = s => dock.querySelector(s);
+  const bodyEl = $d('.mini-body');   // his box: what a FLIP moves (see flipMark)
   const canvas = $d('canvas'), panel = $d('.mini-panel'), logEl = $d('.mini-log'), form = $d('form'),
         input = $d('form input'), cap = $d('.mini-cap'), tools = $d('.mini-tools'), tag = $d('.mini-tag');
 
@@ -292,6 +293,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
     if (document.hidden || !ch) return;
     const dt = Math.min(0.05, clock.getDelta());
     lifeStep(dt);
+    { const r = bodyEl.getBoundingClientRect(); if (r.width && r.height && !bodyEl.style.transform) flipSeen = r; }   // for a FLIP from a stage that has since been hidden
     // Take last frame's glance OFF before the mixer runs: if the idle has no
     // head track, nothing else would, and the offset would stack every frame.
     if (head) head.quaternion.copy(headBase);
@@ -545,8 +547,31 @@ export function createMiniColin({ go, known, items, pageOf }) {
 
   // Hero mode: the About page borrows him, big, in its own frame.
   const home = { parent: document.body, next: null };
-  function adopt(host, { present = false } = {}) { heroDir = 0; presWant = present ? 1 : 0; if (!host) return; if (dock.parentElement === host) return; host.appendChild(dock); dock.classList.add('hero'); if (bubble) bubble.hidden = true; size(); }
-  function release() { heroDir = 0; presWant = 0; if (dock.parentElement !== perch()) { perch().appendChild(dock); dock.classList.remove('hero'); size(); } }
+  /* MOVING HIM WITHOUT A SNAP (FLIP). He is one element moved between stages of different
+     sizes, so a move is a jump. Measure where his body is before the move, move him, then
+     put him straight back where he WAS with a transform and let it ease off: he glides and
+     grows (or shrinks) into his new place, anchored at his feet so he stays on the floor.
+     Several moves in one task (About lets him go, the stage takes him) are one glide, from
+     where he was first to where he ends up. */
+  let flipFrom = null, flipQueued = false, flipSeen = null;
+  function flipMark() {
+    // where he was: now, or -- if the page has already hidden the stage he was on (the Colin
+    // page hides the hero box before it takes him) -- where he was last seen
+    if (!flipFrom) { const r = bodyEl.getBoundingClientRect(); flipFrom = r.width && r.height ? r : flipSeen; }
+    if (!flipQueued) { flipQueued = true; requestAnimationFrame(flipPlay); }
+  }
+  function flipPlay() {
+    flipQueued = false; const a = flipFrom; flipFrom = null; if (!a) return;
+    const b = bodyEl.getBoundingClientRect(); if (!b.width || !b.height) return;
+    const k = a.height / b.height, dx = (a.left + a.width / 2) - (b.left + b.width / 2), dy = a.bottom - b.bottom;
+    if (Math.abs(dx) < 2 && Math.abs(dy) < 2 && Math.abs(k - 1) < 0.02) return;
+    bodyEl.style.transition = 'none'; bodyEl.style.transformOrigin = '50% 100%';
+    bodyEl.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${k.toFixed(4)})`;
+    bodyEl.getBoundingClientRect();
+    bodyEl.style.transition = 'transform .75s cubic-bezier(.22,.8,.2,1)'; bodyEl.style.transform = '';
+  }
+  function adopt(host, { present = false } = {}) { heroDir = 0; presWant = present ? 1 : 0; if (!host) return; if (dock.parentElement === host) return; flipMark(); host.appendChild(dock); dock.classList.add('hero'); if (bubble) bubble.hidden = true; size(); }
+  function release() { heroDir = 0; presWant = 0; if (dock.parentElement !== perch()) { flipMark(); perch().appendChild(dock); dock.classList.remove('hero'); size(); } }
   /** Where his head is on screen (client px), for things that orbit it. */
   const hv = new THREE.Vector3();
   function headScreen() {
