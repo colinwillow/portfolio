@@ -112,7 +112,12 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
              round into him rather than stopping and starting again, and only
              in the last fifth is the landing made exact. */
           const u = Math.min(1, blown / FLY);
-          const j = gi[i], ox = G.f.px[j], oy = G.f.py[j] + G.top;
+          /* Onto its own place in HIS ORB, not onto one of his live particles: on a phone
+             those can still be drifting in from where he started (they came in as a clump
+             from the right edge and dragged the whole flight with them). The place is his
+             ring or his core round his live centre, turning slowly so it is alive. */
+          const gc = G.gb.centre, a = tA[i] + blown * 0.35 * tS[i], rr = tR[i] * gc.scale;
+          const ox = G.left + gc.x + Math.cos(a) * rr, oy = G.top + gc.y + Math.sin(a) * rr * 1.22;
           const ks = 0.0012 + 0.045 * u * u * u, c = 0.012 + 0.25 * u * u;
           vx[i] += ((ox - px[i]) * ks - vx[i] * c) * k;
           vy[i] += ((oy - py[i]) * ks - vy[i] * c) * k;
@@ -202,6 +207,7 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
        core about 0.05-0.09, violet dots bigger than green ones. */
     const FLY = 1.6;
     const sx0 = new Float32Array(N), sy0 = new Float32Array(N), gi = new Int32Array(N), gz = new Float32Array(N);
+    const tA = new Float32Array(N), tR = new Float32Array(N), tS = new Float32Array(N);   // each dot's place in his orb
     let G = null, walking = false;
     function enter() {
       if (blown || walking) return;
@@ -238,7 +244,12 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
         });
         give(cores, hots, colds); give(rims, colds, hots);
         const r = document.getElementById('glorb').getBoundingClientRect();
-        G = { f, n, owner, top: r.top, left: r.left, k: gb.centre.scale / 390, landed: false };
+        G = { f, n, owner, gb, top: r.top, left: r.left, k: gb.centre.scale / 390, landed: false };
+        // his rest geometry, measured off his own frames: ring 0.19-0.30 of the short side, core inside 0.09
+        for (let i = 0; i < N; i++) {
+          tA[i] = Math.random() * Math.PI * 2; tS[i] = Math.random() < 0.5 ? 1 : -0.6;
+          tR[i] = hot[i] ? Math.sqrt(Math.random()) * 0.085 : 0.19 + Math.random() * 0.11;
+        }
         for (let i = 0; i < N; i++) {
           sx0[i] = px[i]; sy0[i] = py[i];
           // his dot sizes at rest, measured off his own frames: violet bigger than green
