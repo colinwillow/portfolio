@@ -73,7 +73,7 @@ export async function mountMe(cv, { bg = '#f3f2ef', mode = 'depth' } = {}) {
   if (mode === 'depth') {
     /* OUT OF THE FOG: his far distance fades into the page's own colour, so he condenses out
        of the background rather than being a small man standing on it. */
-    scene.fog = new THREE.Fog(new THREE.Color(bg), 1, 2);
+    scene.fog = null;   // (out of the SHADOWS, not a fog: he fades in, see the frame loop)
   } else c.model.rotation.y = Math.PI / 2;           // he faces +Z; walking right is +X
 
   let W = 0, H = 0, span = 0, x0 = 0, x1 = 0, t = 0, dur = 1, running = false, dead = false;
@@ -89,7 +89,7 @@ export async function mountMe(cv, { bg = '#f3f2ef', mode = 'depth' } = {}) {
     return r && r.height > 40 && getComputedStyle(st).display !== 'none' ? r : null;
   };
   let depth = mode === 'depth', Z0 = 0, walkT = 0, endT = 0;
-  const STOP = 0.7;   // seconds of slowing to a stand at the end
+  const STOP = 0.6;   // seconds of slowing to a stand at the end
   function aim() {
     const r = stageRect(); if (!r) return false;
     const ch = r.height, cw = ch * 0.7, L = r.left + r.width / 2 - cw / 2, T = r.top;
@@ -97,16 +97,15 @@ export async function mountMe(cv, { bg = '#f3f2ef', mode = 'depth' } = {}) {
     const dist = h * 0.62 / Math.tan(camera.fov * Math.PI / 360);
     camera.position.set(0, h * 0.62, dist); camera.lookAt(0, h * 0.5, 0);
     camera.setViewOffset(cw, ch, -L, -T, W, H); camera.updateProjectionMatrix();
-    scene.fog.near = dist + 0.8; scene.fog.far = dist + Z0 * 1.05;
     return true;
   }
   function layout(w, hgt) {
     W = w; H = hgt; renderer.setSize(W, H, false); camera.aspect = W / H;
     if (depth) {
       // the walk: about three and a half seconds of steps from far back, then a stand
-      walkT = 5.2; Z0 = speed * (walkT + STOP * 0.5); endT = walkT + STOP;
+      walkT = 2.3; Z0 = speed * (walkT + STOP * 0.5); endT = walkT + STOP;
       if (aim()) { dur = endT; return; }
-      depth = false; c.model.rotation.y = Math.PI / 2; c.model.position.x = 0; scene.fog = null;   // no stage to aim at: the side walk
+      depth = false; c.model.rotation.y = Math.PI / 2; c.model.position.x = 0;   // no stage to aim at: the side walk
     }
     // frame him about 55% of the screen tall, feet a little below the middle-third line
     const tall = h / 0.42, dist = tall / (2 * Math.tan(camera.fov * Math.PI / 360));
@@ -173,6 +172,7 @@ export async function mountMe(cv, { bg = '#f3f2ef', mode = 'depth' } = {}) {
       const u = Math.max(0, Math.min(1, (t - walkT) / STOP)), pace = t < walkT ? 1 : 1 - u;
       const done = t < walkT ? speed * t : speed * (walkT + STOP * (u - u * u / 2));
       c.model.position.z = -Z0 + done;
+      if (!gone) cv.style.opacity = String(Math.min(1, t / 0.75));   // stepping out of the dark
       if (walkA) walkA.timeScale = PACE * Math.max(0.15, pace);
       if (idle && !stood && t > walkT + STOP * 0.35) { stood = true; play(c.mixer, idle, { fade: STOP * 0.65 }); }
     } else c.model.position.x = x0 + (x1 - x0) * Math.min(1, t / dur);

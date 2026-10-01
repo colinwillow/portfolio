@@ -34,7 +34,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
        head projected every frame, so an arm swing is what shoves them. */
     const me = { ok: false, on: false, cv: Object.assign(document.createElement('canvas'), { className: 'intro-me' }) };
     document.body.appendChild(me.cv);   // outside the intro: he keeps walking after it has faded
-    import('./intro-me.js?v=a6dad475').then(m => m.mountMe(me.cv, { bg, mode: /[?&]walk=side/.test(location.search) ? 'side' : 'depth' })).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
+    import('./intro-me.js?v=b8179991').then(m => m.mountMe(me.cv, { bg, mode: /[?&]walk=side/.test(location.search) ? 'side' : 'depth' })).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
     document.body.appendChild(el);
     const cv = el.querySelector('canvas'), g = cv.getContext('2d'), g0 = g;
     /* Depth: a third of the dots are drawn on a layer ABOVE him, so he walks
@@ -73,7 +73,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     el.addEventListener('pointerleave', () => { mx = my = -1e4; });
 
     function target(i, out) {
-      const s = strand[i], sd = DEF[s], si = s + 1, cx = W / 2, cy = H / 2;
+      const s = strand[i], sd = DEF[s], si = s + 1, cx = W / 2 + FO.x * FO.k, cy = H / 2 + FO.y * FO.k;
       const sc = Math.min(W, H) / 700;
       const pulse = Math.sin(fc * 0.0008 * si + si) * si * 8 * sc, pulse2 = Math.cos(fc * 0.0006 * si + si * 0.7) * si * 6 * sc;
       const t = tt[i];
@@ -112,13 +112,16 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
         if (me.api.depth) {
           // he walks up out of the back: reaching the field, he bursts it forward, and a beat
           // later what he threw at you starts back round behind him for Glorb
-          if (walking && !burstT && me.api.progress() > 0.6) burst();
-          if (walking && burstT && now - burstT > 260) { walking = false; converge(); }
+          // he reaches the curtain of beads part-way in; they part round him, and a beat later
+          // what he has pushed through wings out and curls back behind him for Glorb
+          if (walking && !crossT && me.api.progress() > 0.42) { crossT = performance.now(); ch0 = me.api.chest(); }
+          if (walking && crossT && now - crossT > 520) { walking = false; converge(); wings(); }
         } else if (walking && me.api.progress() > 0.8) { walking = false; converge(); }   // he has walked through them; now they go
       }
       const wr = word.getBoundingClientRect(), rx = wr.width / 2 + 10, ry = wr.height / 2 + 8, wx = wr.left + wr.width / 2, wy = wr.top + wr.height / 2;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, W, H);
+      if (FO.on) FO.k += (1 - FO.k) * (1 - Math.pow(0.94, k));
       const Dr = G && G.gb.drawn;   // his last frame as drawn (absent on an older engine: the ring alone)
       for (let i = 0; i < N; i++) {
         if (blown && G) {
@@ -158,7 +161,12 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
             vx[i] *= Math.pow(0.985, k); vy[i] *= Math.pow(0.985, k);
           } else if (u < 1) {
             const [fx, fy] = curl(px[i], py[i], blown), fm = Math.hypot(fx, fy) || 1, bend = 1.3 * (1 - u) * (1 - u) * tC[i];
-            let hx = dx / dist + fx / fm * bend, hy = dy / dist + fy / fm * bend; const hm = Math.hypot(hx, hy) || 1;
+            let hx = dx / dist + fx / fm * bend, hy = dy / dist + fy / fm * bend;
+            if (wingS[i]) {   // BUTTERFLY: each side turns the opposite way round him, out and back in
+              const cx0 = ch0.x - px[i], cy0 = ch0.y - py[i], cm = Math.hypot(cx0, cy0) || 1, wb = 1.1 * (1 - u) * (1 - u);
+              hx += -cy0 / cm * wingS[i] * wb; hy += cx0 / cm * wingS[i] * wb;
+            }
+            const hm = Math.hypot(hx, hy) || 1;
             const want = Math.min(9, Math.max(2.4, dist * 0.07));
             const st = 1 - Math.pow(1 - (0.035 + 0.06 * u), k);
             vx[i] += (hx / hm * want - vx[i]) * st; vy[i] += (hy / hm * want - vy[i]) * st;
@@ -184,7 +192,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           // strands against him), and gone once he is past it, so the strands flowing back off
           // him do not pile into a box that is no longer there
           const nx = Math.max(wx - rx, Math.min(px[i], wx + rx)), ny = Math.max(wy - ry, Math.min(py[i], wy + ry));
-          const ex = px[i] - nx, ey = py[i] - ny, ed = walking && (me.api.depth || me.api.progress() > 0.5) ? 1e9 : Math.hypot(ex, ey);
+          const ex = px[i] - nx, ey = py[i] - ny, ed = walking && (me.api.depth ? crossT : me.api.progress() > 0.5) ? 1e9 : Math.hypot(ex, ey);
           if (ed < 0.5) { const ox = px[i] - wx || 0.1, oy = py[i] - wy, om = Math.hypot(ox, oy); ax += ox / om * maxF[i] * 14; ay += oy / om * maxF[i] * 14; }
           else if (ed < 14) { ax += ex / ed * maxF[i] * 3.5 * (1 - ed / 14); ay += ey / ed * maxF[i] * 3.5 * (1 - ed / 14); }
 
@@ -202,6 +210,19 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
              little and slide up or down, over his head and under his feet they
              hardly move while he passes, and behind him they fill back in. They
              are not carried off with him, and the strand pulls them home after. */
+          /* THE CURTAIN OF BEADS. Once he has reached it, wherever his body is, the beads are
+             pushed off it along his outline -- sideways off his shoulders and hips, up off his
+             head -- and the ones he pushes come TOWARD you (they swell and are drawn in front
+             of him). The ones he never touched are now behind him. */
+          if (me.on && me.api.depth && crossT) {
+            const hit = me.api.hit(px[i], py[i]);
+            if (hit && hit.d > 0.04) {
+              const w = Math.min(1, hit.d * 1.6), up = hit.ny < -0.5 ? 0.6 : 0.15;
+              vx[i] += hit.nx * (2.2 + 3.5 * w) * k; vy[i] += (hit.ny * (1.4 + 2.5 * w) - up * w) * k;
+              if (hit.d > 0.45) { px[i] += hit.nx * (hit.d - 0.45) * 8; py[i] += hit.ny * (hit.d - 0.45) * 8; }
+              zA[i] = Math.max(zA[i], 0.5 + 1.8 * w); knock[i] = Math.max(knock[i], w);
+            }
+          }
           if (me.on && !me.api.depth) {
             const hit = me.api.hit(px[i], py[i]);
             if (hit && hit.d > 0.12) {
@@ -239,11 +260,11 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
       /* THE BURST, in depth: a dot he walks into is thrown TOWARD YOU -- it swells as it comes
          forward and shrinks again as it loops back past him -- and it changes sides of him as
          it goes, in front on the way out and behind on the way back, which is the whole read. */
-      const bt = burstT ? (now - burstT) / 1000 : -1;
-      if (bt >= 0) for (let i = 0; i < N; i++) {
-        const e = Math.max(0, Math.min(1, bt / zT[i]));
-        zm[i] = 1 + zA[i] * Math.sin(Math.PI * e) * (1 - 0.35 * e);
-        front[i] = e < 0.55 ? 1 : 0;
+      if (crossT) for (let i = 0; i < N; i++) {
+        // swells while he is pushing it, eases back to its own size as it comes round behind him
+        const want = 1 + (blown ? zA[i] * Math.max(0, 1 - blown / 0.9) : zA[i]);
+        zm[i] += (want - zm[i]) * (1 - Math.pow(0.85, k));
+        front[i] = zm[i] > 1.18 ? 1 : 0;
       }
       const qs = (i) => {
         const s0 = rad[i] * (1 + Math.min(4, Math.hypot(vx[i], vy[i]) * 0.04)) * 1.3 * zm[i];
@@ -310,27 +331,35 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     const sx0 = new Float32Array(N), sy0 = new Float32Array(N), gi = new Int32Array(N), gz = new Float32Array(N);
     const tA = new Float32Array(N), tR = new Float32Array(N), tS = new Float32Array(N);   // each dot's place in his orb
     const tD = new Float32Array(N), tC = new Float32Array(N);   // when each dot starts for home, and its swirl
-    let G = null, walking = false, burstT = 0;
-    const zm = new Float32Array(N).fill(1), zA = new Float32Array(N), zT = new Float32Array(N);
-    function burst() {
-      burstT = performance.now();
-      const ch = me.api.chest() || { x: W / 2, y: H * 0.55, r: H * 0.4 };
+    let G = null, walking = false, crossT = 0, ch0 = null;
+    /* Walking toward you he stops where the homepage stands him, which is above the middle of
+       the screen -- so the curtain drifts up to hang across where his chest will be, and he
+       walks INTO it rather than over the top of it. */
+    const FO = { x: 0, y: 0, k: 0, on: false };
+    function curtainAt() {
+      const st = document.getElementById('home-stage')?.getBoundingClientRect();
+      if (!st || st.height < 40) return;
+      const foot = st.top + st.height * 0.9032, tall = st.height / 1.24;
+      FO.x = st.left + st.width / 2 - W / 2; FO.y = foot - tall * 0.55 - H / 2; FO.on = true;
+    }
+    const zm = new Float32Array(N).fill(1), zA = new Float32Array(N), wingS = new Int8Array(N);
+    /* The wings: everything is thrown out to its own side -- up or down by where it is against
+       his chest -- and each side is given the opposite turn, so the two halves sweep out and
+       curl back in mirror image, round behind him, onto the orb. */
+    function wings() {
+      const ch = ch0 || me.api.chest() || { x: W / 2, y: H * 0.5, r: H * 0.3 };
       for (let i = 0; i < N; i++) {
-        const dx = px[i] - ch.x, dy = py[i] - ch.y, d = Math.hypot(dx, dy) || 1;
-        // nearer him, harder: the ones he walks straight into come furthest toward you
-        const near = Math.exp(-Math.pow(d / (ch.r * 0.75), 2));
-        const sp = (3 + 11 * near) * (0.7 + Math.random() * 0.6), sw = (Math.random() < 0.5 ? 1 : -1) * sp * (0.35 + Math.random() * 0.5);
-        vx[i] += dx / d * sp - dy / d * sw; vy[i] += dy / d * sp + dx / d * sw;
-        zA[i] = (0.6 + 2.6 * near) * (0.6 + Math.random() * 0.7);
-        zT[i] = 0.9 + Math.random() * 0.7;
-        front[i] = 1;
+        const side = px[i] < ch.x ? -1 : 1, oy = Math.max(-1.1, Math.min(0.8, (py[i] - ch.y) / (ch.r || 1)));
+        const sp = 2.5 + 4 * Math.random() + 3 * knock[i];
+        vx[i] += side * sp; vy[i] += (oy * 3.2 - 1.2) * (0.6 + Math.random() * 0.6);
+        wingS[i] = oy < 0 ? side : -side;   // top half curls over, bottom half under: the four lobes of a wing pair
       }
     }
     function enter() {
       if (blown || walking) return;
       if (me.ok) {                         // he walks through first
         walking = true; me.on = true; me.api.start(W, H);
-        if (me.api.depth) front.fill(1);   // he starts BEHIND the field: every dot is in front of him
+        if (me.api.depth) { front.fill(1); curtainAt(); }   // he starts BEHIND the field: every dot is in front of him
         el.classList.add('walk');
         resolve('entered');
         return;
