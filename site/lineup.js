@@ -11,7 +11,7 @@
 //     each, and from where the camera stands nobody can tell;
 //   * it only renders while the Characters page is showing and on screen.
 import * as THREE from '../vendor/three.module.min.js';
-import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=aba0bb7d';
+import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=f2ce1ea9';
 
 export const LINE = { gap: 1.05, stagger: 0.35, tall: 0.4, tex: 512, dim: 0.32, fov: 30 };
 

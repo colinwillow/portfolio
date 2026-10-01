@@ -30,7 +30,7 @@ const RESIDUE = /CINEMA_4D_Main|\.\d{3}$|_rigged_mixamo$|^handyman_animations$/;
 // Mixamo skeleton naming. Rotation tracks only: a position track bakes the donor's bone
 // lengths and stretches the wearer (the Hips' travel goes with it, which an idle does not need).
 const donors = new Map();
-const BORROW = /^(idle|idle_01|walk_fwd|run_fwd)$/i;
+const BORROW = /^(idle|idle_01|walk_fwd|run_fwd|walking|running)$/i;
 // THE HIPS ARE THE ONE BONE THAT IS CORRECTED: one export puts its 90-degree Z-up turn on a
 // `root` above the hips, another bakes it into the hips themselves, and the borrowed hip
 // rotation then tips the wearer onto his back. q' = wearerRest * donorRest^-1 * q, on that

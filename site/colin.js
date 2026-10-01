@@ -13,7 +13,7 @@
 // here, the page moves at once, and he talks about it while it does.
 
 import * as THREE from '../vendor/three.module.min.js';
-import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=aba0bb7d';
+import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=f2ce1ea9';
 import { mouth, speakBuffer, hush, VISEME, JAW } from './speech.js?v=d7e94a3c';
 
 export const BRAIN = 'https://orb-brain.colinwillowtree.workers.dev';
