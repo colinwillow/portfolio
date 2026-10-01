@@ -164,8 +164,12 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const pxPerM = () => { const r = canvas.getBoundingClientRect(); return r.height / (2 * camera.position.z * Math.tan(camera.fov * Math.PI / 360)); };
   const bodyW = () => canvas.getBoundingClientRect().width || 120;
   const lane = () => [8, Math.max(8, innerWidth - bodyW() - 8)];
-  let heroDir = 0;
+  let heroDir = 0, groove = false;
+  // MUSIC ON: wherever he would stand idle he bops instead. The calmest dance in his file
+  // (measured: the least rotation of the six); dance_hiphop_03 is the next most casual.
+  const DANCE = 'dance_wiggle_feet';
   function lifeClip(name) {
+    if (name === 'idle' && groove && state === 'off' && LIFE.clips.dance) name = 'dance';
     const c = LIFE.clips[name]; if (!c || LIFE.cur === c) return; LIFE.cur = c;
     play(ch.mixer, c, { fade: 0.35 });
   }
@@ -343,7 +347,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
     });
     scene.add(c.model);
     idle = pickClip(c.clips, 'idle_neutral', 'neutral_idle');
-    Object.assign(LIFE.clips, { idle, walk: pickClip(c.clips, 'walk_fwd_neutral'), swagger: pickClip(c.clips, 'walk_fwd_swagger'),
+    Object.assign(LIFE.clips, { dance: c.clips.find(x => x.name === DANCE) || null, idle, walk: pickClip(c.clips, 'walk_fwd_neutral'), swagger: pickClip(c.clips, 'walk_fwd_swagger'),
       kick: pickClip(c.clips, 'idle_sad_kick'), wave: pickClip(c.clips, 'waving'), moon: pickClip(c.clips, 'dance_moonwalk'),
       tired: pickClip(c.clips, 'idle_exhausted') });
     LIFE.walk = 'walk'; LIFE.cur = idle;
@@ -548,6 +552,8 @@ export function createMiniColin({ go, known, items, pageOf }) {
   }
   const present = v => { presWant = v ? 1 : 0; };
   const heroWalk = d => { heroDir = d || 0; };
+  const grooveSet = on => { on = !!on; if (on === groove) return; groove = on;
+    if (ch && (LIFE.cur === LIFE.clips.idle || LIFE.cur === LIFE.clips.dance)) lifeClip('idle'); };
   const watch = f => { watchers.add(f); f(state !== 'off'); return () => watchers.delete(f); };
-  return { act, ask, wake, sleep, adopt, release, present, heroWalk, watch, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
+  return { act, ask, wake, sleep, adopt, release, present, heroWalk, watch, groove: grooveSet, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
 }

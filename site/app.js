@@ -730,7 +730,7 @@ const music = {
   },
   toggle() { if (!this.el || this.el.paused) this.play(); else this.el.pause(); },
   get playing() { return !!this.el && !this.el.paused; },
-  emit() { $('#sound').setAttribute('aria-pressed', String(this.playing)); this.subs.forEach(f => f()); },
+  emit() { $('#sound').setAttribute('aria-pressed', String(this.playing)); colin?.groove?.(this.playing); this.subs.forEach(f => f()); },
 };
 $('#sound').onclick = () => music.toggle();
 const sound = { get el() { return music.el; }, get an() { return music.an; }, get buf() { return music.buf; } };
@@ -738,7 +738,8 @@ let lvl = 0;
 (function meter() {
   requestAnimationFrame(meter);
   // the real song to Glorb while he is on screen; he falls back to his ghost one when it stops
-  if (GLORB.ready && music.playing && music.an2 && !route().length && scrollY < innerHeight) {
+  // (on every page, not only home: the Audio page's whole point is that he is the visualiser)
+  if (GLORB.ready && music.playing && music.an2 && scrollY < innerHeight) {
     music.an2.getByteFrequencyData(music.f2); music.an2.getFloatTimeDomainData(music.t2);
     GLORB.send({ glorb: 'audio', f: music.f2, t: music.t2 });
   }
@@ -863,5 +864,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=5a428e04').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=6dfec86c').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));
