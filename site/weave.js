@@ -146,7 +146,10 @@ function yarns(acc, shift, dark) {
   const v = 300 + shift * 0.5, gr = 145 + shift * 0.3;
   const Y = dark
     ? [[0.2, 0.01, v], [0.72, 0.22, v], [0.84, 0.21, gr], [0.9, 0.07, v]]
-    : [[0.95, 0.01, v], [0.5, 0.22, v], [0.6, 0.19, gr], [0.62, 0.1, v]];
+    // ON CREAM it is a quiet thing: the ground is white (it MULTIPLIES onto the page, so white is
+    // the page), the lines are a warm mid-grey only a step darker than the cream, and the colour
+    // is a little sage and lavender in the fine work -- low contrast, low saturation, on purpose
+    : [[0.995, 0.0, 85], [0.84, 0.018, 75], [0.83, 0.055, gr], [0.85, 0.045, v]];
   const [g, a, b, c] = Y.map(([l, cc, hh]) => oklchHex({ l, c: cc, h: hh }));
   return { g, a, b, c };
 }

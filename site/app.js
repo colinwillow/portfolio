@@ -578,7 +578,7 @@ function backdrop(key) {
   LINEUP?.visible(own === 'lineup');
   if (own === 'lineup' && CHARPICK.want) LINEUP?.focus(CHARPICK.want);   // (visible() clears the pick; put it back)
   if (own === 'rain' && !RAIN && !rainLoading && GLORB.ready)
-    rainLoading = import('./coderain.js?v=2119d60c').then(m => { RAIN = m.createCodeRain($('#glorb'), () => GLORB.api); backdrop(current()); });
+    rainLoading = import('./coderain.js?v=42c9189c').then(m => { RAIN = m.createCodeRain($('#glorb'), () => GLORB.api); backdrop(current()); });
   RAIN?.visible(own === 'rain');
 }
 const current = () => route()[0] || (route().length ? latched : pressed) || 'home';   // only called after boot
@@ -590,13 +590,14 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=1d4253d4').then(m => {
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
-  import('./weave.js?v=c37c269e').then(w => {
+  queueMicrotask(() => glorbPalette());   // his colours for whichever page he wakes up on
+  import('./weave.js?v=68b8ebba').then(w => {
     WEAVE = w.createWeave($('#glorb'), () => GLORB.api);   // Glorb's particles carve the cloth
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent
     backdrop(current());
   }).catch(err => console.warn('weave', err));
-  new MutationObserver(() => { api.post({ glorb: 'theme', theme: glorbTheme(), bg: css('--bg') }); WEAVE?.theme(glorbTheme() === 'dark'); })
+  new MutationObserver(() => { api.post({ glorb: 'theme', theme: glorbTheme(), bg: css('--bg') }); WEAVE?.theme(glorbTheme() === 'dark'); glorbPalette(); })
     .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   return api;
 }).catch(err => { console.warn('glorb unavailable', err); return null; }) : Promise.resolve(null);
@@ -752,9 +753,17 @@ function glorbShift() {
   const e = 1 - Math.pow(1 - GVAR.t, 3), f = GVAR.from, t = GVAR.to, c = api.cfg;
   for (const k of ['shape', 'bloom', 'split', 'coreR', 'radius']) c[k] = f[k] + (t[k] - f[k]) * e;
   const hue = f.hue + (t.hue - f.hue) * e;
-  if (Math.abs(hue) < 0.5) api.post({ glorb: 'palette' });
-  else api.post({ glorb: 'palette', rim: hueHex('#9a1cf0', hue), core: hueHex('#72ec5c', hue * 0.6) });
+  glorbPalette(hue);
 })();
+/* His colours. On the dark page they are the neon he was drawn in; on cream that much saturation
+   shouts, so light mode gets a softer violet and a sage -- still clearly his two colours, quieter. */
+function glorbPalette(hue = GVAR.to ? GVAR.to.hue : 0) {
+  const api = GLORB.api; if (!api) return;
+  const light = glorbTheme() === 'light';
+  if (!light && Math.abs(hue) < 0.5) { api.post({ glorb: 'palette' }); return; }
+  const rim = light ? '#8a64c2' : '#9a1cf0', core = light ? '#7fae6e' : '#72ec5c';
+  api.post({ glorb: 'palette', rim: hueHex(rim, hue), core: hueHex(core, hue * 0.6) });
+}
 
 // ---- the deck ---------------------------------------------------------------
 // The site's navigation is a row of push keys on a bar at the foot of the page,

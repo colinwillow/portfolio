@@ -4,7 +4,7 @@
   --accent: #b07a8f; --accent-ink: #7d4b5f; --accent-soft: #f1e6ea; --accent-deep: #5a2c3c;
   /* light mode is CREAM, not white: a warm off-white page, a slightly lighter sheet, cards a breath
      lighter again, and the lines and muted text pulled warm to sit in it */
-  --bg: #efe8da; --sheet: #f5efe3; --ink: #1d1a15; --muted: #736b5d; --line: #dcd2bf; --card: #faf5ea;
+  --bg: #efe8da; --sheet: #f5efe3; --ink: #2f2a24; --muted: #7d7466; --line: #ddd4c3; --card: #faf5ea;
   --globe-ink: #8a8782;
   --ui: 'Inter Tight', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
