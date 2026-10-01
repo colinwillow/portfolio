@@ -375,7 +375,7 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
-  import('./weave.js?v=b8f0b668').then(w => {
+  import('./weave.js?v=40a57577').then(w => {
     WEAVE = w.createWeave($('#glorb'), () => GLORB.api);   // Glorb's particles carve the cloth
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent
@@ -689,7 +689,7 @@ const globeReady = GLORB_ON ? Promise.resolve() : (USE_SWARM ? import('./stage-s
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? import('./intro.js?v=ecde69e9').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
+  ? import('./intro.js?v=e3d109bd').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
       .catch(err => console.warn('intro', err))
   : Promise.resolve();
 
@@ -708,5 +708,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=a9993cbe').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=b6c8432b').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

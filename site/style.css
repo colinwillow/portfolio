@@ -640,3 +640,6 @@ body.stage-page .about-floor { display: block; position: absolute; left: 50%; bo
 body.stage-page .about-slot { inset: 0 0 44px 0; transform: none; }
 body.stage-page .about-floor { bottom: 44px; transform: translate(-50%, 50%); }
 body.stage-page .about-floor { bottom: calc(44px + 0.085 * (100% - 44px)); }
+/* About: Colin back at his original size and spot; the floor fitted under his feet there */
+body.stage-page .about-slot { inset: 0; transform: translateY(6px); }
+body.stage-page .about-floor { bottom: calc(0.085 * 100% - 6px); aspect-ratio: 5 / 1; transform: translate(-50%, 50%); }

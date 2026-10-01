@@ -214,6 +214,7 @@ export function createWeave(host, field = () => null) {
   const live = new Map();
   const PARALLAX = 0.35;
   const LINE = { w: 1.4, glow: 5, glowA: 0.22 };
+  const MOTION = { on: false, still: 0.62 };   // still = how bright the pattern sits when it is not animating
 
   const unit = () => Math.max(34, Math.min(84, Math.min(innerWidth, innerHeight) * 0.14));
 
@@ -278,11 +279,14 @@ export function createWeave(host, field = () => null) {
             if (s.full && p > 0) return;                       // a full-width line is one shape across the screen
             const c = stateOf(wv.key + ':' + b.i + ':' + r + ':' + (s.full ? 'f' : p) + ':' + si); c.seen = frame;
             const ox = s.full ? 0 : x, cx = ox + s.cx, cy = yBase + s.cy;
+            // STILL, for now: the pattern sits exactly as drawn, crisp and aligned. The per-shape
+            // motion (twinkle, swell, wiggle, spring) is kept behind MOTION for a later, better pass.
+            const mo = MOTION.on ? 1 : 0;
             const n = noise(cx / dpr, (cy + par) / dpr, t) + 0.25 * Math.sin(t * 0.5 + c.ph);
-            const lit = Math.max(0, Math.min(1, 0.5 + n * 0.75));
-            const k = s.full ? 1 : 1 + 0.08 * lit;                // bright shapes come forward
-            const rot = s.full ? 0 : 0.04 * Math.sin(t * 0.37 + c.ph2);
-            const wx = (s.full ? 0 : 2.2 * Math.sin(t * 0.43 + c.ph)) * dpr + c.dx, wy = 1.8 * Math.sin(t * 0.31 + c.ph2) * dpr + c.d;
+            const lit = mo ? Math.max(0, Math.min(1, 0.5 + n * 0.75)) : MOTION.still;
+            const k = s.full || !mo ? 1 : 1 + 0.08 * lit;
+            const rot = s.full || !mo ? 0 : 0.04 * Math.sin(t * 0.37 + c.ph2);
+            const wx = mo ? (s.full ? 0 : 2.2 * Math.sin(t * 0.43 + c.ph)) * dpr + c.dx : 0, wy = mo ? 1.8 * Math.sin(t * 0.31 + c.ph2) * dpr + c.d : 0;
             const co = Math.cos(rot) * k, sn = Math.sin(rot) * k;
             // place it: about its own centre, then where it lives plus its wiggle and lag
             ctx.setTransform(co, sn, -sn, co, cx + wx - (co * s.cx - sn * s.cy), cy + wy - (sn * s.cx + co * s.cy));
@@ -358,7 +362,7 @@ export function createWeave(host, field = () => null) {
       for (const [k, c] of live) { const a = hash(k) * 6.28; c.vx += Math.cos(a) * 60 * amt * dpr; c.v += Math.sin(a) * 60 * amt * dpr; }
     },
     pause(p) { S.paused = !!p; },
-    CARVE, LINE,
+    CARVE, LINE, MOTION,
     /** where the main band should run (CSS px from the top): behind Glorb's centre */
     anchor(y) { S.anchor = y; },
     WEAVES, MOTIFS,

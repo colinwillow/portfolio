@@ -13,7 +13,6 @@
 // here, the page moves at once, and he talks about it while it does.
 
 import * as THREE from '../vendor/three.module.min.js';
-import { neonJacket } from './jacket.js?v=b598c162';
 import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=0090c5af';
 import { mouth, speakBuffer, hush, VISEME, JAW } from './speech.js?v=d7e94a3c';
 
@@ -327,7 +326,6 @@ export function createMiniColin({ go, known, items, pageOf }) {
       const m = o.isBone && o.name.match(/(Left|Right)(ForeArm|Arm)$/);
       if (m) gest.push({ bone: o, side: m[1] === 'Left' ? 1 : -1, fore: m[2] === 'ForeArm', base: o.quaternion.clone(), seed: Math.random() * 10 });
     });
-    neonJacket(THREE, c.model, new URL('./colin-jacket.webp', import.meta.url).href);   // his fleece in the site's colours
     scene.add(c.model);
     idle = pickClip(c.clips, 'idle_neutral', 'neutral_idle');
     Object.assign(LIFE.clips, { idle, walk: pickClip(c.clips, 'walk_fwd_neutral'), swagger: pickClip(c.clips, 'walk_fwd_swagger'),
