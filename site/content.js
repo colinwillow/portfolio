@@ -153,7 +153,7 @@ export const WEB = [
     blurb: 'A friend\'s company I ended up helping build.' },
   { slug: 'unknown', shot: 'unknown-key', gallery: ['unknown-key', 'web-unknown'], title: 'Unknown — SS25', url: GH + 'unknown/', role: 'Storefront',
     blurb: 'Product drops for my clothing label.' },
-  { slug: 'faith', title: 'Faith Udall', url: 'https://faithudall.com', role: 'Personal site',
+  { slug: 'faith', shot: 'web-faith', title: 'Faith Udall', url: 'https://faithudall.com', role: 'Personal site',
     blurb: 'A personal site for Faith.' },
 ];
 
