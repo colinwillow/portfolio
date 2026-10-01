@@ -629,7 +629,9 @@ addEventListener('scroll', () => {
     // row of keys is scrolled sideways; nothing pressed (or back at the top), centre stage
     let gx = hx;
     const on = home ? pressed : sectionOf(route()[0]) ? route()[0] : null;   // the key that is down
-    if (!SEAT && on) {
+    // except Characters: there his seat is the middle of the line-up, so walking to the key first
+    // only to be pulled back to the centre reads as a teleport -- he just waits where he is
+    if (!SEAT && on && on !== 'characters') {
       const kb = deck.querySelector(`.key[data-key="${on}"]`)?.getBoundingClientRect();
       if (kb?.width) gx = Math.max(48, Math.min(innerWidth - 48, kb.left + kb.width / 2));
     }
