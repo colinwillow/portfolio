@@ -139,12 +139,39 @@ const WEAVES = {
 // tinted neutral. Dim, so it fills the negative space and never competes with
 // him; the twinkle brightens a cell toward these, never past them.
 function yarns(acc, shift, dark) {
-  const h = acc.h + shift, v = 300 + shift * 0.4;
+  // NEON, to match Glorb: his violet, his green, and a pale lavender for the fine work.
+  // `shift` turns the set a little per section so each has its own glow.
+  const v = 300 + shift * 0.5, gr = 145 + shift * 0.3;
   const Y = dark
-    ? [[0.165, 0.004, h], [0.26, 0.05, h], [0.28, 0.07, v], [0.34, 0.02, h]]
-    : [[0.955, 0.004, h], [0.88, 0.04, h], [0.86, 0.05, v], [0.83, 0.02, h]];
+    ? [[0.2, 0.01, v], [0.72, 0.22, v], [0.84, 0.21, gr], [0.9, 0.07, v]]
+    : [[0.95, 0.01, v], [0.5, 0.22, v], [0.6, 0.19, gr], [0.62, 0.1, v]];
   const [g, a, b, c] = Y.map(([l, cc, hh]) => oklchHex({ l, c: cc, h: hh }));
   return { g, a, b, c };
+}
+
+/* OUTLINES, NOT FILLS. Every motif is written as filled shapes (that is the
+   easiest way to describe one), and this pen traces their edges instead: a
+   polygon becomes its outline, a full-width band becomes the two lines along it
+   (so no seams at the repeat), and ground fills disappear. Each line carries a
+   soft glow of its own colour, baked once into the tile. */
+function outlinePen(g, w, C, lw, glow) {
+  let col = C.a;
+  const ink = c => c === C.g ? C.a : c;
+  const stroke = () => { g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = glow; g.lineWidth = lw; g.lineJoin = 'round'; g.stroke(); };
+  return {
+    set fillStyle(v) { col = v; }, get fillStyle() { return col; },
+    fillRect(x, y, ww, hh) {
+      if (col === C.g) return;
+      g.beginPath();
+      if (ww >= w - 1) { g.moveTo(-2, y + lw / 2); g.lineTo(w + 2, y + lw / 2); g.moveTo(-2, y + hh - lw / 2); g.lineTo(w + 2, y + hh - lw / 2); }
+      else g.rect(x, y, ww, hh);
+      stroke();
+    },
+    beginPath: () => g.beginPath(), moveTo: (x, y) => g.moveTo(x, y), lineTo: (x, y) => g.lineTo(x, y),
+    closePath: () => g.closePath(), arc: (...a) => g.arc(...a),
+    fill() { col = ink(col); stroke(); },
+    translate: (x, y) => g.translate(x, y), scale: (x, y) => g.scale(x, y),
+  };
 }
 
 // smooth, cheap, deterministic noise: a few slow sines over space and time
@@ -162,7 +189,7 @@ const hash = (k) => { let h = 2166136261; for (let i = 0; i < k.length; i++) h =
      speed (parallax), and each cell is a little late to follow, with its own
      stiffness and a touch of random drift, so a scroll sends a ripple through
      it and it settles back into place -- Glorb's particles finding home. */
-export function createWeave(host) {
+export function createWeave(host, field = () => null) {
   const cv = document.createElement('canvas');
   cv.className = 'weave'; host.appendChild(cv);
   const ctx = cv.getContext('2d');
@@ -180,12 +207,14 @@ export function createWeave(host) {
     const bands = W.bands.map(([m, hu, o = {}], i) => {
       const M = MOTIFS[m], h = Math.max(2, Math.round(hu * u * dpr)), w = Math.max(2, Math.round(M.per(h)));
       const empty = m === 'stripe' && o.col === 'g';
-      const tile = document.createElement('canvas'); tile.width = w; tile.height = h;
+      const pad = Math.round(8 * dpr);                     // room for the glow above and below
+      const tile = document.createElement('canvas'); tile.width = w; tile.height = h + 2 * pad;
       const g = tile.getContext('2d');
+      g.translate(0, pad);
       if (o.flip) { g.translate(0, h); g.scale(1, -1); }
-      M.draw(g, w, h, C, o);
+      M.draw(outlinePen(g, w, C, 1.4 * dpr, 6 * dpr), w, h, C, o);
       const n = Math.max(1, Math.round(w / Math.max(26 * dpr, Math.min(h, u * dpr * 1.1))));
-      const b = { i, tile, y, h, w, n, sw: w / n, empty };
+      const b = { i, tile, y, h, w, n, sw: w / n, empty, pad };
       y += h; return b;
     });
     // the MAIN band is what sits behind Glorb, with open ground above and below it -- never the gap
@@ -235,13 +264,36 @@ export function createWeave(host) {
             const n = noise(cx / dpr, (cy + par) / dpr, t) + 0.25 * Math.sin(t * 0.5 + c.ph);   // about -1..1
             const lit = Math.max(0, Math.min(1, 0.5 + n * 0.75));
             const k = 1 + 0.07 * lit;                                    // bright cells come forward
-            ctx.globalAlpha = alpha * (0.42 + 0.58 * lit);
-            const w2 = b.sw * k, h2 = b.h * k;
-            ctx.drawImage(b.tile, s * b.sw, 0, b.sw, b.h, cx - w2 / 2 + c.dx, cy - h2 / 2 + c.d, w2 + 0.6, h2);
+            ctx.globalAlpha = alpha * (0.32 + 0.68 * lit);
+            const th = b.h + 2 * b.pad, w2 = b.sw * k, h2 = th * k;
+            ctx.drawImage(b.tile, s * b.sw, 0, b.sw, th, cx - w2 / 2 + c.dx, cy - h2 / 2 + c.d, w2 + 0.6, h2);
           }
         }
       }
     }
+  }
+
+  /* THE BOOLEAN SUBTRACT. Wherever Glorb's particles are, the cloth is cut away,
+     with a soft margin, so the pattern stops at his silhouette and parts around
+     him as he moves. The particles are stamped into a quarter-size mask (cheap
+     for thousands of dots) and scaling it back up is what softens the edge. */
+  const mask = document.createElement('canvas'), mg = mask.getContext('2d');
+  const CARVE = { r: 9, feather: 7, q: 4 };
+  function carve() {
+    const api = field(); if (!api) return;
+    const q = CARVE.q, mw = Math.ceil(cv.width / q), mh = Math.ceil(cv.height / q);
+    if (mask.width !== mw || mask.height !== mh) { mask.width = mw; mask.height = mh; }
+    mg.clearRect(0, 0, mw, mh);
+    const { px, py } = api.field, n = api.n, s = dpr / q;
+    const TAU = Math.PI * 2;
+    for (const [rad, a] of [[CARVE.r + CARVE.feather, 0.45], [CARVE.r, 1]]) {
+      mg.globalAlpha = a; mg.fillStyle = '#fff'; mg.beginPath();
+      const r = rad * s;
+      for (let i = 0; i < n; i++) { const x = px[i] * s, y = py[i] * s; if (x < -r || y < -r || x > mw + r || y > mh + r) continue; mg.moveTo(x + r, y); mg.arc(x, y, r, 0, TAU); }
+      mg.fill();
+    }
+    ctx.save(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'destination-out'; ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(mask, 0, 0, cv.width, cv.height); ctx.restore();
   }
 
   let frameN = 0;
@@ -261,6 +313,7 @@ export function createWeave(host) {
     if (S.old) paint(S.old, 1 - e, frameN);
     paint(S.cur, S.old ? e : 1, frameN);
     if (S.fade >= 1) S.old = null;
+    carve();
     if (frameN % 60 === 0) for (const [k, c] of cells) if (frameN - c.seen > 60) cells.delete(k);
   }
   requestAnimationFrame(frame);
@@ -282,6 +335,7 @@ export function createWeave(host) {
       for (const [k, c] of cells) { const a = hash(k) * 6.28; c.vx += Math.cos(a) * 60 * amt * dpr; c.v += Math.sin(a) * 60 * amt * dpr; }
     },
     pause(p) { S.paused = !!p; },
+    CARVE,
     /** where the main band should run (CSS px from the top): behind Glorb's centre */
     anchor(y) { S.anchor = y; },
     WEAVES, MOTIFS,

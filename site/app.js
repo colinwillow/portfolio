@@ -374,8 +374,8 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
-  import('./weave.js?v=756b653c').then(w => {
-    WEAVE = w.createWeave($('#glorb'));
+  import('./weave.js?v=15a11a80').then(w => {
+    WEAVE = w.createWeave($('#glorb'), () => GLORB.api);   // Glorb's particles carve the cloth
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent
     WEAVE.set(route()[0] || latched || 'home');

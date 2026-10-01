@@ -563,7 +563,7 @@ body.stage-page .about-talk { left: auto; right: var(--gut); bottom: 22px; trans
    Laid OVER his canvas with lighten, so any particle brighter than the cloth
    wins; in the light theme it darkens instead. */
 #glorb canvas.weave { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: lighten; }
-#glorb canvas.weave.light { mix-blend-mode: darken; }
+#glorb canvas.weave.light { mix-blend-mode: multiply; }
 .key { justify-content: center; }   /* just the name now, no number above it */
 .tile.game .tile-meta { flex-direction: column; align-items: flex-start; gap: 3px; } .tile.game .tile-meta b { font-size: 15px; line-height: 1.15; } .tile.game .tile-meta span { text-align: left; font-size: 11px; }
 
