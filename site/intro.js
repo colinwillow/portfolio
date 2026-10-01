@@ -212,7 +212,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           if (fd < 90 && fd > 0) { const p = maxF[i] * 6 * (1 - fd / 90); ax += fx / fd * p; ay += fy / fd * p; }
           // just knocked: the strand's pull comes back gently rather than at once
           const back = 1 - 0.85 * knock[i];
-          const dr = hitT[i] ? 0.972 : 0.95;   // a dot rolling off him keeps going; the strands' drag is for the swarm
+          const dr = hitT[i] ? 0.955 : 0.95;   // a dot rolling off him keeps going; the strands' drag is for the swarm
           vx[i] = (vx[i] + ax * back * k) * Math.pow(dr, k); vy[i] = (vy[i] + ay * back * k) * Math.pow(dr, k);
           if (!hitT[i]) knock[i] *= Math.pow(0.975, k);   // touched by him: the strand never takes it back
           /* HIM, AS AIR SEES A CAR. In his own frame the air rushes backwards
@@ -222,31 +222,29 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
              little and slide up or down, over his head and under his feet they
              hardly move while he passes, and behind him they fill back in. They
              are not carried off with him, and the strand pulls them home after. */
-          /* CLING, THEN THROWN (walking toward you). The cloud has depth: each dot sits at its
-             own distance (pz) and nothing happens to it until he has walked that far. If his body
-             is on it then, it is CAUGHT: held to a band just inside his outline (the shell -- a
-             blurred copy of him, 1 in his middle fading to 0 outside -- pushes it out of his
-             middle and pulls it back if it drifts off), so the touched ones visibly bank up round
-             his edge. Then they go in WAVES: every third of a second, whatever is clinging is
-             thrown off him along his outline's normal, rolling up off his upper half and down off
-             his lower. So two or three puffs, each made of exactly the dots that were touching
-             him -- nothing moves that he did not reach. */
+          /* AIR ROUND A BODY (walking toward you) -- the side walk's own idea, turned to face
+             you. Nothing is thrown. Each dot sits at its own depth (pz) in the cloud; once he has
+             walked that far, if it is inside his silhouette it is in the way, and the only force
+             on it is his shape: a gradient (the shell -- a blurred copy of him, 1 in his middle,
+             0 just outside) that carries it to his NEAREST EDGE, faster the deeper it is, and
+             takes away anything still heading further in. Out past his edge it coasts on what it
+             was given, bends a little on the curl field, and slows to a stop -- displaced, the
+             way his body moves air aside, never flung. */
           if (me.on && me.api.depth && crossT && me.api.progress() > pz[i]) {
-            const c0 = me.api.chest() || ch0;
             const sh = me.api.hit(px[i], py[i]);
             if (!passT[i]) passT[i] = now;
-            if (!cl[i] && sh && sh.d > 0.03) {
-              cl[i] = 1; knock[i] = 1;
-              const t0 = now - crossT + 140, wave = Math.ceil(t0 / WAVE) * WAVE;   // the next wave after a beat of clinging
-              relT[i] = crossT + wave + Math.random() * 50;
+            if (sh && sh.d > 0.02) {
+              if (!hitT[i]) { hitT[i] = now; knock[i] = 1; }
+              const p = Math.pow(sh.d, 1.5), vn = vx[i] * sh.nx + vy[i] * sh.ny;
+              if (vn < 0) { const c = Math.min(1, sh.d * 1.5); vx[i] -= vn * sh.nx * c; vy[i] -= vn * sh.ny * c; }
+              const want = 1.2 + 5.5 * p * (0.75 + 0.5 * amp[i]);          // speed out of him, by how deep it is
+              const out = vx[i] * sh.nx + vy[i] * sh.ny;
+              if (out < want) { const g = (want - out) * (1 - Math.pow(0.8, k)); vx[i] += sh.nx * g; vy[i] += sh.ny * g; }
             }
-            if (cl[i] === 1) {
-              if (sh) {
-                const band = 0.46, f = (sh.d - band) * 3.2;   // deeper than the band: out; shallower: back in
-                vx[i] += sh.nx * f * k; vy[i] += sh.ny * f * k;
-              } else { vx[i] += (c0.x - px[i]) * 0.004 * k; vy[i] += (c0.y - py[i]) * 0.004 * k; }
-              vx[i] *= Math.pow(0.8, k); vy[i] *= Math.pow(0.8, k);   // it settles on him
-              if (now >= relT[i]) throwOff(i, sh, c0);
+            if (hitT[i]) {
+              // the eddies it rides once it is clear of him, fading in as it leaves
+              const [fx, fy] = curl(px[i], py[i], now / 1000), q = sh ? 1 - Math.min(1, sh.d * 3) : 1;
+              vx[i] += fx * 0.035 * q * k; vy[i] += fy * 0.035 * q * k;
             }
           }
           if (me.on && !me.api.depth) {
@@ -294,7 +292,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
         if (hitT[i]) {
           const e = Math.min(1, (now - hitT[i]) / 600), up = e * e * (3 - 2 * e);
           const back = blown ? Math.max(0, 1 - blown / 1.1) : 1;
-          want = 1 + amp[i] * amp[i] * 2.4 * up * back;
+          want = 1 + 0 * up * back;   // (no swell: he moves air aside, he does not throw it at you)
         }
         zm[i] += (want - zm[i]) * (1 - Math.pow(0.8, k));
         // in front while thrown toward you, behind once it has curled back -- but it only ever
@@ -304,7 +302,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
            it has been out long enough), and only somewhere he is NOT -- if it is over him at
            that moment it waits until it is clear. Then it stays behind for good, so everything
            that comes back comes back behind him. The swap itself is a short crossfade. */
-        if (!gb2[i] && passT[i] && !hitT[i] && !cl[i] && now - passT[i] > 150) { const o = me.api.hit(px[i], py[i]); if (!o || o.d < 0.02) gb2[i] = 1; }
+        if (!gb2[i] && passT[i] && now - passT[i] > 120) { const o = me.api.hit(px[i], py[i]); if (!o || o.d < 0.02) gb2[i] = 1; }
         if (!gb2[i] && hitT[i]) {
           const c1 = me.api.chest() || ch0, rx = px[i] - c1.x, ry = py[i] - c1.y, rm = Math.hypot(rx, ry) || 1;
           const vr = (vx[i] * rx + vy[i] * ry) / rm;
