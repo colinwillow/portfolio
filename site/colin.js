@@ -126,7 +126,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const key = new THREE.DirectionalLight(0xffffff, 2.0); key.position.set(1.5, 3, 3); scene.add(key);
 
   let ch = null, head = null, face = [], idle = null, blinkT = 2, blink = 0, dead = false;
-  const look = new THREE.Vector2(), lookNow = new THREE.Vector2();
+  const ZERO2 = new THREE.Vector2(), look = new THREE.Vector2(), lookNow = new THREE.Vector2();
   const headBase = new THREE.Quaternion(), glance = new THREE.Quaternion(), eul = new THREE.Euler();
   // Talking gestures. The rig ships no gesture clips, so the arms are moved in
   // code while he speaks. The axes were MEASURED on colin.glb (which rotation
@@ -135,6 +135,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   // the head glance, or the offsets would stack every frame.
   const gest = []; let gAmt = 0, gBeat = 0, lastShape = 'rest', pres = 0, presWant = 0;
   const Y = new THREE.Vector3(0, 1, 0);
+  const GESTURES = false;   // the code-driven talking hands read badly: off until there is a real Mixamo clip for it
   const PRESENT = { fore: 1.4, arm: 0.5, twist: 1.3 };   // "this is everything": elbows down, forearms out, palms up
   const Z = new THREE.Vector3(0, 0, 1), X = new THREE.Vector3(1, 0, 0);
   addEventListener('pointermove', e => {
@@ -207,8 +208,9 @@ export function createMiniColin({ go, known, items, pageOf }) {
       // borrowed by a page: he stands centre stage, facing out, whatever he was doing on the strip
       // (or, in the line-up, walks with the line when it shifts: `heroWalk`)
       if (LIFE.mode !== 'idle') { LIFE.mode = 'idle'; LIFE.t = 3; }
-      LIFE.face = heroDir; lifeClip(heroDir ? 'walk' : 'idle');
-      LIFE.faceNow += (heroDir - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
+      const hd = state !== 'off' ? 0 : heroDir;   // talking: always facing out, never walking
+      LIFE.face = hd; lifeClip(hd ? 'walk' : 'idle');
+      LIFE.faceNow += (hd - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
       ch.model.rotation.y = LIFE.faceNow * Math.PI / 2;
       dock.style.transform = '';
       return;
@@ -276,7 +278,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
     ch.mixer.update(dt);
     // gestures: ease in while he talks, with a little beat on each open vowel
     const talking = mouth.talking && mouth.who === 'colin';
-    gAmt += ((talking ? 1 : 0) - gAmt) * (1 - Math.exp(-3 * dt));
+    gAmt += ((talking && GESTURES ? 1 : 0) - gAmt) * (1 - Math.exp(-3 * dt));
     if (talking && mouth.shape !== lastShape && (mouth.shape === 'AI' || mouth.shape === 'O')) gBeat = 1;
     lastShape = mouth.shape; gBeat *= Math.exp(-5 * dt);
     const tt = performance.now() / 1000;
@@ -296,7 +298,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
       else g.bone.rotateOnAxis(Z, -g.side * pres * PRESENT.arm);
     }
     // look toward the pointer, on top of whatever the clip did to the head
-    lookNow.lerp(look, 1 - Math.exp(-4 * dt));
+    lookNow.lerp(state !== 'off' ? ZERO2 : look, 1 - Math.exp(-4 * dt));   // talking to you: he looks at you
     if (head) {
       headBase.copy(head.quaternion);
       glance.setFromEuler(eul.set(lookNow.y * 0.25, lookNow.x * 0.45, 0));
@@ -368,7 +370,8 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const brain = createBrain(known);
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let ctx = null, state = 'off', rec = null, heard = '', gapT = 0, cc = false, turn = 0;
-  const setState = s2 => { state = s2; dock.dataset.state = s2;
+  const watchers = new Set();
+  const setState = s2 => { state = s2; dock.dataset.state = s2; watchers.forEach(f => f(s2 !== 'off'));
     tag.textContent = { off: '', listening: 'Listening', thinking: 'Thinking', speaking: 'Talking' }[s2];
     if (s2 !== 'off') bubble.hidden = true; };
   const log = (who, text) => { const p = document.createElement('p'); p.className = who; p.textContent = text;
@@ -523,8 +526,8 @@ export function createMiniColin({ go, known, items, pageOf }) {
 
   // Hero mode: the About page borrows him, big, in its own frame.
   const home = { parent: document.body, next: null };
-  function adopt(host, { present = false } = {}) { presWant = present ? 1 : 0; if (!host) return; if (dock.parentElement === host) return; host.appendChild(dock); dock.classList.add('hero'); if (bubble) bubble.hidden = true; size(); }
-  function release() { presWant = 0; if (dock.parentElement !== perch()) { perch().appendChild(dock); dock.classList.remove('hero'); size(); } }
+  function adopt(host, { present = false } = {}) { heroDir = 0; presWant = present ? 1 : 0; if (!host) return; if (dock.parentElement === host) return; host.appendChild(dock); dock.classList.add('hero'); if (bubble) bubble.hidden = true; size(); }
+  function release() { heroDir = 0; presWant = 0; if (dock.parentElement !== perch()) { perch().appendChild(dock); dock.classList.remove('hero'); size(); } }
   /** Where his head is on screen (client px), for things that orbit it. */
   const hv = new THREE.Vector3();
   function headScreen() {
@@ -545,5 +548,6 @@ export function createMiniColin({ go, known, items, pageOf }) {
   }
   const present = v => { presWant = v ? 1 : 0; };
   const heroWalk = d => { heroDir = d || 0; };
-  return { act, ask, wake, sleep, adopt, release, present, heroWalk, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
+  const watch = f => { watchers.add(f); f(state !== 'off'); return () => watchers.delete(f); };
+  return { act, ask, wake, sleep, adopt, release, present, heroWalk, watch, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
 }

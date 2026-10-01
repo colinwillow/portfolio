@@ -470,7 +470,7 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=3669d690').then(m => {
+    lineupLoading = import('./lineup.js?v=415284b5').then(m => {
       LINEUP = m.createLineup($('#glorb'), [...ASSETS.slice(0, 4), { slug: 'colin', colin: true, h: 1.9, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...ASSETS.slice(4)], { onPick: slug => CHARPICK.show?.(slug),
         colin: { place: p => { SEAT = p; }, joined: v => { document.body.classList.toggle('colin-in-line', v); heroSync(); } } });
       LINEUP.fog(css('--bg') || '#0e0e0f'); backdrop(current()); });
@@ -750,7 +750,10 @@ function mountAbout() {
   const hero = $('#about-hero'), slot = hero.querySelector('.about-slot');
   let dead = false;
   withColin(c => { if (!dead) c.adopt(slot); });
-  hero.querySelector('.about-talk').onclick = () => withColin(c => { if (!c.awake) c.wake(); });
+  // the button IS the conversation's on/off: Talk to me, and while he is talking, Stop
+  const talk = hero.querySelector('.about-talk'); let unwatch = null;
+  talk.onclick = () => withColin(c => { if (c.awake) c.sleep(); else c.wake(); });
+  withColin(c => { if (!dead) unwatch = c.watch(on => { talk.textContent = on ? 'Stop talking' : 'Talk to me'; talk.classList.toggle('on', on); }); });
   document.querySelectorAll('.listen').forEach(b => b.onclick = async () => {
     const w = WRITING.find(x => x.slug === b.dataset.slug);
     const { speakParts, hush } = await import('./speech.js?v=d7e94a3c');
@@ -760,7 +763,7 @@ function mountAbout() {
     speakParts(j.parts.map(p => ({ ...p, src: new URL(p.audio, base).href })), { who: 'colin',
       onEnd: () => { b.textContent = '▶ Listen'; delete b.dataset.on; } });
   });
-  mounted = { destroy() { dead = true; colin?.release(); } };
+  mounted = { destroy() { dead = true; unwatch?.(); colin?.release(); } };
 }
 
 // ---- Audio: the shared player, bars, and the sound-effects pads ----------------
@@ -852,5 +855,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=d1bdfc2a').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=5a428e04').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

@@ -215,7 +215,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
       for (const { m, base } of s.mats) m.color.copy(base).multiplyScalar(s.lit);
     }
     renderer.render(scene, camera);
-    seat();
+    if (S.on) seat();   // running out after the line is gone: the seat is not reporting any more
   }
   requestAnimationFrame(frame);
   const sv = new THREE.Vector3();
