@@ -782,3 +782,17 @@ body.at-home #home-stage { display: flex; justify-content: center; align-items: 
 /* the line-up brings its own Colin: the hero one steps aside so there is only ever one of him */
 body.colin-in-line #home-stage { visibility: visible; display: flex; justify-content: center; align-items: flex-end; z-index: 14; }
 #home-stage { transform-origin: 50% 90.32%; }
+/* ONE look for the characters: the Characters page keeps the home page's head height, so
+   the line-up does not shrink on the way in, and its picker is the home shelf's plain
+   figures (no boxes) -- the picked one lifted, lit and underlined */
+body[data-sec="characters"] #deck { margin-top: 54svh; }
+@media (min-aspect-ratio: 1/1) { body[data-sec="characters"] #deck { margin-top: 72svh; } }
+.char-thumbs { gap: 4px; }
+.char-thumbs button { width: 84px; border: 0; background: none; border-radius: 0; padding: 0 0 8px; box-shadow: none;
+  color: var(--muted); font: 600 12px/1.2 var(--ui); position: relative; }
+.char-thumbs button img { transition: transform .3s cubic-bezier(.2,.8,.2,1), opacity .2s; }
+.char-thumbs:has(.on) button:not(.on) img { opacity: .62; }
+.char-thumbs button.on { border: 0; box-shadow: none; transform: none; color: var(--ink); }
+.char-thumbs button.on img { transform: translateY(-6px) scale(1.06); }
+.char-thumbs button.on::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 2px; height: 3px; border-radius: 3px;
+  background: var(--accent); box-shadow: 0 0 10px var(--accent); }
