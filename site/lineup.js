@@ -13,7 +13,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=222cfe45';
 
-export const LINE = { gap: 1.05, stagger: 0.35, tall: 0.4, tex: 512, dim: 0.32, fov: 30 };
+export const LINE = { gap: 1.05, stagger: 0.18, forward: 0.25, tall: 0.4, tex: 512, dim: 0.32, fov: 30 };
 
 function shrinkTextures(model) {
   const done = new Set();
@@ -32,6 +32,12 @@ function shrinkTextures(model) {
   });
 }
 
+// one shared soft disc for every contact shadow (greyscale falloff in the COLOUR: three's alphaMap reads green)
+const SHADOW = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(0,0,0,.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  return new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, fog: false });
+})();
 export function createLineup(host, chars, { onPick = () => {}, colin = null } = {}) {
   const cv = document.createElement('canvas');
   cv.className = 'lineup off'; document.body.appendChild(cv);   // above the strip, so their feet stand on its top face
@@ -69,7 +75,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
   // the line keeps its order; picking someone slides the WHOLE line so they stand in the
   // middle -- everyone walks the same way the same distance, so nobody crosses anybody
   function layout() {
-    slots.forEach((s, k) => { s.tx = (k - home - S.shift) * LINE.gap; s.tz = S.sel === s.c.slug ? 0.5 : (k % 2 ? -LINE.stagger : 0); });
+    slots.forEach((s, k) => { s.tx = (k - home - S.shift) * LINE.gap; s.tz = S.sel === s.c.slug ? LINE.forward : (k % 2 ? -LINE.stagger : 0); });
   }
   layout();
 
@@ -113,13 +119,18 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
           walk: has(/walk_fwd_neutral|^walk_fwd|^walking$|^walk$|walk/i),
           air: has(/floating|in_air|falling_idle|jump_going_up|air|fall/i),
           land: has(/landing_soft|^landing$|landing|hard_landing/i) };
-        s.mixer = ch.mixer; s.cur = null; clip(s, 'idle'); ch.mixer.update(0.01);
+        // measured once the idle is FULLY in: the clip fades in over a quarter second, and at
+        // 0.01s he is still in his bind pose -- which for Zorp sits 0.66 m lower than his idle,
+        // so he was set on the floor by a pose he never stands in, and floated
+        s.mixer = ch.mixer; s.cur = null; clip(s, 'idle'); ch.mixer.update(0.01); ch.mixer.update(0.5);
         const a = ch.mixer.existingAction(s.clips.idle); if (a) a.time = Math.random() * s.clips.idle.duration;   // out of step
         const box = skinnedBounds(ch.model), tall = box.max.y - box.min.y || 1, k = (s.c.h || 1.75) / tall;
         ch.model.scale.setScalar(k);
         ch.model.position.set(-(box.min.x + box.max.x) / 2 * k, -box.min.y * k, -(box.min.z + box.max.z) / 2 * k);
         ch.model.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) if (m.color) s.mats.push({ m, base: m.color.clone() }); });
         s.group.add(ch.model); s.loaded = true;
+        // a soft contact shadow, so a step toward the camera reads as depth rather than as sinking
+        const sh = new THREE.Mesh(new THREE.CircleGeometry(0.34 * (s.c.h || 1.75) / 1.75, 32), SHADOW); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.004; s.group.add(sh);
         stageLeft(s, 0.1);
       } catch (e) { console.warn('line-up', s.c.slug, e); }
     }
