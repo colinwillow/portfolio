@@ -26,8 +26,34 @@ function gltf() {
 
 const RESIDUE = /CINEMA_4D_Main|\.\d{3}$|_rigged_mixamo$|^handyman_animations$/;
 
-/** Load a character. `onProgress(0..1)` when the server sends a length. */
-export async function loadCharacter(url, onProgress) {
+// A character exported RIGGED BUT UNANIMATED borrows a few clips from another file on the same
+// Mixamo skeleton naming. Rotation tracks only: a position track bakes the donor's bone
+// lengths and stretches the wearer (the Hips' travel goes with it, which an idle does not need).
+const donors = new Map();
+const BORROW = /^(idle|idle_01|walk_fwd|run_fwd)$/i;
+// THE HIPS ARE THE ONE BONE THAT IS CORRECTED: one export puts its 90-degree Z-up turn on a
+// `root` above the hips, another bakes it into the hips themselves, and the borrowed hip
+// rotation then tips the wearer onto his back. q' = wearerRest * donorRest^-1 * q, on that
+// bone only -- doing it down the limbs compounds (Shredworld's c69 lesson).
+async function borrowClips(model, url) {
+  if (!donors.has(url)) donors.set(url, new Promise((res, rej) => gltf().load(url, g => res(g), undefined, rej)));
+  const g = await donors.get(url), names = new Set(); model.traverse(o => names.add(o.name));
+  const hips = n => { let h = null; n.traverse(o => { if (!h && /Hips$/.test(o.name)) h = o; }); return h; };
+  const hw = hips(model), hd = hips(g.scene);
+  const fix = hw && hd ? hw.quaternion.clone().multiply(hd.quaternion.clone().invert()) : null;
+  const q = new THREE.Quaternion();
+  return g.animations.filter(c => BORROW.test(c.name)).map(c => {
+    const k = c.clone(); k.tracks = k.tracks.filter(t => t.name.endsWith('.quaternion') && names.has(t.name.split('.')[0]));
+    for (const t of k.tracks) if (fix && /Hips$/.test(t.name.split('.')[0]) && fix.angleTo(new THREE.Quaternion()) > 0.05) {
+      const v = t.values = Float32Array.from(t.values);
+      for (let i = 0; i < v.length; i += 4) { q.fromArray(v, i).premultiply(fix); q.toArray(v, i); }
+    }
+    return k;
+  }).filter(c => c.tracks.length);
+}
+
+/** Load a character. `onProgress(0..1)` when the server sends a length. `anim`: a file to borrow clips from. */
+export async function loadCharacter(url, onProgress, { anim = null } = {}) {
   const g = await new Promise((res, rej) => gltf().load(url, res,
     e => { if (e.total) onProgress?.(e.loaded / e.total); }, rej));
   const model = g.scene;
@@ -44,7 +70,8 @@ export async function loadCharacter(url, onProgress) {
       if (m.transparent && m.alphaTest === 0) { m.transparent = false; m.depthWrite = true; }
     }
   });
-  const clips = g.animations.filter(c => !RESIDUE.test(c.name) && c.tracks.length);
+  let clips = g.animations.filter(c => !RESIDUE.test(c.name) && c.tracks.length);
+  if (anim && !clips.some(c => /idle/i.test(c.name))) clips = [...await borrowClips(model, anim).catch(() => []), ...clips];
   const mixer = new THREE.AnimationMixer(model);
   return { model, clips, mixer, tris: Math.round(tris), joints };
 }

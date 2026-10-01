@@ -11,7 +11,7 @@
 //     each, and from where the camera stands nobody can tell;
 //   * it only renders while the Characters page is showing and on screen.
 import * as THREE from '../vendor/three.module.min.js';
-import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=0090c5af';
+import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=aba0bb7d';
 
 export const LINE = { gap: 1.05, stagger: 0.35, tall: 0.4, tex: 512, dim: 0.32, fov: 30 };
 
@@ -95,9 +95,10 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     const mid = (slots.length - 1) / 2;
     const seq = [...slots].sort((a, b) => Math.abs(a.i - mid) - Math.abs(b.i - mid));
     for (const s of seq) {
+      if (S.dead) return;
       if (s.c.colin) { s.ghost = true; s.loaded = true; s.mixer = { update() {} }; stageLeft(s, 0); continue; }
       try {
-        const ch = await loadCharacter(new URL('../' + s.c.glb, import.meta.url).href);
+        const ch = await loadCharacter(new URL('../' + s.c.glb, import.meta.url).href, null, { anim: s.c.anim && new URL('../' + s.c.anim, import.meta.url).href });
         if (s.c.colin) {                                           // Colin's own file: donor heads out, his face shape on
           const loose = []; let sk = 0; ch.model.traverse(o => { if (o.isSkinnedMesh) sk++; else if (o.isMesh) loose.push(o); });
           if (sk) loose.forEach(o => o.removeFromParent());
@@ -197,6 +198,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
 
   const clock = new THREE.Clock();
   function frame(now) {
+    if (S.dead) return;
     requestAnimationFrame(frame);
     if ((!S.on && performance.now() > S.exitUntil) || S.paused || document.hidden) { clock.getDelta(); return; }
     const dt = Math.min(0.05, clock.getDelta());
@@ -229,13 +231,14 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
 
   // drag to walk the line; a tap picks whoever is under the thumb
   cv.addEventListener('pointerdown', e => { S.drag = { x: e.clientX, camX: S.camX, moved: 0 }; });
-  addEventListener('pointermove', e => {
+  const onMove = e => {
     if (!S.drag) return;
     const dx = e.clientX - S.drag.x; S.drag.moved = Math.max(S.drag.moved, Math.abs(dx));
     const ppm = frameCamera();
     S.camX = S.wantX = Math.max(-span(), Math.min(span(), S.drag.camX - dx / ppm));
-  });
-  addEventListener('pointerup', e => {
+  };
+  addEventListener('pointermove', onMove);
+  const onUp = e => {
     if (!S.drag) return;
     const tap = S.drag.moved < 8; S.drag = null;
     if (!tap) return;
@@ -249,7 +252,8 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
       if (d < bd) { bd = d; best = s; }
     }
     if (best && bd < 90) { api.focus(best.c.slug); onPick(best.c.slug); }
-  });
+  };
+  addEventListener('pointerup', onUp);
 
   const api = {
     canvas: cv,
@@ -283,6 +287,13 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     ground(y, below) { S.ground = y; if (below != null) S.below = Math.round(below); },
     pause(p) { p = !!p; if (p === S.paused) return; S.paused = p; cv.style.visibility = p ? 'hidden' : ''; },   // off the top: gone, not a frozen frame
     fog(hex) { scene.fog.color.set(hex); },
+    /** gone for good: a different game's cast is taking the stage */
+    destroy() {
+      S.dead = true; S.on = false; removeEventListener('pointermove', onMove); removeEventListener('pointerup', onUp);
+      for (const s of slots) s.mixer?.stopAllAction?.();
+      scene.traverse(o => { if (o.isMesh) { o.geometry?.dispose(); for (const m of [].concat(o.material)) { for (const k in m) if (m[k]?.isTexture) m[k].dispose(); m.dispose(); } } });
+      renderer.dispose(); renderer.forceContextLoss?.(); cv.remove();
+    },
     LINE, _slots: slots, _camera: camera, _S: S, _renderer: renderer, _scene: scene,
   };
   return api;

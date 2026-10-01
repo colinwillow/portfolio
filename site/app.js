@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=56b19c13';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=a0ba9392';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -122,21 +122,33 @@ function charPicker(root, { home = false } = {}) {
   const show = slug => {
     const it = ASSETS.find(x => x.slug === slug);
     CHARPICK.want = it ? slug : null;
+    if (it) castFor(slug);
+    const grp = [...faces].find(b => b.dataset.char === slug)?.closest('.char-group');
+    if (grp && panel.previousElementSibling !== grp) grp.after(panel);   // their details open right under their game's row
     viewer?.destroy(); viewer = null;
     panel.innerHTML = it || !home ? charDetail(it) : ''; panel.classList.toggle('on', !!it);
-    if (it) import('./viewer.js?v=10e606d0').then(m => { if (CHARPICK.show === show && panel.querySelector('#char-viewer'))
-      viewer = m.mountViewer(panel.querySelector('#char-viewer'), { url: it.glb, prefer: it.prefer }); });
+    if (it) import('./viewer.js?v=f55e5d04').then(m => { if (CHARPICK.show === show && panel.querySelector('#char-viewer'))
+      viewer = m.mountViewer(panel.querySelector('#char-viewer'), { url: it.glb, prefer: it.prefer, anim: it.anim }); });
     faces.forEach(b => b.classList.toggle('on', b.dataset.char === slug));
   };
   CHARPICK.show = show;
+  if (!home && CHARPICK.want) { const w = CHARPICK.want; setTimeout(() => { LINEUP?.focus(w); show(w); }, 50); }   // arriving from a game page with someone picked
   faces.forEach(b => b.addEventListener('click', e => {
     e.preventDefault();
     const slug = b.dataset.char;
+    castFor(slug);                                       // their game's cast, before the line-up is asked for
     if (home) { latch('characters', false, true); toShelf(root.querySelector('#shelf-characters')); }   // the line-up in, and in view above the faces
     LINEUP?.focus(slug); show(slug);
   }));
   return { destroy() { viewer?.destroy(); CHARPICK.show = null; CHARPICK.want = null; LINEUP?.focus(null); } };
 }
+
+// one face: the same on the home shelf and the Characters page
+const charFace = it => link('characters', `<img src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy">
+  <div class="tile-meta"><b>${esc(it.title)}</b><span>${it.clips} clips · ${(it.tris / 1000).toFixed(1)}k tris</span></div>`, 'figure').replace('<a ', `<a data-char="${esc(it.slug)}" `);
+// the faces, a row per game
+const charGroups = face => [...new Set(ASSETS.map(a => a.from))].map(g =>
+  `<div class="char-group"><h4 class="char-game">${esc(g)}</h4><div class="rail figures">${ASSETS.filter(a => a.from === g).map(face).join('')}</div></div>`).join('');
 
 // ---- pages ----------------------------------------------------------------
 const PAGES = {
@@ -154,15 +166,13 @@ const PAGES = {
     const rail = inner => `<div class="rail" tabindex="0">${inner}</div>`;
     const games = PLAY.map(it => link('play/' + it.slug, `${appIcon(it)}
       <div class="tile-meta"><b>${esc(it.title)}</b><span>${esc(it.kind)} · ${STATUS[it.status]}</span></div>`, 'tile game'));
-    const figs = ASSETS.map(it => link('characters', `<img src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy">
-      <div class="tile-meta"><b>${esc(it.title)}</b><span>${it.clips} clips · ${(it.tris / 1000).toFixed(1)}k tris</span></div>`, 'figure').replace('<a ', `<a data-char="${esc(it.slug)}" `));
     const clips = MOTION.slice(0, 9).map(m => `<figure><video data-src="${esc(m.src)}" poster="${esc(m.poster)}" muted loop playsinline preload="none"></video><figcaption>${esc(m.title)}</figcaption></figure>`);
     const essays = WRITING.map(w => link('writing/' + w.slug, `<span class="kicker">${w.reading ? '▶ ' + esc(w.voice || 'Listen') : 'Read'}</span>
       <b>${esc(w.title)}</b><q>${esc(w.excerpt || '')}</q>`, 'essay-card'));
     const sites = [...WEB, ...STUDIOS.filter(s => s.slug !== 'unknown')];
     return `<div class="aisle" id="index">
       ${shelf('play', rail(games.join('')), { more: 'All games' })}
-      ${shelf('characters', `<div class="rail figures">${figs.join('')}</div><div class="char-detail"></div>`, { more: 'All characters', cls: 'shelf-figures' })}
+      ${shelf('characters', `${charGroups(charFace)}<div class="char-detail"></div>`, { more: 'All characters', cls: 'shelf-figures' })}
       ${shelf('motion', `<div class="wall">${clips.join('')}</div>`, { more: `All ${MOTION.length} clips` })}
       ${shelf('writing', `<div class="rail">${essays.join('')}</div>`)}
       ${shelf('web', rail(sites.map(it => (it.url ? ext : (h, i, c) => `<div class="${c}">${i}</div>`)(it.url, `${cover(it)}
@@ -192,6 +202,9 @@ const PAGES = {
           const pics = [...(it.icon ? [`<img class="app" src="site/icons/${esc(it.icon)}.webp" alt="${esc(it.title)} icon" loading="lazy">`] : []),
             ...(it.gallery || (it.shot ? [it.shot] : [])).map(g => `<img src="site/shots/${esc(g)}.webp" alt="${esc(it.title)}" loading="lazy">`)];
           return pics.length ? `<div class="gallery">${pics.join('')}</div>` : ''; })()}
+        ${(() => {   // the game's own cast, the same faces as everywhere else -- tap one to meet them on the Characters stage
+          const cast = ASSETS.filter(a => a.from === it.title || a.also?.includes(it.title));
+          return cast.length ? `<h3 class="sub">Characters</h3><div class="shelf-figures char-page game-cast"><div class="rail figures">${cast.map(charFace).join('')}</div></div>` : ''; })()}
         <p class="soon">App Store and Google Play badges go here when it ships.</p>${foot()}</div>`;
     }
     const card = it => link('play/' + it.slug, `${appIcon(it)}<div class="card-head"><h4>${esc(it.title)}</h4></div><p>${esc(it.blurb)}</p>
@@ -206,7 +219,7 @@ const PAGES = {
     if (slug) {
       const it = ASSETS.find(x => x.slug === slug);
       if (!it) return missing();
-      after = () => import('./viewer.js?v=10e606d0').then(m => { mounted = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer }); });
+      after = () => import('./viewer.js?v=f55e5d04').then(m => { mounted = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer, anim: it.anim }); });
       return `<div class="wrap">${crumbs(link('characters', 'Characters'), esc(it.title))}
         <h2 class="title">${esc(it.title)}</h2>
         <p class="lede">From ${esc(it.from)}. ${it.notes.map(esc).join(' · ')}.</p>
@@ -217,8 +230,7 @@ const PAGES = {
     }
     after = () => { mounted = charPicker(view); };
     return `<div class="wrap">${head(s, ' Every number is read off the file: triangles, joints, clips, size. Optimised, animated and running in real three.js games on phones.')}
-      <div class="char-thumbs">${ASSETS.map(it => `<button data-char="${esc(it.slug)}" aria-label="${esc(it.title)}">
-        <img src="site/shots/char-${esc(it.slug)}.webp" alt="" loading="lazy"><span>${esc(it.title)}</span></button>`).join('')}</div>
+      <div class="shelf-figures char-page">${charGroups(charFace)}</div>
       <div class="char-detail">${charDetail(null)}</div>
       <h3 class="sub">Also coming</h3><ul class="soon"><li>3D-printable figures (STL)</li></ul>
       ${GUMROAD ? `<div class="row">${ext(GUMROAD, 'Whole store on Gumroad ↗', 'btn ghost')}</div>` : ''}${foot()}</div>`;
@@ -470,6 +482,16 @@ const OWN_BACKDROP = { scripts: 'rain', characters: 'lineup' };
 let LINEUP = null, lineupLoading = null;
 window.cw = { get LINEUP() { return LINEUP; }, get WEAVE() { return WEAVE; }, get RAIN() { return RAIN; } };   // console handles
 const CHARPICK = { show: null, want: null };
+// ONE GAME'S CAST AT A TIME on the stage: picking someone from another game sends this lot
+// running off and brings theirs on (Colin keeps his seat in the middle)
+const CAST = { game: "Zap 'n Clancy" };
+document.addEventListener('click', e => { const f = e.target.closest('.game-cast [data-char]'); if (f) { CHARPICK.want = f.dataset.char; castFor(f.dataset.char); } }, true);
+function castFor(slug) {
+  const g = ASSETS.find(a => a.slug === slug)?.from; if (!g || g === CAST.game) return;
+  CAST.game = g;
+  if (LINEUP) { const old = LINEUP; old.visible(false); setTimeout(() => old.destroy(), 1000); LINEUP = null; lineupLoading = null; colin && document.body.classList.remove('colin-in-line'); SEAT = null; }
+  backdrop(current());
+}
 function backdrop(key) {
   key = key || 'home';
   const own = OWN_BACKDROP[key];
@@ -477,10 +499,11 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=415284b5').then(m => {
-      LINEUP = m.createLineup($('#glorb'), [...ASSETS.slice(0, 4), { slug: 'colin', colin: true, h: 1.9, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...ASSETS.slice(4)], { onPick: slug => CHARPICK.show?.(slug),
+    lineupLoading = import('./lineup.js?v=1ffaa3ec').then(m => {
+      const cast = ASSETS.filter(a => a.from === CAST.game || a.also?.includes(CAST.game)), half = Math.ceil(cast.length / 2);
+      LINEUP = m.createLineup($('#glorb'), [...cast.slice(0, half), { slug: 'colin', colin: true, h: 1.9, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...cast.slice(half)], { onPick: slug => CHARPICK.show?.(slug),
         colin: { place: p => { SEAT = p; }, joined: v => { document.body.classList.toggle('colin-in-line', v); heroSync(); } } });
-      LINEUP.fog(css('--bg') || '#0e0e0f'); backdrop(current()); });
+      LINEUP.game = CAST.game; LINEUP.fog(css('--bg') || '#0e0e0f'); backdrop(current()); });
   LINEUP?.visible(own === 'lineup');
   if (own === 'lineup' && CHARPICK.want) LINEUP?.focus(CHARPICK.want);   // (visible() clears the pick; put it back)
   if (own === 'rain' && !RAIN && !rainLoading && GLORB.ready)
@@ -863,7 +886,7 @@ const globeReady = GLORB_ON ? Promise.resolve() : (USE_SWARM ? import('./stage-s
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? import('./intro.js?v=e3d109bd').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
+  ? import('./intro.js?v=07a58b51').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
       .catch(err => console.warn('intro', err))
   : Promise.resolve();
 
@@ -882,5 +905,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=6dfec86c').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=c9f0cadc').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

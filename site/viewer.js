@@ -3,7 +3,7 @@
 // That last part is the pitch -- a spec sheet you can check, not a claim.
 
 import * as THREE from '../vendor/three.module.min.js';
-import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=0090c5af';
+import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=aba0bb7d';
 
 function facing(model) {
   const toes = [], v = new THREE.Vector3(), w = new THREE.Vector3(), sum = new THREE.Vector3();
@@ -14,7 +14,7 @@ function facing(model) {
 
 const pretty = n => n.replace(/[_.]+/g, ' ').replace(/\s+/g, ' ').trim();
 
-export function mountViewer(host, { url, prefer = [] }) {
+export function mountViewer(host, { url, prefer = [], anim = null }) {
   host.innerHTML = `
     <div class="viewer-stage"><canvas></canvas>
       <div class="viewer-status">Loading…</div>
@@ -102,7 +102,7 @@ export function mountViewer(host, { url, prefer = [] }) {
     renderer.dispose();
   }
 
-  loadCharacter(url, p => { status.textContent = `Loading… ${Math.round(p * 100)}%`; }).then(c => {
+  loadCharacter(url, p => { status.textContent = `Loading… ${Math.round(p * 100)}%`; }, { anim }).then(c => {
     if (dead) return;
     ch = c; turn.add(c.model);
     const idle = pickClip(c.clips, ...prefer, 'idle_neutral', 'idle_01', 'standing_idle', 'drunk_idle', 'idle');
