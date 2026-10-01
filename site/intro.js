@@ -21,6 +21,8 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
   return new Promise(resolve => {
     const el = document.createElement('div');
     el.id = 'intro';
+    const DEPTH = !/[?&]walk=side/.test(location.search);
+    if (DEPTH) el.classList.add('depth');   // he walks out from behind the name, so it sits higher
     const logo = document.querySelector('#hud .logo');
     el.innerHTML = `<canvas></canvas><div class="intro-word">${logo ? logo.outerHTML : '<b>COLIN</b> WILLOW'}</div>
       ${role ? `<p class="intro-role">${role.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}</p>` : ''}
@@ -34,7 +36,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
        head projected every frame, so an arm swing is what shoves them. */
     const me = { ok: false, on: false, cv: Object.assign(document.createElement('canvas'), { className: 'intro-me' }) };
     document.body.appendChild(me.cv);   // outside the intro: he keeps walking after it has faded
-    import('./intro-me.js?v=b8179991').then(m => m.mountMe(me.cv, { bg, mode: /[?&]walk=side/.test(location.search) ? 'side' : 'depth' })).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
+    import('./intro-me.js?v=b8179991').then(m => m.mountMe(me.cv, { bg, mode: DEPTH ? 'depth' : 'side' })).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
     document.body.appendChild(el);
     const cv = el.querySelector('canvas'), g = cv.getContext('2d'), g0 = g;
     /* Depth: a third of the dots are drawn on a layer ABOVE him, so he walks
@@ -46,6 +48,9 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     const size = () => { W = innerWidth; H = innerHeight; cv.width = cvF.width = W * dpr; cv.height = cvF.height = H * dpr; };
     size(); addEventListener('resize', size);
 
+    // where the field hangs before he comes: round the name (which in depth sits higher)
+    const FC = { x: W / 2, y: H / 2 };
+    { const r = el.querySelector('.intro-word')?.getBoundingClientRect(); if (r?.height) { FC.x = r.left + r.width / 2; FC.y = r.top + r.height / 2; } }
     const N = W * H > 700000 ? 1600 : 800;
     const px = new Float32Array(N), py = new Float32Array(N), vx = new Float32Array(N), vy = new Float32Array(N);
     const strand = new Uint8Array(N), tt = new Float32Array(N), spd = new Float32Array(N),
@@ -60,7 +65,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     const SPD = [6, 5, 7, 4, 5, 6, 4, 7, 5, 4, 6, 5].map(x => x * 1e-4);
     for (let i = 0; i < N; i++) {
       const a = Math.random() * Math.PI * 2, d = Math.random() * Math.min(W, H) * 0.45;
-      px[i] = W / 2 + Math.cos(a) * d; py[i] = H / 2 + Math.sin(a) * d;
+      px[i] = FC.x + Math.cos(a) * d; py[i] = FC.y + Math.sin(a) * d;
       strand[i] = (Math.random() * 12) | 0; tt[i] = Math.random() * Math.PI * 12;
       spd[i] = SPD[strand[i]] * (0.8 + Math.random() * 0.4) * 60;   // per second, not per frame
       maxV[i] = 14 + Math.random() * 8; maxF[i] = 0.25 + Math.random() * 0.3; rad[i] = 0.8 + Math.random() * 1.2;
@@ -73,7 +78,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     el.addEventListener('pointerleave', () => { mx = my = -1e4; });
 
     function target(i, out) {
-      const s = strand[i], sd = DEF[s], si = s + 1, cx = W / 2 + FO.x * FO.k, cy = H / 2 + FO.y * FO.k;
+      const s = strand[i], sd = DEF[s], si = s + 1, cx = FC.x + (FO.x - FC.x) * FO.k, cy = FC.y + (FO.y - FC.y) * FO.k;
       const sc = Math.min(W, H) / 700;
       const pulse = Math.sin(fc * 0.0008 * si + si) * si * 8 * sc, pulse2 = Math.cos(fc * 0.0006 * si + si * 0.7) * si * 6 * sc;
       const t = tt[i];
@@ -115,7 +120,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           // he reaches the curtain of beads part-way in; they part round him, and a beat later
           // what he has pushed through wings out and curls back behind him for Glorb
           if (walking && !crossT && me.api.progress() > 0.42) { crossT = performance.now(); ch0 = me.api.chest(); }
-          if (walking && crossT && now - crossT > 520) { walking = false; converge(); wings(); }
+          if (walking && crossT && now - crossT > 900) { walking = false; converge(); wings(); }
         } else if (walking && me.api.progress() > 0.8) { walking = false; converge(); }   // he has walked through them; now they go
       }
       const wr = word.getBoundingClientRect(), rx = wr.width / 2 + 10, ry = wr.height / 2 + 8, wx = wr.left + wr.width / 2, wy = wr.top + wr.height / 2;
@@ -210,17 +215,26 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
              little and slide up or down, over his head and under his feet they
              hardly move while he passes, and behind him they fill back in. They
              are not carried off with him, and the strand pulls them home after. */
-          /* THE CURTAIN OF BEADS. Once he has reached it, wherever his body is, the beads are
-             pushed off it along his outline -- sideways off his shoulders and hips, up off his
-             head -- and the ones he pushes come TOWARD you (they swell and are drawn in front
-             of him). The ones he never touched are now behind him. */
-          if (me.on && me.api.depth && crossT) {
-            const hit = me.api.hit(px[i], py[i]);
-            if (hit && hit.d > 0.04) {
-              const w = Math.min(1, hit.d * 1.6), up = hit.ny < -0.5 ? 0.6 : 0.15;
-              vx[i] += hit.nx * (2.2 + 3.5 * w) * k; vy[i] += (hit.ny * (1.4 + 2.5 * w) - up * w) * k;
-              if (hit.d > 0.45) { px[i] += hit.nx * (hit.d - 0.45) * 8; py[i] += hit.ny * (hit.d - 0.45) * 8; }
-              zA[i] = Math.max(zA[i], 0.5 + 1.8 * w); knock[i] = Math.max(knock[i], w);
+          /* THE WAKE (walking toward you). Not a bounce and not a kick: ONE airflow that
+             grows smoothly from the moment he reaches the field. Round him it streams outward
+             off his body, each side turning its own way (mirror image, a butterfly), so what he
+             walks through is carried out and round rather than knocked; the nearer his body, the
+             stronger, and the more it swells toward you. It steers -- it never adds a sudden
+             velocity -- and the strands let go of a dot exactly as fast as the wake takes it. */
+          if (me.on && me.api.depth && crossT && ch0) {
+            const ramp = Math.min(1, (now - crossT) / 700), rp = ramp * ramp * (3 - 2 * ramp);
+            const c0 = me.api.chest() || ch0, rx = px[i] - c0.x, ry = (py[i] - c0.y) * 0.8, rm = Math.hypot(rx, ry) || 1;
+            const hit = me.api.hit(px[i], py[i]), inside = hit ? Math.min(1, hit.d * 1.4) : 0;
+            const near = Math.max(inside, Math.exp(-Math.pow(rm / (c0.r * 0.85), 2)));
+            const fl = rp * near;
+            if (fl > 0.01) {
+              const side = rx < 0 ? -1 : 1, ws = ry < 0 ? side : -side;
+              const sp = (4 + 5 * near) * flS[i];
+              const tx = rx / rm * sp + (-ry / rm) * ws * sp * 0.55, ty = ry / rm * sp * 0.9 + (rx / rm) * ws * sp * 0.55 - 0.6;
+              const st = 1 - Math.pow(1 - 0.06 * fl, k);
+              vx[i] += (tx - vx[i]) * st; vy[i] += (ty - vy[i]) * st;
+              zA[i] = Math.max(zA[i], 1.7 * near * rp);
+              knock[i] = Math.max(knock[i], fl);   // the strand's pull eases off as the wake takes over
             }
           }
           if (me.on && !me.api.depth) {
@@ -340,19 +354,18 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
       const st = document.getElementById('home-stage')?.getBoundingClientRect();
       if (!st || st.height < 40) return;
       const foot = st.top + st.height * 0.9032, tall = st.height / 1.24;
-      FO.x = st.left + st.width / 2 - W / 2; FO.y = foot - tall * 0.55 - H / 2; FO.on = true;
+      FO.x = st.left + st.width / 2; FO.y = foot - tall * 0.55; FO.on = true;
     }
     const zm = new Float32Array(N).fill(1), zA = new Float32Array(N), wingS = new Int8Array(N);
+    const flS = new Float32Array(N); for (let i = 0; i < N; i++) flS[i] = 0.75 + Math.random() * 0.5;   // each its own speed in the wake
     /* The wings: everything is thrown out to its own side -- up or down by where it is against
        his chest -- and each side is given the opposite turn, so the two halves sweep out and
        curl back in mirror image, round behind him, onto the orb. */
     function wings() {
-      const ch = ch0 || me.api.chest() || { x: W / 2, y: H * 0.5, r: H * 0.3 };
+      const ch = me.api.chest() || ch0 || { x: W / 2, y: H * 0.5, r: H * 0.3 };
       for (let i = 0; i < N; i++) {
         const side = px[i] < ch.x ? -1 : 1, oy = Math.max(-1.1, Math.min(0.8, (py[i] - ch.y) / (ch.r || 1)));
-        const sp = 2.5 + 4 * Math.random() + 3 * knock[i];
-        vx[i] += side * sp; vy[i] += (oy * 3.2 - 1.2) * (0.6 + Math.random() * 0.6);
-        wingS[i] = oy < 0 ? side : -side;   // top half curls over, bottom half under: the four lobes of a wing pair
+        wingS[i] = oy < 0 ? side : -side;   // no push here: the wake already set them moving   // top half curls over, bottom half under: the four lobes of a wing pair
       }
     }
     function enter() {

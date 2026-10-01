@@ -833,3 +833,6 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
 @media (hover: none) { .tile:hover .cover, .figure:hover img { transform: none; } }
 /* no vertical travel in a row of faces either: the picked one is marked by its underline and light, not a lift */
 .shelf-figures .figure.on img, .char-thumbs button.on img { transform: none; }
+/* intro, walking toward you: the name sits higher, over where he walks out from */
+#intro.depth .intro-word { top: 36%; }
+#intro.depth .intro-role { top: calc(36% + min(15vw, 84px)); }
