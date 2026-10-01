@@ -370,6 +370,10 @@ function render() {
   wireVideos();
   after?.();
   if (typeof deckSync === 'function') deckSync();
+  // home: Colin stands big in the middle of the hero, presenting; anywhere else he goes back to the strip
+  // (About borrows him itself, once its page is built)
+  if (!sec) withColin(c => c.adopt(HOMESTAGE, { present: true }));
+  else if (sec !== 'about') colin?.release();
 }
 
 // Loops only load and play while they are on screen -- 21 autoplaying videos
@@ -497,6 +501,11 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
    `anchor` is the scroll position the unit is sitting at: a key sets it, and
    scrolling above it lowers it, so it always reappears on the way back up. */
 const HEAD = { anchor: 0, auto: 0, target: 0, sk: 1 };
+/* The home hero's Colin: a box over the stage, sized every frame so his feet are on the
+   floor (the middle of the strip's top face) and his head is on Glorb's centre. His
+   canvas frames him with his soles 9.7% up from its bottom and his head about 84.6% up,
+   so the box is (floor - head) / 0.749 tall and hangs that far below his feet. */
+const HOMESTAGE = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'home-stage' }));
 /* The page's CSS sizes everything in svh (the screen WITH the browser bar showing)
    and innerHeight is the screen as it is right now -- on a phone those differ by
    the height of the URL bar, and mixing them put the strip below where the CSS
@@ -538,6 +547,11 @@ addEventListener('scroll', () => {
   api.setFloor(top - 1);
   // as the strip rises it catches him low, so his underside visibly flattens on it before he goes
   api.setCentreY(Math.min(room * 0.5, top - R * 0.5));
+  if (home) {
+    const lg = parseFloat(css('--ledge')) || 26, floor = top - lg * 0.5, head = Math.min(room * 0.5, top - R * 0.5);
+    const H = Math.max(80, (floor - head) / 0.749);
+    HOMESTAGE.style.cssText = `top:${floor + 0.0968 * H - H}px;height:${H}px`;
+  }
   api.pause(top < -R * 1.5);
   WEAVE?.pause(top < 0); RAIN?.pause(top < 0);
   // they stand in the middle of the strip's top face, not on its front edge
@@ -813,5 +827,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=9cc32ec1').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=e4a550bc').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

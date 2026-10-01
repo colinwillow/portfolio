@@ -767,3 +767,15 @@ body.stage-page .about-slot { transform: translateY(calc(9.7% - var(--ledge) * .
 .shelf-figures .figure img { aspect-ratio: 1; }
 .shelf-figures .tile-meta b { font-size: 12px; text-align: center; }
 .shelf-figures .tile-meta span { display: none; }
+
+/* ---- home hero: Colin big in the middle, presenting ----------------------------------- */
+#home-stage { position: fixed; left: 0; right: 0; z-index: 13; pointer-events: none; display: none; }
+body.at-home #home-stage { display: flex; justify-content: center; align-items: flex-end; }
+#home-stage #mini.hero .mini-body { width: auto; aspect-ratio: 0.7; height: 100%; }
+/* His canvas reaches below his feet (to frame him); that strip must never sit over the menu
+   and take its taps -- so it is clipped at his soles, and his panel and buttons sit above them.
+   (This is what locked the menu on the About page.) */
+#mini.hero .mini-body { clip-path: inset(0 0 9.6% 0); }
+#mini.hero .mini-panel, #mini.hero .mini-tools { bottom: calc(9.7% + 64px); }
+#mini.hero .mini-tools { bottom: calc(9.7% + 14px); }
+#mini.hero .mini-tag { bottom: calc(9.7% + 66px); }

@@ -133,7 +133,9 @@ export function createMiniColin({ go, known, items, pageOf }) {
   // takes each hand forward and up), not guessed: forearm/arm about local Z,
   // +Z on his left, -Z on his right. Same take-it-off-before-the-mixer rule as
   // the head glance, or the offsets would stack every frame.
-  const gest = []; let gAmt = 0, gBeat = 0, lastShape = 'rest';
+  const gest = []; let gAmt = 0, gBeat = 0, lastShape = 'rest', pres = 0, presWant = 0;
+  const Y = new THREE.Vector3(0, 1, 0);
+  const PRESENT = { fore: 1.4, arm: 0.5, twist: 1.3 };   // "this is everything": elbows down, forearms out, palms up
   const Z = new THREE.Vector3(0, 0, 1), X = new THREE.Vector3(1, 0, 0);
   addEventListener('pointermove', e => {
     const r = canvas.getBoundingClientRect();
@@ -283,6 +285,14 @@ export function createMiniColin({ go, known, items, pageOf }) {
       if (g.fore) g.bone.rotateOnAxis(Z, g.side * gAmt * (0.55 + 0.35 * n + 0.25 * gBeat));
       else { g.bone.rotateOnAxis(Z, g.side * gAmt * (0.14 + 0.1 * n)); g.bone.rotateOnAxis(X, -gAmt * 0.08 * (1 + n)); }
     }
+    // PRESENTING (the home hero): forearms raised forward and out, palms turned up, held
+    // with a slow breath in it -- on top of the idle, eased in and out like the gestures
+    pres += (presWant - pres) * (1 - Math.exp(-3 * dt));
+    if (pres > 0.002) for (const g of gest) {
+      const b = 1 + 0.04 * Math.sin(tt * 1.1 + g.seed);
+      if (g.fore) { g.bone.rotateOnAxis(Z, g.side * pres * PRESENT.fore * b); g.bone.rotateOnAxis(Y, -g.side * pres * PRESENT.twist); }
+      else g.bone.rotateOnAxis(Z, -g.side * pres * PRESENT.arm);
+    }
     // look toward the pointer, on top of whatever the clip did to the head
     lookNow.lerp(look, 1 - Math.exp(-4 * dt));
     if (head) {
@@ -318,13 +328,14 @@ export function createMiniColin({ go, known, items, pageOf }) {
     let headMat = null;
     c.model.traverse(o => { if (o.isMesh && /head/i.test(o.name) && o.material.map) headMat = o.material; });
     c.model.traverse(o => {
+      // bones BEFORE the mesh-only return, or the head glance and the arms never find theirs
+      if (o.isBone && /head$/i.test(o.name) && !head) { head = o; headBase.copy(o.quaternion); }
+      const m = o.isBone && o.name.match(/(Left|Right)(ForeArm|Arm)$/);
+      if (m) gest.push({ bone: o, side: m[1] === 'Left' ? 1 : -1, fore: m[2] === 'ForeArm', base: o.quaternion.clone(), seed: Math.random() * 10 });
       if (!o.isMesh) return;
       if (/teeth/i.test(o.name) && !o.material.map && headMat) o.material = headMat;  // untextured teeth read as white
       if (o.morphTargetDictionary) face.push({ infl: o.morphTargetInfluences,
         index: new Map(Object.entries(o.morphTargetDictionary).map(([n, i]) => [canon(n), i])) });
-      if (o.isBone && /head$/i.test(o.name) && !head) { head = o; headBase.copy(o.quaternion); }
-      const m = o.isBone && o.name.match(/(Left|Right)(ForeArm|Arm)$/);
-      if (m) gest.push({ bone: o, side: m[1] === 'Left' ? 1 : -1, fore: m[2] === 'ForeArm', base: o.quaternion.clone(), seed: Math.random() * 10 });
     });
     scene.add(c.model);
     idle = pickClip(c.clips, 'idle_neutral', 'neutral_idle');
@@ -510,8 +521,8 @@ export function createMiniColin({ go, known, items, pageOf }) {
 
   // Hero mode: the About page borrows him, big, in its own frame.
   const home = { parent: document.body, next: null };
-  function adopt(host) { if (!host) return; host.appendChild(dock); dock.classList.add('hero'); if (bubble) bubble.hidden = true; size(); }
-  function release() { if (dock.parentElement !== perch()) { perch().appendChild(dock); dock.classList.remove('hero'); size(); } }
+  function adopt(host, { present = false } = {}) { presWant = present ? 1 : 0; if (!host) return; if (dock.parentElement === host) return; host.appendChild(dock); dock.classList.add('hero'); if (bubble) bubble.hidden = true; size(); }
+  function release() { presWant = 0; if (dock.parentElement !== perch()) { perch().appendChild(dock); dock.classList.remove('hero'); size(); } }
   /** Where his head is on screen (client px), for things that orbit it. */
   const hv = new THREE.Vector3();
   function headScreen() {
