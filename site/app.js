@@ -544,6 +544,8 @@ addEventListener('scroll', () => {
 }, { passive: true });
 (function headFrame() {
   requestAnimationFrame(headFrame);
+  // a key pressed before Glorb was ready asked for the line-up and got nothing: ask again until it comes
+  if (WEAVE && !LINEUP && !lineupLoading && GLORB.ready && OWN_BACKDROP[current()] === 'lineup') backdrop(current());
   const home = !route().length, deckEl = $('#deck');
   document.body.classList.toggle('home-head', home && GLORB_ON);
   if (!deckEl) return;
@@ -660,7 +662,7 @@ let latched = null;
 let pressed = null;   // at home the backdrop follows a key you PRESS, never the scroll -- a nudge
                       // of the page swapping the pattern behind the hero read as a glitch
 function latch(key, show = true, press = false) {
-  if (press) pressed = key; else if (!key) pressed = null;   // back at the top: the hero's own
+  if (press) pressed = key; else if (!key && scrollY < 40 && performance.now() > deckHold) pressed = null;   // really back at the top: the hero's own
   if (key === latched && !press) return;
   latched = key;
   if (!route().length) backdrop(pressed || 'home');
