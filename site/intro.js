@@ -136,9 +136,10 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           let sx = dx / d * v - vx[i], sy = dy / d * v - vy[i];
           const sm = Math.hypot(sx, sy); if (sm > maxF[i]) { sx *= maxF[i] / sm; sy *= maxF[i] / sm; }
           let ax = sx, ay = sy;
-          // keep off the name
+          // keep off the name -- only while there IS a name: once Enter starts it dissolving, the
+          // box it stood in is gone and nothing should still be bouncing off it
           const nx = Math.max(wx - rx, Math.min(px[i], wx + rx)), ny = Math.max(wy - ry, Math.min(py[i], wy + ry));
-          const ex = px[i] - nx, ey = py[i] - ny, ed = Math.hypot(ex, ey);
+          const ex = px[i] - nx, ey = py[i] - ny, ed = walking ? 1e9 : Math.hypot(ex, ey);
           if (ed < 0.5) { const ox = px[i] - wx || 0.1, oy = py[i] - wy, om = Math.hypot(ox, oy); ax += ox / om * maxF[i] * 14; ay += oy / om * maxF[i] * 14; }
           else if (ed < 14) { ax += ex / ed * maxF[i] * 3.5 * (1 - ed / 14); ay += ey / ed * maxF[i] * 3.5 * (1 - ed / 14); }
 
@@ -256,11 +257,11 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           /* NO LUMPS. The dots he walked through ride along on him, and on a phone at full
              frame rate he collects a lot of them -- so when the flight began they all left
              his chest at the right edge together, with one velocity, and travelled as a
-             clump. So every dot is PUFFED apart (hardest for the ones he was carrying),
-             starts for home at its own moment, and swirls as it goes: smoke, not a lump. */
-          const puff = 1.2 + 4.5 * Math.min(1, knock[i] * 2), a = Math.random() * Math.PI * 2;
-          vx[i] += Math.cos(a) * puff * Math.random(); vy[i] += Math.sin(a) * puff * Math.random();
-          tD[i] = Math.random() * 0.55 * FLY; tC[i] = (0.6 + Math.random() * 1.4) * (Math.random() < 0.5 ? 1 : -1);
+             clump. A random puff broke it up and looked like an explosion; instead each dot
+             starts for home at its OWN moment, so a clump unspools as a ribbon, and they all
+             curl the SAME way round the orb (a little faster or slower each), so the ribbons
+             spiral in as one vortex rather than scattering. */
+          tD[i] = Math.random() * 0.55 * FLY; tC[i] = 0.8 + Math.random() * 0.6;
         }
         for (let i = 0; i < N; i++) {
           sx0[i] = px[i]; sy0[i] = py[i];
