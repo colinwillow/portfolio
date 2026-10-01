@@ -149,7 +149,7 @@ export const SCRIPTS = [
 ];
 
 export const WEB = [
-  { slug: 'thatswassupps', logo: 'logos/thatswassupps_logo_512px.jpg.jpg', title: 'Thatswassupps', url: 'https://thatswassupps.com', role: 'Site and brand work',
+  { slug: 'thatswassupps', shot: 'web-thatswassupps', logo: 'logos/thatswassupps_logo_512px.jpg.jpg', title: 'Thatswassupps', url: 'https://thatswassupps.com', role: 'Site and brand work',
     blurb: 'A friend\'s company I ended up helping build.' },
   { slug: 'unknown', shot: 'unknown-key', gallery: ['unknown-key', 'web-unknown'], title: 'Unknown — SS25', url: GH + 'unknown/', role: 'Storefront',
     blurb: 'Product drops for my clothing label.' },
