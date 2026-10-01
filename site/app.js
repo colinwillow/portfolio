@@ -50,6 +50,7 @@ function go(path, push = true) {
 document.addEventListener('click', e => {
   const song = e.target.closest('[data-song]');
   if (song) { music.play(+song.dataset.song); return; }
+  if (e.defaultPrevented) return;                     // something on the page handled it in place (a picked character)
   const a = e.target.closest('a[data-link]');
   if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
   const u = new URL(a.href);
@@ -99,12 +100,51 @@ document.addEventListener('click', async e => {
 const foot = (sup = true) => `${sup ? support() : ''}<footer class="foot"><span>© ${new Date().getFullYear()} ${esc(SITE.name)}</span>
   <span>${ext(SITE.github, 'GitHub')} · <a href="classic.html">Previous portfolio</a> · build ${esc(BUILD)}</span></footer>`;
 
+// ---- picking a character -------------------------------------------------------
+// ONE picker, wherever the faces are (the home shelf or the Characters page): tap a
+// face, or someone in the line-up, and the line slides to them and their 3D viewer and
+// details open right there under the faces. Nothing navigates; it is all one page.
+const specs = it => `<dl class="specs">
+  <dt>Tris</dt><dd>${it.tris.toLocaleString()}</dd>
+  <dt>Joints</dt><dd>${esc(it.joints)}</dd><dt>Clips</dt><dd>${esc(it.clips)}</dd>
+  <dt>File</dt><dd>${it.mb} MB</dd></dl>`;
+const buy = it => it.gumroad
+  ? ext(it.gumroad, (it.price ? esc(it.price) + ' · ' : '') + 'Get it on Gumroad ↗', 'btn accent')
+  : `<span class="btn accent" aria-disabled="true">Coming to Gumroad</span>`;
+const charDetail = it => it ? `<div id="char-viewer" class="viewer"></div>
+    <div><h3>${esc(it.title)}</h3><p class="from">From ${esc(it.from)}</p>${specs(it)}
+    <p class="notes">${it.notes.map(esc).join(' · ')}</p>
+    <div class="row">${buy(it)}</div></div>`
+  : `<p class="soon">Pick someone: tap them in the line-up, or a face above.</p>`;
+function charPicker(root, { home = false } = {}) {
+  const panel = root.querySelector('.char-detail'), faces = root.querySelectorAll('[data-char]');
+  let viewer = null;
+  const show = slug => {
+    const it = ASSETS.find(x => x.slug === slug);
+    CHARPICK.want = it ? slug : null;
+    viewer?.destroy(); viewer = null;
+    panel.innerHTML = it || !home ? charDetail(it) : ''; panel.classList.toggle('on', !!it);
+    if (it) import('./viewer.js?v=10e606d0').then(m => { if (CHARPICK.show === show && panel.querySelector('#char-viewer'))
+      viewer = m.mountViewer(panel.querySelector('#char-viewer'), { url: it.glb, prefer: it.prefer }); });
+    faces.forEach(b => b.classList.toggle('on', b.dataset.char === slug));
+  };
+  CHARPICK.show = show;
+  faces.forEach(b => b.addEventListener('click', e => {
+    e.preventDefault();
+    const slug = b.dataset.char;
+    if (home) { latch('characters', false, true); toShelf(root.querySelector('#shelf-characters')); }   // the line-up in, and in view above the faces
+    LINEUP?.focus(slug); show(slug);
+  }));
+  return { destroy() { viewer?.destroy(); CHARPICK.show = null; CHARPICK.want = null; LINEUP?.focus(null); } };
+}
+
 // ---- pages ----------------------------------------------------------------
 const PAGES = {
   // THE AISLE. Nothing on the home page is hidden behind a click: every section
   // is a shelf, laid out so you can walk past it and see what's on it. The
   // section pages still exist (deep links, "see all") but you never NEED them.
   home() {
+    after = () => { mounted = charPicker(view, { home: true }); };
     const shelf = (key, body, { more = '', cls = '' } = {}) => {
       const s = sectionOf(key), n = String(SECTIONS.indexOf(s) + 1).padStart(2, '0');
       return `<section class="shelf ${cls}" id="shelf-${key}">
@@ -114,15 +154,15 @@ const PAGES = {
     const rail = inner => `<div class="rail" tabindex="0">${inner}</div>`;
     const games = PLAY.map(it => link('play/' + it.slug, `${appIcon(it)}
       <div class="tile-meta"><b>${esc(it.title)}</b><span>${esc(it.kind)} · ${STATUS[it.status]}</span></div>`, 'tile game'));
-    const figs = ASSETS.map(it => link('characters', `<img src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy" data-pick="${esc(it.slug)}">
-      <div class="tile-meta"><b>${esc(it.title)}</b><span>${it.clips} clips · ${(it.tris / 1000).toFixed(1)}k tris</span></div>`, 'figure'));
+    const figs = ASSETS.map(it => link('characters', `<img src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy">
+      <div class="tile-meta"><b>${esc(it.title)}</b><span>${it.clips} clips · ${(it.tris / 1000).toFixed(1)}k tris</span></div>`, 'figure').replace('<a ', `<a data-char="${esc(it.slug)}" `));
     const clips = MOTION.slice(0, 9).map(m => `<figure><video data-src="${esc(m.src)}" poster="${esc(m.poster)}" muted loop playsinline preload="none"></video><figcaption>${esc(m.title)}</figcaption></figure>`);
     const essays = WRITING.map(w => link('writing/' + w.slug, `<span class="kicker">${w.reading ? '▶ ' + esc(w.voice || 'Listen') : 'Read'}</span>
       <b>${esc(w.title)}</b><q>${esc(w.excerpt || '')}</q>`, 'essay-card'));
     const sites = [...WEB, ...STUDIOS.filter(s => s.slug !== 'unknown')];
     return `<div class="aisle" id="index">
       ${shelf('play', rail(games.join('')), { more: 'All games' })}
-      ${shelf('characters', `<div class="rail figures">${figs.join('')}</div>`, { more: 'All characters', cls: 'shelf-figures' })}
+      ${shelf('characters', `<div class="rail figures">${figs.join('')}</div><div class="char-detail"></div>`, { more: 'All characters', cls: 'shelf-figures' })}
       ${shelf('motion', `<div class="wall">${clips.join('')}</div>`, { more: `All ${MOTION.length} clips` })}
       ${shelf('writing', `<div class="rail">${essays.join('')}</div>`)}
       ${shelf('web', rail(sites.map(it => (it.url ? ext : (h, i, c) => `<div class="${c}">${i}</div>`)(it.url, `${cover(it)}
@@ -161,13 +201,6 @@ const PAGES = {
 
   characters(slug) {
     const s = sectionOf('characters');
-    const specs = it => `<dl class="specs">
-      <dt>Tris</dt><dd>${it.tris.toLocaleString()}</dd>
-      <dt>Joints</dt><dd>${esc(it.joints)}</dd><dt>Clips</dt><dd>${esc(it.clips)}</dd>
-      <dt>File</dt><dd>${it.mb} MB</dd></dl>`;
-    const buy = it => it.gumroad
-      ? ext(it.gumroad, (it.price ? esc(it.price) + ' · ' : '') + 'Get it on Gumroad ↗', 'btn accent')
-      : `<span class="btn accent" aria-disabled="true">Coming to Gumroad</span>`;
     if (slug) {
       const it = ASSETS.find(x => x.slug === slug);
       if (!it) return missing();
@@ -180,34 +213,7 @@ const PAGES = {
         <p class="soon">Rigged to a Mixamo-style skeleton, faces +Z, draco-compressed geometry with WebP textures —
           drops straight into three.js with GLTFLoader + DRACOLoader.</p>${foot()}</div>`;
     }
-    // The line-up stands above (the backdrop); here: a row of everyone small, and the
-    // one you picked, bigger, with what they are and where to go next.
-    const detail = it => it ? `<div id="char-viewer" class="viewer"></div>
-        <div><h3>${esc(it.title)}</h3><p class="from">From ${esc(it.from)}</p>${specs(it)}
-        <p class="notes">${it.notes.map(esc).join(' · ')}</p>
-        <div class="row">${buy(it)}</div></div>`
-      : `<p class="soon">Pick someone: tap them in the line-up, or a face above.</p>`;
-    after = () => {
-      const panel = view.querySelector('.char-detail');
-      let viewer = null;
-      const show = slug => {
-        const it = ASSETS.find(x => x.slug === slug);
-        viewer?.destroy(); viewer = null;
-        panel.innerHTML = detail(it); panel.classList.toggle('on', !!it);
-        // the bigger version: them in 3D, playing through their animations
-        if (it) import('./viewer.js?v=10e606d0').then(m => { if (CHARPICK.show === show && panel.querySelector('#char-viewer'))
-          viewer = m.mountViewer(panel.querySelector('#char-viewer'), { url: it.glb, prefer: it.prefer }); });
-        view.querySelectorAll('.char-thumbs button').forEach(b => b.classList.toggle('on', b.dataset.char === slug));
-      };
-      CHARPICK.show = show;
-      view.querySelector('.char-thumbs').onclick = e => {
-        const b = e.target.closest('button[data-char]'); if (!b) return;
-        LINEUP?.focus(b.dataset.char); show(b.dataset.char);
-      };
-      // arriving from the home shelf with someone already picked
-      if (CHARPICK.pending) { const p = CHARPICK.pending; CHARPICK.pending = null; setTimeout(() => { LINEUP?.focus(p); show(p); }, 50); }
-      mounted = { destroy() { viewer?.destroy(); CHARPICK.show = null; LINEUP?.focus(null); } };
-    };
+    after = () => { mounted = charPicker(view); };
     return `<div class="wrap">${head(s, ' Every number is read off the file: triangles, joints, clips, size. Optimised, animated and running in real three.js games on phones.')}
       <div class="char-thumbs">${ASSETS.map(it => `<button data-char="${esc(it.slug)}" aria-label="${esc(it.title)}">
         <img src="site/shots/char-${esc(it.slug)}.webp" alt="" loading="lazy"><span>${esc(it.title)}</span></button>`).join('')}</div>
@@ -461,8 +467,7 @@ let RAIN = null, rainLoading = null;
 const OWN_BACKDROP = { scripts: 'rain', characters: 'lineup' };
 let LINEUP = null, lineupLoading = null;
 window.cw = { get LINEUP() { return LINEUP; }, get WEAVE() { return WEAVE; }, get RAIN() { return RAIN; } };   // console handles
-const CHARPICK = { show: null, pending: null };
-document.addEventListener('click', e => { const p = e.target.closest('.shelf-figures a')?.querySelector('[data-pick]'); if (p) CHARPICK.pending = p.dataset.pick; }, true);
+const CHARPICK = { show: null, want: null };
 function backdrop(key) {
   key = key || 'home';
   const own = OWN_BACKDROP[key];
@@ -475,6 +480,7 @@ function backdrop(key) {
         colin: { place: p => { SEAT = p; }, joined: v => { document.body.classList.toggle('colin-in-line', v); heroSync(); } } });
       LINEUP.fog(css('--bg') || '#0e0e0f'); backdrop(current()); });
   LINEUP?.visible(own === 'lineup');
+  if (own === 'lineup' && CHARPICK.want) LINEUP?.focus(CHARPICK.want);   // (visible() clears the pick; put it back)
   if (own === 'rain' && !RAIN && !rainLoading && GLORB.ready)
     rainLoading = import('./coderain.js?v=2119d60c').then(m => { RAIN = m.createCodeRain($('#glorb'), () => GLORB.api); backdrop(current()); });
   RAIN?.visible(own === 'rain');
@@ -672,14 +678,16 @@ deck.addEventListener('click', e => {
   latch(key, false, true);
   glorbShift();
   WEAVE?.kick(0, 0, 0.6);
-  if (!route().length && shelf) {
-    // the head stays put; the shelves slide up beneath it to this one
-    const target = Math.max(0, shelf.getBoundingClientRect().top + scrollY - headRest() - deckH() - 8);
-    HEAD.anchor = target; HEAD.target = target; HEAD.auto = performance.now() + 1600;
-    deckHold = performance.now() + 1600;
-    scrollTo({ top: target, behavior: 'smooth' });
-  } else go(key);
+  if (!route().length && shelf) toShelf(shelf);
+  else go(key);
 });
+// the head stays put; the shelves slide up beneath it to this one
+function toShelf(shelf) {
+  const target = Math.max(0, shelf.getBoundingClientRect().top + scrollY - headRest() - deckH() - 8);
+  HEAD.anchor = target; HEAD.target = target; HEAD.auto = performance.now() + 1600;
+  deckHold = performance.now() + 1600;
+  scrollTo({ top: target, behavior: 'smooth' });
+}
 let deckHold = 0;
 function deckSync() {
   const [sec] = route();

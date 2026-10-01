@@ -796,3 +796,12 @@ body[data-sec="characters"] #deck { margin-top: 54svh; }
 .char-thumbs button.on img { transform: translateY(-6px) scale(1.06); }
 .char-thumbs button.on::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 2px; height: 3px; border-radius: 3px;
   background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+/* the picked character opens right on the home shelf, inside the page's gutters */
+.shelf .char-detail.on { padding: 8px var(--gut) 4px; }
+.shelf-figures .figure img { transition: transform .3s cubic-bezier(.2,.8,.2,1), opacity .2s; }
+.shelf-figures:has(.figure.on) .figure:not(.on) img { opacity: .62; }
+.shelf-figures .figure { position: relative; padding-bottom: 8px; }
+.shelf-figures .figure.on img { transform: translateY(-6px) scale(1.06); }
+.shelf-figures .figure.on b { color: var(--ink); }
+.shelf-figures .figure.on::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 2px; height: 3px; border-radius: 3px;
+  background: var(--accent); box-shadow: 0 0 10px var(--accent); }
