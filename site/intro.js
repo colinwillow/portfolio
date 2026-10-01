@@ -197,9 +197,13 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           // strands against him), and gone once he is past it, so the strands flowing back off
           // him do not pile into a box that is no longer there
           const nx = Math.max(wx - rx, Math.min(px[i], wx + rx)), ny = Math.max(wy - ry, Math.min(py[i], wy + ry));
-          const ex = px[i] - nx, ey = py[i] - ny, ed = walking && (me.api.depth ? crossT : me.api.progress() > 0.5) ? 1e9 : Math.hypot(ex, ey);
-          if (ed < 0.5) { const ox = px[i] - wx || 0.1, oy = py[i] - wy, om = Math.hypot(ox, oy); ax += ox / om * maxF[i] * 14; ay += oy / om * maxF[i] * 14; }
-          else if (ed < 14) { ax += ex / ed * maxF[i] * 3.5 * (1 - ed / 14); ay += ey / ed * maxF[i] * 3.5 * (1 - ed / 14); }
+          /* Walking toward you, the name's collider lets go AS THE NAME FADES (the same .35s
+             delay and .5s fade the CSS gives the word), so the field falls in on him to be
+             walked into, instead of holding a hole the shape of a word nobody can see. */
+          const cs = !walking ? 1 : me.api.depth ? Math.max(0, Math.min(1, 1 - (now - walkT0 - 350) / 500)) : me.api.progress() > 0.5 ? 0 : 1;
+          const ex = px[i] - nx, ey = py[i] - ny, ed = cs <= 0 ? 1e9 : Math.hypot(ex, ey);
+          if (ed < 0.5) { const ox = px[i] - wx || 0.1, oy = py[i] - wy, om = Math.hypot(ox, oy); ax += ox / om * maxF[i] * 14 * cs; ay += oy / om * maxF[i] * 14 * cs; }
+          else if (ed < 14) { ax += ex / ed * maxF[i] * 3.5 * (1 - ed / 14) * cs; ay += ey / ed * maxF[i] * 3.5 * (1 - ed / 14) * cs; }
 
           // flee the finger
           const fx = px[i] - mx, fy = py[i] - my, fd = Math.hypot(fx, fy);
@@ -345,7 +349,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     const sx0 = new Float32Array(N), sy0 = new Float32Array(N), gi = new Int32Array(N), gz = new Float32Array(N);
     const tA = new Float32Array(N), tR = new Float32Array(N), tS = new Float32Array(N);   // each dot's place in his orb
     const tD = new Float32Array(N), tC = new Float32Array(N);   // when each dot starts for home, and its swirl
-    let G = null, walking = false, crossT = 0, ch0 = null;
+    let G = null, walking = false, crossT = 0, ch0 = null, walkT0 = 0;
     /* Walking toward you he stops where the homepage stands him, which is above the middle of
        the screen -- so the curtain drifts up to hang across where his chest will be, and he
        walks INTO it rather than over the top of it. */
@@ -371,7 +375,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     function enter() {
       if (blown || walking) return;
       if (me.ok) {                         // he walks through first
-        walking = true; me.on = true; me.api.start(W, H);
+        walking = true; me.on = true; me.api.start(W, H); walkT0 = performance.now();
         if (me.api.depth) { front.fill(1); curtainAt(); }   // he starts BEHIND the field: every dot is in front of him
         el.classList.add('walk');
         resolve('entered');
