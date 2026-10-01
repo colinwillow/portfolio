@@ -32,7 +32,7 @@ function shrinkTextures(model) {
   });
 }
 
-export function createLineup(host, chars, { onPick = () => {} } = {}) {
+export function createLineup(host, chars, { onPick = () => {}, colin = null } = {}) {
   const cv = document.createElement('canvas');
   cv.className = 'lineup off'; document.body.appendChild(cv);   // above the strip, so their feet stand on its top face
   const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
@@ -62,12 +62,14 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
     rank: Math.abs(i - home), delay: 0, state: 'wait',
     group: new THREE.Group(), mixer: null, clips: {}, cur: null, mats: [], lit: 1, loaded: false }));
   slots.forEach(s => { s.group.visible = false; scene.add(s.group); });
-  const S = { exitUntil: 0, on: false, started: false, sel: null, camX: 0, wantX: 0, ground: 0, last: 0, paused: false, drag: null };
+  const S = { shift: 0, restH: 0, exitUntil: 0, on: false, started: false, sel: null, camX: 0, wantX: 0, ground: 0, last: 0, paused: false, drag: null };
   const span = () => Math.max(home, slots.length - 1 - home) * LINE.gap;
 
   // where everyone should be: the line in `order`, every other one a step back, the picked one forward
+  // the line keeps its order; picking someone slides the WHOLE line so they stand in the
+  // middle -- everyone walks the same way the same distance, so nobody crosses anybody
   function layout() {
-    slots.forEach((s, k) => { s.tx = (k - home) * LINE.gap; s.tz = S.sel === s.c.slug ? 0.5 : (k % 2 ? -LINE.stagger : 0); });
+    slots.forEach((s, k) => { s.tx = (k - home - S.shift) * LINE.gap; s.tz = S.sel === s.c.slug ? 0.5 : (k % 2 ? -LINE.stagger : 0); });
   }
   layout();
 
@@ -80,8 +82,19 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
   function stageLeft(s, delay) {
     s.delay = delay; s.y = 0; s.z = s.tz; s.state = s.how === 'here' ? 'idle' : 'wait';
     s.x = s.how === 'here' ? s.tx : off(s); s.yaw = s.how === 'here' ? s.rest : (s.how === 'left' ? 1 : -1) * Math.PI / 2;
-    s.group.visible = s.how === 'here';
-    if (s.how === 'here') clip(s, 'idle');
+    s.group.visible = false; s.grow0 = 0;
+    if (s.how === 'here') takeColin(s);
+  }
+  // THE SAME COLIN. The little one on the strip is replaced, at the exact spot and size he
+  // is standing, by this one -- who then walks to his seat and grows to match the crew.
+  function takeColin(s) {
+    const b = colin?.from?.(), ppm = frameCamera(), r = cv.getBoundingClientRect();
+    if (b && ppm) {
+      s.x = S.camX + (b.cx - (r.left + r.width / 2)) / ppm;
+      s.grow0 = Math.min(1, b.px / ((s.c.h || 1.8) * ppm)); s.from = s.x;
+      s.state = 'enter'; s.walkIn = true; clip(s, 'walk');
+    } else { s.x = s.tx; s.state = 'idle'; clip(s, 'idle'); }
+    s.group.visible = true; colin?.joined?.(true);
   }
 
   async function loadAll() {
@@ -120,12 +133,12 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
   function step(s, dt) {
     if (s.state === 'wait') {
       s.delay -= dt; if (s.delay > 0) return;
-      s.state = 'enter'; s.group.visible = true; clip(s, s.clips.run ? 'run' : 'walk');
+      s.state = 'enter'; s.group.visible = true; clip(s, s.clips.run && !s.walkIn ? 'run' : 'walk');
     }
     if (s.state === 'enter' || s.state === 'exit') {                // running in to their seat, or out past the edge
-      const to = s.state === 'exit' ? s.exitX : s.tx, dx = to - s.x, v = s.clips.run ? s.run : s.spd * 1.3;
+      const to = s.state === 'exit' ? s.exitX : s.tx, dx = to - s.x, v = s.walkIn ? 1.4 : s.clips.run ? s.run : s.spd * 1.3;
       s.wantYaw = Math.sign(dx || 1) * Math.PI / 2;
-      if (Math.abs(dx) < 0.5 && s.state === 'enter') { s.state = 'walk'; clip(s, 'walk'); }
+      if (Math.abs(dx) < 0.5 && s.state === 'enter') { s.state = 'walk'; s.walkIn = false; clip(s, 'walk'); }
       else s.x += Math.sign(dx) * Math.min(Math.abs(dx), v * dt);
       if (s.state === 'exit' && Math.abs(dx) < 0.05) s.group.visible = false;
       let dy = s.wantYaw - s.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); s.yaw += dy * (1 - Math.exp(-10 * dt));
@@ -140,7 +153,8 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
       const dx = s.tx - s.x, dz = s.tz - s.z, d = Math.hypot(dx, dz);
       if (d > 0.06) {
         if (s.state !== 'walk') { s.state = 'walk'; clip(s, 'walk'); }
-        const v = Math.min(d * 3, s.spd);                             // eases into the stop
+        const v = Math.min(d * 3, d > 1.6 && s.clips.run ? 2.6 : 1.4);   // one pace for everyone, so the line moves as a line
+        if (d > 1.6 && s.clips.run && s.cur !== s.clips.run) clip(s, 'run'); else if (d <= 1.6 && s.cur === s.clips.run) clip(s, 'walk');
         s.x += dx / d * v * dt; s.z += dz / d * v * dt;
         s.wantYaw = Math.atan2(dx, dz);
       } else {
@@ -165,8 +179,11 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
   // seen, so rendering it would be wasted fill (and a full-screen WebGL layer over
   // Glorb's full-screen canvas did not composite at all in headless Chromium).
   function resize() {
-    const w = innerWidth, h = Math.max(60, Math.round(S.ground || host.clientHeight * 0.55));
+    // one size, measured with the page at the top; scrolling SLIDES it up with the strip
+    if (!S.restH || scrollY < 2) S.restH = S.ground;
+    const w = innerWidth, h = Math.max(60, Math.round(S.restH || host.clientHeight * 0.55));
     if (cv.style.height !== h + 'px') cv.style.height = h + 'px';
+    cv.style.transform = `translateY(${Math.round((S.ground || h) - h)}px)`;
     if (cv.width === Math.round(w * dpr) && cv.height === Math.round(h * dpr)) return;
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
   }
@@ -195,6 +212,8 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
       if (!s.loaded) continue;
       s.mixer.update(dt);
       s.group.position.set(s.x, s.y, s.z); s.group.rotation.y = s.yaw;
+      if (s.grow0) { const span0 = Math.abs(s.tx - s.from) || 1, p = Math.min(1, 1 - Math.abs(s.tx - s.x) / span0);
+        const e = p * p * (3 - 2 * p); s.group.scale.setScalar(s.grow0 + (1 - s.grow0) * e); if (p >= 1) { s.grow0 = 0; s.group.scale.setScalar(1); } }
       const want = !S.sel || S.sel === s.c.slug ? 1 : LINE.dim;
       s.lit += (want - s.lit) * (1 - Math.exp(-6 * dt));
       for (const { m, base } of s.mats) m.color.copy(base).multiplyScalar(s.lit);
@@ -235,7 +254,7 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
       if (v) {
         // back again: everyone offstage first, then in, nearest Colin first -- and draw that
         // empty stage NOW, so the canvas never shows the last frame of them running out
-        S.sel = null; S.camX = S.wantX = 0; layout();
+        S.sel = null; S.shift = 0; S.camX = S.wantX = 0; resize(); layout();
         for (const s of slots) if (s.loaded) stageLeft(s, 0.12 + s.rank * 0.16);
         for (const s of slots) if (s.loaded) s.group.position.set(s.x, s.y, s.z);
         renderer.render(scene, camera);
@@ -244,14 +263,21 @@ export function createLineup(host, chars, { onPick = () => {} } = {}) {
         for (const s of slots) if (s.loaded && s.how !== 'here') {   // they run off the way they came
           s.state = 'exit'; s.exitX = off(s); clip(s, s.clips.run ? 'run' : 'walk');
         }
+        // and Colin steps back out of this scene onto the strip, where he is standing now
+        const me = slots.find(s => s.how === 'here');
+        if (me?.loaded && me.group.visible) {
+          const v = new THREE.Vector3(me.x, 0, me.z).project(camera), r = cv.getBoundingClientRect();
+          colin?.to?.(r.left + (v.x + 1) / 2 * r.width); me.group.visible = false;
+        }
+        colin?.joined?.(false);
         S.exitUntil = performance.now() + 900;
       }
     },
     /** centre the camera on one character, light them and dim the rest (null: everyone lit) */
     focus(slug) {
       S.sel = slug || null;
-      const s = slots.find(s => s.c.slug === slug);
-      S.wantX = s ? s.tx : 0;                                         // the camera goes to them; they step forward
+      const k = slots.findIndex(s => s.c.slug === slug);
+      S.shift = k >= 0 ? k - home : 0; S.wantX = 0;                    // the line walks over until they are in the middle
       layout();
     },
     /** the strip's top edge in CSS px from the top of the host: their floor */

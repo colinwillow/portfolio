@@ -520,5 +520,15 @@ export function createMiniColin({ go, known, items, pageOf }) {
     const r = canvas.getBoundingClientRect();
     return { x: r.left + (hv.x * 0.5 + 0.5) * r.width, y: r.top + (-hv.y * 0.5 + 0.5) * r.height, w: r.width, h: r.height };
   }
-  return { act, ask, wake, sleep, adopt, release, headScreen, stroll, get awake() { return state !== 'off'; } };
+  /* Handing him to the Characters line-up and back. `body()` is where he is drawn
+     right now (client px) and how tall he stands in it; `standAt(cx)` puts him back on
+     the strip with his middle at screen x `cx`, standing, facing out -- where the
+     line-up's copy of him last was, so it reads as one Colin, not two. */
+  function body() { if (!ch) return null; const r = canvas.getBoundingClientRect(); return { cx: r.left + r.width / 2, px: r.height / 1.24 }; }
+  function standAt(cx) {
+    if (!ch) return;
+    LIFE.gone = false; LIFE.exit = false; dock.classList.remove('away');
+    LIFE.x = cx - bodyW() / 2; LIFE.mode = 'idle'; LIFE.face = 0; LIFE.faceNow = 0; LIFE.t = 3 + Math.random() * 4; lifeClip('idle');
+  }
+  return { act, ask, wake, sleep, adopt, release, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
 }
