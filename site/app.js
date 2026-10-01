@@ -217,7 +217,7 @@ const PAGES = {
     return `<div class="wrap">${head(s, ' Every number is read off the file: triangles, joints, clips, size. Optimised, animated and running in real three.js games on phones.')}
       <div class="char-thumbs">${ASSETS.map(it => `<button data-char="${esc(it.slug)}" aria-label="${esc(it.title)}">
         <img src="site/shots/char-${esc(it.slug)}.webp" alt="" loading="lazy"><span>${esc(it.title)}</span></button>`).join('')}</div>
-      <div class="char-detail">${detail(null)}</div>
+      <div class="char-detail">${charDetail(null)}</div>
       <h3 class="sub">Also coming</h3><ul class="soon"><li>3D-printable figures (STL)</li></ul>
       ${GUMROAD ? `<div class="row">${ext(GUMROAD, 'Whole store on Gumroad ↗', 'btn ghost')}</div>` : ''}${foot()}</div>`;
   },
