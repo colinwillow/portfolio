@@ -2,7 +2,9 @@
    written by palette.js; these are only first-paint fallbacks. */
 :root {
   --accent: #b07a8f; --accent-ink: #7d4b5f; --accent-soft: #f1e6ea; --accent-deep: #5a2c3c;
-  --bg: #f3f2ef; --sheet: #fbfaf8; --ink: #151515; --muted: #6d6b67; --line: #d9d6d0; --card: #ffffff;
+  /* light mode is CREAM, not white: a warm off-white page, a slightly lighter sheet, cards a breath
+     lighter again, and the lines and muted text pulled warm to sit in it */
+  --bg: #efe8da; --sheet: #f5efe3; --ink: #1d1a15; --muted: #736b5d; --line: #dcd2bf; --card: #faf5ea;
   --globe-ink: #8a8782;
   --ui: 'Inter Tight', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;

@@ -6,7 +6,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=222cfe45';
 
-export async function mountMe(cv, { bg = '#f3f2ef', mode = 'depth' } = {}) {
+export async function mountMe(cv, { bg = '#efe8da', mode = 'depth' } = {}) {
   const c = await loadCharacter(new URL('../models/colin.glb', import.meta.url).href);
   const loose = []; let skinned = 0;
   c.model.traverse(o => { if (o.isSkinnedMesh) skinned++; else if (o.isMesh) loose.push(o); });
