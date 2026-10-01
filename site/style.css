@@ -6,7 +6,7 @@
   --globe-ink: #8a8782;
   --ui: 'Inter Tight', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
-  --band: 31svh;            /* height of the globe's strip above a section; globe.js matches it */
+  --band: 54svh;            /* the stage above every section: the same height as home's (72svh landscape, below) */
   --gut: clamp(16px, 4vw, 40px);
   --r: 14px;
 }
@@ -815,3 +815,8 @@ body[data-sec="characters"] #deck { margin-top: 54svh; }
 .char-page .rail { margin-inline: calc(-1 * var(--gut)); padding-inline: var(--gut); }
 .char-page .char-detail.on { padding: 8px 0 4px; }
 .game-cast, .char-page { background: none !important; }
+
+/* ONE stage height everywhere: every section's head is home's height, so nothing jumps between pages */
+@media (min-aspect-ratio: 1/1) { :root { --band: 72svh; } }
+/* ONE Colin everywhere: the big one, on the stage above whichever key is down (About places him itself) */
+body:not(.stage-page) #home-stage { display: flex; justify-content: center; align-items: flex-end; }

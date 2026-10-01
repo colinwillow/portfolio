@@ -399,8 +399,8 @@ function render() {
 // moves when the line moves. Anywhere else he goes back to the strip; About borrows him itself.
 function heroSync() {
   const sec = route()[0], line = document.body.classList.contains('colin-in-line');
-  if (!sec || sec === 'characters' || line) withColin(c => { c.adopt(HOMESTAGE); c.present(false); });   // arms down (the procedural presenting pose was not it)
-  else if (sec !== 'about') colin?.release();
+  // every page but About: he is the big Colin on the stage (the strip's wandering little one is retired)
+  if (sec !== 'about' || line) withColin(c => { c.adopt(HOMESTAGE); c.present(false); });
 }
 
 // Loops only load and play while they are on screen -- 21 autoplaying videos
@@ -600,8 +600,9 @@ addEventListener('scroll', () => {
     // on home, once you press a key he WALKS over and stands above it -- and follows it if the
     // row of keys is scrolled sideways; nothing pressed (or back at the top), centre stage
     let gx = hx;
-    if (!SEAT && home && pressed) {
-      const kb = deck.querySelector(`.key[data-key="${pressed}"]`)?.getBoundingClientRect();
+    const on = home ? pressed : sectionOf(route()[0]) ? route()[0] : null;   // the key that is down
+    if (!SEAT && on) {
+      const kb = deck.querySelector(`.key[data-key="${on}"]`)?.getBoundingClientRect();
       if (kb?.width) gx = Math.max(48, Math.min(innerWidth - 48, kb.left + kb.width / 2));
     }
     const want = SEAT ? { x: SEAT.cx, f: SEAT.foot, k: SEAT.px / px0, lit: SEAT.lit } : { x: gx, f: foot0 + (top - rest), k: 1, lit: 1 };
