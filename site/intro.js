@@ -79,6 +79,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
 
     function target(i, out) {
       const s = strand[i], sd = DEF[s], si = s + 1, cx = FC.x + (FO.x - FC.x) * FO.k, cy = FC.y + (FO.y - FC.y) * FO.k;
+      const gx0 = 1 + (GA.sx - 1) * FO.k, gy0 = 1 + (GA.sy - 1) * FO.k;   // GATHERED: squeezed into an upright oval his size
       const sc = Math.min(W, H) / 700;
       const pulse = Math.sin(fc * 0.0008 * si + si) * si * 8 * sc, pulse2 = Math.cos(fc * 0.0006 * si + si * 0.7) * si * 6 * sc;
       const t = tt[i];
@@ -94,6 +95,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
         const r1 = sd.R * sc + pulse, r2 = sd.R * sc * 0.38 + pulse2 * 0.3, phi = t * sd.q + fc * 1e-4 * si, psi = t * sd.p;
         out[0] = cx + (r1 + r2 * Math.cos(psi)) * Math.cos(phi) * 1.35; out[1] = cy + (r1 + r2 * Math.cos(psi)) * Math.sin(phi);
       }
+      out[0] = cx + (out[0] - cx) * gx0; out[1] = cy + (out[1] - cy) * gy0;
     }
 
     const tgt = [0, 0];
@@ -119,8 +121,8 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           // later what he threw at you starts back round behind him for Glorb
           // he reaches the curtain of beads part-way in; they part round him, and a beat later
           // what he has pushed through wings out and curls back behind him for Glorb
-          if (walking && !crossT && me.api.progress() > 0.42) { crossT = performance.now(); ch0 = me.api.chest(); }
-          if (walking && crossT && now - crossT > 900) { walking = false; converge(); wings(); }
+          if (walking && !crossT && me.api.progress() > 0.25) { crossT = performance.now(); ch0 = me.api.chest(); }
+          if (walking && crossT && me.api.progress() > 0.93) { walking = false; converge(); wings(); }
         } else if (walking && me.api.progress() > 0.8) { walking = false; converge(); }   // he has walked through them; now they go
       }
       const wr = word.getBoundingClientRect(), rx = wr.width / 2 + 10, ry = wr.height / 2 + 8, wx = wr.left + wr.width / 2, wy = wr.top + wr.height / 2;
@@ -210,7 +212,8 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           if (fd < 90 && fd > 0) { const p = maxF[i] * 6 * (1 - fd / 90); ax += fx / fd * p; ay += fy / fd * p; }
           // just knocked: the strand's pull comes back gently rather than at once
           const back = 1 - 0.85 * knock[i];
-          vx[i] = (vx[i] + ax * back * k) * Math.pow(0.95, k); vy[i] = (vy[i] + ay * back * k) * Math.pow(0.95, k);
+          const dr = hitT[i] ? 0.972 : 0.95;   // a dot rolling off him keeps going; the strands' drag is for the swarm
+          vx[i] = (vx[i] + ax * back * k) * Math.pow(dr, k); vy[i] = (vy[i] + ay * back * k) * Math.pow(dr, k);
           if (!hitT[i]) knock[i] *= Math.pow(0.975, k);   // touched by him: the strand never takes it back
           /* HIM, AS AIR SEES A CAR. In his own frame the air rushes backwards
              past him; near his body that stream is bent to run ALONG his
@@ -219,39 +222,26 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
              little and slide up or down, over his head and under his feet they
              hardly move while he passes, and behind him they fill back in. They
              are not carried off with him, and the strand pulls them home after. */
-          /* THE WAKE (walking toward you). A ripple leaves his body as he reaches the field and
-             spreads outward, so EVERY dot is touched -- the ones on him first, the far ones a
-             moment later -- and there are no two groups. Each one, when touched, is steered for
-             a short while (a firm, smooth push, never a jump) out and round, the two sides
-             curling opposite ways; how hard varies a lot from dot to dot, and the hardest-hit
-             ones are thrown TOWARD you (see the swell, which rides on the same clock). */
-          if (me.on && me.api.depth && crossT) {
-            const c0 = me.api.chest() || ch0, rx = px[i] - c0.x, ry = (py[i] - c0.y) * 0.8, rm = Math.hypot(rx, ry) || 1;
-            if (!hitT[i]) {
-              const front = c0.r * (0.25 + 1.5 * (now - crossT) / 850), hit = me.api.hit(px[i], py[i]);
-              if (rm < front || (hit && hit.d > 0.03)) {
-                hitT[i] = now; knock[i] = 1;
-                const side = rx < 0 ? -1 : 1; hitS[i] = ry < 0 ? side : -side;
-              }
-            }
-            /* THE SHELL. His silhouette, blurred into a field that is 1 in his middle and fades
-               to 0 a little outside him, presses everything off him -- hardest at the centre --
-               and takes away whatever was heading further in. Nothing can sit on top of him,
-               so they bank up round his outline like air round a solid. */
+          /* BRUSHED OFF HIM (walking toward you). The cloud has depth: each dot sits at its
+             own distance (pz), and nothing happens to it until he has walked that far. Then, if
+             his body is actually on it, it is touched -- no ripple, no shared moment, nothing
+             moved by anything it did not meet. A touched dot is pressed off his silhouette (the
+             SHELL: a blurred copy of him, 1 in his middle fading to 0 just outside) and slides
+             ALONG his outline as it goes, out to the side it is nearer -- rolling off him rather
+             than being kicked. Since every dot is touched at its own depth and by its own part
+             of him, they come off one after another. How firmly varies a lot from dot to dot. */
+          if (me.on && me.api.depth && crossT && me.api.progress() > pz[i]) {
+            const c0 = me.api.chest() || ch0, rx = px[i] - c0.x;
             const sh = me.api.hit(px[i], py[i]);
-            if (sh && sh.d > 0.02) {
-              const p = Math.pow(sh.d, 1.4), vn = vx[i] * sh.nx + vy[i] * sh.ny;
-              if (vn < 0) { vx[i] -= vn * sh.nx * Math.min(1, p * 1.6); vy[i] -= vn * sh.ny * Math.min(1, p * 1.6); }
-              vx[i] += sh.nx * p * 2.4 * k; vy[i] += sh.ny * p * 2.4 * k;
-            }
-            if (hitT[i]) {
-              const e = (now - hitT[i]) / 320;
-              if (e < 1) {
-                const sp = 2.2 + 7.5 * amp[i], ws = hitS[i];
-                const tx = rx / rm * sp + (-ry / rm) * ws * sp * 0.5, ty = ry / rm * sp * 0.85 + (rx / rm) * ws * sp * 0.5 - 0.5;
-                const st = 1 - Math.pow(1 - 0.14 * Math.sin(Math.PI * e), k);   // eases in and out: a push, not a hit
-                vx[i] += (tx - vx[i]) * st; vy[i] += (ty - vy[i]) * st;
-              }
+            if (!passT[i]) passT[i] = now;
+            if (sh && sh.d > 0.03) {
+              if (!hitT[i]) { hitT[i] = now; knock[i] = 1; hitS[i] = (rx < 0 ? -1 : 1) * (py[i] < c0.y ? 1 : -1); }
+              const p = Math.pow(sh.d, 1.2) * (0.6 + 0.9 * amp[i]), vn = vx[i] * sh.nx + vy[i] * sh.ny;
+              if (vn < 0) { const c = Math.min(1, p * 1.8); vx[i] -= vn * sh.nx * c; vy[i] -= vn * sh.ny * c; }
+              // slide ALONG his outline: up and off him above his chest, down and off below it
+              let tx = -sh.ny, ty = sh.nx; if ((py[i] < c0.y) === (ty > 0)) { tx = -tx; ty = -ty; }
+              vx[i] += (sh.nx * 0.9 + tx * 0.8) * p * k; vy[i] += (sh.ny * 0.9 + ty * 0.8) * p * k;
+              const vm = Math.hypot(vx[i], vy[i]), cap = 3 + 3.5 * amp[i]; if (vm > cap) { vx[i] *= cap / vm; vy[i] *= cap / vm; }
             }
           }
           if (me.on && !me.api.depth) {
@@ -309,6 +299,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
            it has been out long enough), and only somewhere he is NOT -- if it is over him at
            that moment it waits until it is clear. Then it stays behind for good, so everything
            that comes back comes back behind him. The swap itself is a short crossfade. */
+        if (!gb2[i] && passT[i] && !hitT[i] && now - passT[i] > 150) { const o = me.api.hit(px[i], py[i]); if (!o || o.d < 0.02) gb2[i] = 1; }
         if (!gb2[i] && hitT[i]) {
           const c1 = me.api.chest() || ch0, rx = px[i] - c1.x, ry = py[i] - c1.y, rm = Math.hypot(rx, ry) || 1;
           const vr = (vx[i] * rx + vy[i] * ry) / rm;
@@ -398,15 +389,22 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
        the screen -- so the curtain drifts up to hang across where his chest will be, and he
        walks INTO it rather than over the top of it. */
     const FO = { x: 0, y: 0, k: 0, on: false };
+    const GA = { sx: 1, sy: 1 };
     function curtainAt() {
       const st = document.getElementById('home-stage')?.getBoundingClientRect();
       if (!st || st.height < 40) return;
       const foot = st.top + st.height * 0.9032, tall = st.height / 1.24;
-      FO.x = st.left + st.width / 2; FO.y = foot - tall * 0.55; FO.on = true;
+      FO.x = st.left + st.width / 2; FO.y = foot - tall * 0.5; FO.on = true;
+      // the swarm's own extent (about 105 x 78 px at a phone's width, scaled) squeezed to an
+      // upright oval a little narrower than he is, so every dot is somewhere he will walk through
+      const sc = Math.min(W, H) / 700;
+      GA.sx = (tall * 0.14) / (190 * sc); GA.sy = (tall * 0.4) / (140 * sc);
     }
     const zm = new Float32Array(N).fill(1), zA = new Float32Array(N), wingS = new Int8Array(N);
     /* Per dot: when the name lets it go (one at a time, not a row at once), when he touched
        it, which way it curls, and how hard he hit it -- mostly a brush, now and then a throw. */
+    const passT = new Float64Array(N), pz = new Float32Array(N);   // when he walked past its depth; and that depth, as walk progress
+    for (let i = 0; i < N; i++) pz[i] = 0.3 + Math.random() * 0.55;
     const gb2 = new Uint8Array(N), pk = new Float32Array(N);   // gone behind him (for good), and its peak outward speed
     const fb = new Float32Array(N).fill(1);   // 1 = in front of him, 0 = behind, between = crossing over
     const rel = new Float32Array(N), hitT = new Float64Array(N), hitS = new Int8Array(N), amp = new Float32Array(N);
