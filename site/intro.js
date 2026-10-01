@@ -304,10 +304,20 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
         zm[i] += (want - zm[i]) * (1 - Math.pow(0.8, k));
         // in front while thrown toward you, behind once it has curled back -- but it only ever
         // changes sides somewhere he is NOT, so nothing pops through him
-        // and the change is a CROSSFADE, never a cut: for a fifth of a second it is drawn on
-        // both sides of him at once, fading out of one and into the other
-        const want2 = zm[i] > 1.18 ? 1 : 0;
-        fb[i] += (want2 - fb[i]) * (1 - Math.pow(0.84, k));
+        /* ONE CROSSING EACH, AT THE TOP OF ITS THROW. Every dot is in front of him until he
+           has thrown it; it goes behind him once, when its flight outward has spent itself (or
+           it has been out long enough), and only somewhere he is NOT -- if it is over him at
+           that moment it waits until it is clear. Then it stays behind for good, so everything
+           that comes back comes back behind him. The swap itself is a short crossfade. */
+        if (!gb2[i] && hitT[i]) {
+          const c1 = me.api.chest() || ch0, rx = px[i] - c1.x, ry = py[i] - c1.y, rm = Math.hypot(rx, ry) || 1;
+          const vr = (vx[i] * rx + vy[i] * ry) / rm;
+          if (vr > pk[i]) pk[i] = vr;
+          const apex = (pk[i] > 1 && vr < pk[i] * 0.35) || now - hitT[i] > 1100 || blown > 0.6;
+          if (apex) { const o = me.api.hit(px[i], py[i]); if (!o || o.d < 0.02 || blown > 1.2) gb2[i] = 1; }
+        }
+        const want2 = gb2[i] ? 0 : 1;
+        fb[i] += (want2 - fb[i]) * (1 - Math.pow(0.8, k));
         front[i] = fb[i] > 0.98 ? 1 : fb[i] < 0.02 ? 0 : 2;
       }
       const qs = (i) => {
@@ -397,11 +407,12 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     const zm = new Float32Array(N).fill(1), zA = new Float32Array(N), wingS = new Int8Array(N);
     /* Per dot: when the name lets it go (one at a time, not a row at once), when he touched
        it, which way it curls, and how hard he hit it -- mostly a brush, now and then a throw. */
+    const gb2 = new Uint8Array(N), pk = new Float32Array(N);   // gone behind him (for good), and its peak outward speed
     const fb = new Float32Array(N).fill(1);   // 1 = in front of him, 0 = behind, between = crossing over
     const rel = new Float32Array(N), hitT = new Float64Array(N), hitS = new Int8Array(N), amp = new Float32Array(N);
     for (let i = 0; i < N; i++) {
       rel[i] = 200 + Math.random() * 800;
-      const r = Math.random(); amp[i] = r < 0.18 ? 0.8 + Math.random() * 0.5 : r < 0.75 ? 0.3 + Math.random() * 0.4 : 0.05 + Math.random() * 0.2;
+      const r = Math.random(); amp[i] = r < 0.18 ? 0.8 + Math.random() * 0.5 : r < 0.7 ? 0.35 + Math.random() * 0.35 : 0.2 + Math.random() * 0.15;
     }
     /* The wings: everything is thrown out to its own side -- up or down by where it is against
        his chest -- and each side is given the opposite turn, so the two halves sweep out and
