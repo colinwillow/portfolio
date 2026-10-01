@@ -112,7 +112,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
              flight, with a drag that does the same. So the trajectories bend
              round into him rather than stopping and starting again, and only
              in the last fifth is the landing made exact. */
-          const u = Math.min(1, blown / FLY);
+          const u = Math.max(0, Math.min(1, (blown - tD[i]) / (FLY - tD[i])));
           /* Onto its own place in HIS ORB, not onto one of his live particles: on a phone
              those can still be drifting in from where he started (they came in as a clump
              from the right edge and dragged the whole flight with them). The place is his
@@ -120,8 +120,10 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           const gc = G.gb.centre, a = tA[i] + blown * 0.35 * tS[i], rr = tR[i] * gc.scale;
           const ox = G.left + gc.x + Math.cos(a) * rr, oy = G.top + gc.y + Math.sin(a) * rr * 1.22;
           const ks = 0.0012 + 0.045 * u * u * u, c = 0.012 + 0.25 * u * u;
-          vx[i] += ((ox - px[i]) * ks - vx[i] * c) * k;
-          vy[i] += ((oy - py[i]) * ks - vy[i] * c) * k;
+          // the swirl: round the orb, strongest while it is still far out, gone by the landing
+          const dx0 = px[i] - (G.left + gc.x), dy0 = py[i] - (G.top + gc.y), dd = Math.hypot(dx0, dy0) || 1, sw = tC[i] * (1 - u) * (1 - u) * 0.35;
+          vx[i] += ((ox - px[i]) * ks - vx[i] * c - dy0 / dd * sw) * k;
+          vy[i] += ((oy - py[i]) * ks - vy[i] * c + dx0 / dd * sw) * k;
           if (u > 0.8) { const w = Math.pow((u - 0.8) / 0.2, 2) * 0.5; px[i] += (ox - px[i]) * w; py[i] += (oy - py[i]) * w; }        } else if (blown) {
           // no Glorb to go to: the old door opening
           const dx = px[i] - W / 2, dy = py[i] - H / 2, d = Math.hypot(dx, dy) || 1;
@@ -209,6 +211,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     const FLY = 1.6;
     const sx0 = new Float32Array(N), sy0 = new Float32Array(N), gi = new Int32Array(N), gz = new Float32Array(N);
     const tA = new Float32Array(N), tR = new Float32Array(N), tS = new Float32Array(N);   // each dot's place in his orb
+    const tD = new Float32Array(N), tC = new Float32Array(N);   // when each dot starts for home, and its swirl
     let G = null, walking = false;
     function enter() {
       if (blown || walking) return;
@@ -250,6 +253,14 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
         for (let i = 0; i < N; i++) {
           tA[i] = Math.random() * Math.PI * 2; tS[i] = Math.random() < 0.5 ? 1 : -0.6;
           tR[i] = hot[i] ? Math.sqrt(Math.random()) * 0.085 : 0.19 + Math.random() * 0.11;
+          /* NO LUMPS. The dots he walked through ride along on him, and on a phone at full
+             frame rate he collects a lot of them -- so when the flight began they all left
+             his chest at the right edge together, with one velocity, and travelled as a
+             clump. So every dot is PUFFED apart (hardest for the ones he was carrying),
+             starts for home at its own moment, and swirls as it goes: smoke, not a lump. */
+          const puff = 1.2 + 4.5 * Math.min(1, knock[i] * 2), a = Math.random() * Math.PI * 2;
+          vx[i] += Math.cos(a) * puff * Math.random(); vy[i] += Math.sin(a) * puff * Math.random();
+          tD[i] = Math.random() * 0.55 * FLY; tC[i] = (0.6 + Math.random() * 1.4) * (Math.random() < 0.5 ? 1 : -1);
         }
         for (let i = 0; i < N; i++) {
           sx0[i] = px[i]; sy0[i] = py[i];
