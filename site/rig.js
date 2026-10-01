@@ -52,6 +52,28 @@ async function borrowClips(model, url) {
   }).filter(c => c.tracks.length);
 }
 
+// THE 3-SECOND EXPORTS. Several files were exported with Cinema 4D's default 72-frame range,
+// so every take longer than 3 s is cut mid-motion and snaps back to its first frame on every
+// loop. Until they are re-exported, a cut clip's last `CLOSE` seconds are blended back onto
+// its first pose, so the snap becomes a short settle. The value arrays are CLONED first: a
+// glTF track's arrays are shared between tracks, and editing one in place edits them all.
+const CLOSE = 0.6, CUT = 3.0417;
+const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
+function closeLoop(clip) {
+  if (Math.abs(clip.duration - CUT) > 0.02) return clip;
+  for (const t of clip.tracks) {
+    const n = t.getValueSize(), T = t.times, v = t.values = Float32Array.from(t.values), end = T[T.length - 1];
+    if (T.length < 3) continue;
+    for (let i = 0; i < T.length; i++) {
+      const u = (T[i] - (end - CLOSE)) / CLOSE; if (u <= 0) continue;
+      const w = u >= 1 ? 1 : u * u * (3 - 2 * u);
+      if (n === 4 && t.name.endsWith('.quaternion')) { qa.fromArray(v, i * 4); qb.fromArray(v, 0); qa.slerp(qb, w); qa.toArray(v, i * 4); }
+      else for (let k = 0; k < n; k++) v[i * n + k] += (v[k] - v[i * n + k]) * w;
+    }
+  }
+  return clip;
+}
+
 /** Load a character. `onProgress(0..1)` when the server sends a length. `anim`: a file to borrow clips from. */
 export async function loadCharacter(url, onProgress, { anim = null } = {}) {
   const g = await new Promise((res, rej) => gltf().load(url, res,
@@ -72,6 +94,7 @@ export async function loadCharacter(url, onProgress, { anim = null } = {}) {
   });
   let clips = g.animations.filter(c => !RESIDUE.test(c.name) && c.tracks.length);
   if (anim && !clips.some(c => /idle/i.test(c.name))) clips = [...await borrowClips(model, anim).catch(() => []), ...clips];
+  clips = clips.map(closeLoop);
   const mixer = new THREE.AnimationMixer(model);
   return { model, clips, mixer, tris: Math.round(tris), joints };
 }

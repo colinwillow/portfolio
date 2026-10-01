@@ -127,7 +127,7 @@ function charPicker(root, { home = false } = {}) {
     if (grp && panel.previousElementSibling !== grp) grp.after(panel);   // their details open right under their game's row
     viewer?.destroy(); viewer = null;
     panel.innerHTML = it || !home ? charDetail(it) : ''; panel.classList.toggle('on', !!it);
-    if (it) import('./viewer.js?v=37eb75be').then(m => { if (CHARPICK.show === show && panel.querySelector('#char-viewer'))
+    if (it) import('./viewer.js?v=97d84ef4').then(m => { if (CHARPICK.show === show && panel.querySelector('#char-viewer'))
       viewer = m.mountViewer(panel.querySelector('#char-viewer'), { url: it.glb, prefer: it.prefer, anim: it.anim }); });
     faces.forEach(b => b.classList.toggle('on', b.dataset.char === slug));
   };
@@ -219,7 +219,7 @@ const PAGES = {
     if (slug) {
       const it = ASSETS.find(x => x.slug === slug);
       if (!it) return missing();
-      after = () => import('./viewer.js?v=37eb75be').then(m => { mounted = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer, anim: it.anim }); });
+      after = () => import('./viewer.js?v=97d84ef4').then(m => { mounted = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer, anim: it.anim }); });
       return `<div class="wrap">${crumbs(link('characters', 'Characters'), esc(it.title))}
         <h2 class="title">${esc(it.title)}</h2>
         <p class="lede">From ${esc(it.from)}. ${it.notes.map(esc).join(' · ')}.</p>
@@ -499,7 +499,7 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=0f15b862').then(m => {
+    lineupLoading = import('./lineup.js?v=6cabc335').then(m => {
       const cast = ASSETS.filter(a => a.from === CAST.game || a.also?.includes(CAST.game)), half = Math.ceil(cast.length / 2);
       LINEUP = m.createLineup($('#glorb'), [...cast.slice(0, half), { slug: 'colin', colin: true, h: 1.9, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...cast.slice(half)], { onPick: slug => CHARPICK.show?.(slug),
         colin: { place: p => { SEAT = p; }, joined: v => { document.body.classList.toggle('colin-in-line', v); heroSync(); } } });
@@ -887,7 +887,7 @@ const globeReady = GLORB_ON ? Promise.resolve() : (USE_SWARM ? import('./stage-s
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? import('./intro.js?v=de361eea').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
+  ? import('./intro.js?v=24b08106').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
       .catch(err => console.warn('intro', err))
   : Promise.resolve();
 
@@ -906,5 +906,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=8ed6e9fa').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=51f75458').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));
