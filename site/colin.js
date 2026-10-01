@@ -168,6 +168,23 @@ export function createMiniColin({ go, known, items, pageOf }) {
   // MUSIC ON: wherever he would stand idle he bops instead. The calmest dance in his file
   // (measured: the least rotation of the six); dance_hiphop_03 is the next most casual.
   const DANCE = 'dance_wiggle_feet';
+  /* HIS MOUTH. The export's mouth mesh has no material, so it is coloured here: it is four
+     separate pieces -- the upper and lower rows of teeth (the two biggest), and the upper gums
+     and the lower gums-and-tongue -- found by welding the vertices and grouping what connects. */
+  function paintMouth(o) {
+    const g = o.geometry, P = g.attributes.position, I = g.index, n = P.count;
+    const id = new Map(), par = [], vid = new Int32Array(n);
+    const find = x => { while (par[x] !== x) x = par[x] = par[par[x]]; return x; };
+    for (let i = 0; i < n; i++) { const k = P.getX(i).toFixed(4) + ',' + P.getY(i).toFixed(4) + ',' + P.getZ(i).toFixed(4);
+      if (!id.has(k)) { id.set(k, id.size); par.push(id.size - 1); } vid[i] = id.get(k); }
+    if (I) for (let f = 0; f < I.count; f += 3) { const a = find(vid[I.getX(f)]); par[find(vid[I.getX(f + 1)])] = a; par[find(vid[I.getX(f + 2)])] = a; }
+    const size = new Map(); for (let i = 0; i < n; i++) { const r = find(vid[i]); size.set(r, (size.get(r) || 0) + 1); }
+    const teeth = new Set([...size].sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => x[0]));
+    const white = new THREE.Color(0xf4efe6), pink = new THREE.Color(0xc76a72), col = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) (teeth.has(find(vid[i])) ? white : pink).toArray(col, i * 3);
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    o.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0 });
+  }
   function lifeClip(name) {
     if (name === 'idle' && groove && state === 'off' && LIFE.clips.dance) name = 'dance';
     const c = LIFE.clips[name]; if (!c || LIFE.cur === c) return; LIFE.cur = c;
@@ -333,15 +350,13 @@ export function createMiniColin({ go, known, items, pageOf }) {
     const loose = []; let skinned = 0;
     c.model.traverse(o => { if (o.isSkinnedMesh) skinned++; else if (o.isMesh) loose.push(o); });
     if (skinned) loose.forEach(o => o.removeFromParent());
-    let headMat = null;
-    c.model.traverse(o => { if (o.isMesh && /head/i.test(o.name) && o.material.map) headMat = o.material; });
     c.model.traverse(o => {
       // bones BEFORE the mesh-only return, or the head glance and the arms never find theirs
       if (o.isBone && /head$/i.test(o.name) && !head) { head = o; headBase.copy(o.quaternion); }
       const m = o.isBone && o.name.match(/(Left|Right)(ForeArm|Arm)$/);
       if (m) gest.push({ bone: o, side: m[1] === 'Left' ? 1 : -1, fore: m[2] === 'ForeArm', base: o.quaternion.clone(), seed: Math.random() * 10 });
       if (!o.isMesh) return;
-      if (/teeth/i.test(o.name) && !o.material.map && headMat) o.material = headMat;  // untextured teeth read as white
+      if (/teeth/i.test(o.name) && !o.material.map) paintMouth(o);   // no material in the export: teeth white, gums and tongue pink
       if (o.morphTargetDictionary) face.push({ infl: o.morphTargetInfluences,
         index: new Map(Object.entries(o.morphTargetDictionary).map(([n, i]) => [canon(n), i])) });
     });

@@ -820,3 +820,7 @@ body[data-sec="characters"] #deck { margin-top: 54svh; }
 @media (min-aspect-ratio: 1/1) { :root { --band: 72svh; } }
 /* ONE Colin everywhere: the big one, on the stage above whichever key is down (About places him itself) */
 body:not(.stage-page) #home-stage { display: flex; justify-content: center; align-items: flex-end; }
+/* coming into view (see reveal() in app.js) */
+.rv { opacity: 0; transform: translateY(24px) scale(.985); transition: opacity .5s ease var(--rv, 0ms), transform .7s cubic-bezier(.2,.8,.2,1) var(--rv, 0ms); }
+.rv.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } }

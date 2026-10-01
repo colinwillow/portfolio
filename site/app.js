@@ -100,6 +100,30 @@ document.addEventListener('click', async e => {
 const foot = (sup = true) => `${sup ? support() : ''}<footer class="foot"><span>© ${new Date().getFullYear()} ${esc(SITE.name)}</span>
   <span>${ext(SITE.github, 'GitHub')} · <a href="classic.html">Previous portfolio</a> · build ${esc(BUILD)}</span></footer>`;
 
+// ---- coming into view -----------------------------------------------------------
+// Everything on a page arrives as it scrolls into view: a short rise and fade, staggered
+// along each row, so a shelf of cards deals itself out rather than being there already.
+// Sideways rails reveal as they are swiped. The classes come off once it has landed, so a
+// card's own hover and picked states are never fighting the reveal for its transform.
+const REVEAL = '.shelf-head, .rail > *, .grid > *, .gallery > *, .wall > *, .char-game, .wrap > h2, .wrap > .lede, .wrap > .row, .wrap > h3, .viewer, .support, .essay, .crumbs';
+const revealIO = 'IntersectionObserver' in window && new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return;
+  const el = e.target; revealIO.unobserve(el); el.classList.add('in');
+  const done = () => { el.classList.remove('rv', 'in'); el.removeEventListener('transitionend', end); };
+  const end = ev => { if (ev.target === el && ev.propertyName === 'transform') done(); };
+  el.addEventListener('transitionend', end); setTimeout(done, 1800);
+}), { rootMargin: '0px 0px -6% 0px', threshold: 0.08 });
+function reveal(root) {
+  if (!revealIO || calm.matches) return;
+  const seen = new Map();
+  root.querySelectorAll(REVEAL).forEach(el => {
+    if (el.closest('#about-hero')) return;
+    const k = seen.get(el.parentElement) || 0; seen.set(el.parentElement, k + 1);
+    el.style.setProperty('--rv', Math.min(k, 6) * 70 + 'ms');
+    el.classList.add('rv'); revealIO.observe(el);
+  });
+}
+
 // ---- picking a character -------------------------------------------------------
 // ONE picker, wherever the faces are (the home shelf or the Characters page): tap a
 // face, or someone in the line-up, and the line slides to them and their 3D viewer and
@@ -378,6 +402,7 @@ function render() {
   document.body.dataset.sec = sec || 'home';
   document.body.classList.toggle('stage-page', sec === 'about' && !slug);   // a full-screen stage above the strip
   view.innerHTML = page ? page(slug) : missing();
+  reveal(view);
   view.classList.remove('enter');
   if (!document.startViewTransition || calm.matches) { void view.offsetWidth; view.classList.add('enter'); }
   const s = sectionOf(sec);
@@ -906,5 +931,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=51f75458').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=2b710712').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));
