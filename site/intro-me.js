@@ -6,7 +6,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=222cfe45';
 
-export async function mountMe(cv) {
+export async function mountMe(cv, { bg = '#f3f2ef', mode = 'depth' } = {}) {
   const c = await loadCharacter(new URL('../models/colin.glb', import.meta.url).href);
   const loose = []; let skinned = 0;
   c.model.traverse(o => { if (o.isSkinnedMesh) skinned++; else if (o.isMesh) loose.push(o); });
@@ -20,9 +20,16 @@ export async function mountMe(cv) {
       if (/colin.?head/i.test(n)) o.morphTargetInfluences[i] = 1;          // the shape that makes the head his
   });
   const walk = pickClip(c.clips, 'walk_fwd_swagger', 'walk_fwd_neutral');
+  const idle = pickClip(c.clips, 'idle_neutral', 'neutral_idle');
+  /* Measured on the IDLE, exactly as the homepage Colin measures himself (colin.js), so the
+     place this one stops is the place that one stands, to the pixel: same height, same
+     ground, same centring. */
+  let hIdle = 0, idleBox = null;
+  if (idle) { const a = play(c.mixer, idle, { fade: 0 }); c.mixer.update(0.01); idleBox = skinnedBounds(c.model); hIdle = idleBox.max.y - idleBox.min.y; a.stop(); }
   const walkA = play(c.mixer, walk, { fade: 0 }); c.mixer.update(0.01);
-  const box = skinnedBounds(c.model), h = box.max.y - box.min.y;
+  const box = idleBox || skinnedBounds(c.model), h = box.max.y - box.min.y;
   c.model.position.y -= box.min.y;
+  if (mode === 'depth') c.model.position.x -= (box.min.x + box.max.x) / 2;
   const bones = {};
   c.model.traverse(o => { if (!o.isBone) return;
     for (const k of ['Head', 'Spine2', 'Hips', 'LeftHand', 'RightHand', 'LeftFoot', 'RightFoot'])
@@ -52,7 +59,7 @@ export async function mountMe(cv) {
   const footSpeed = bones.LeftFoot && bones.RightFoot ? stride() : 0.7 * h;
   /* A brisker walk than the clip's own: the step plays faster AND he travels
      faster by the same factor, so the planted foot still does not slide. */
-  const PACE = 1.35;
+  const PACE = mode === 'depth' ? 1.6 : 1.35;
   if (walkA) walkA.timeScale = PACE;
 
   const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
@@ -62,13 +69,45 @@ export async function mountMe(cv) {
   scene.add(new THREE.HemisphereLight(0xffffff, 0x6a6070, 2.3));
   const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(-2, 3, 3); scene.add(key);
   const rim = new THREE.DirectionalLight(0xb488ff, 1.6); rim.position.set(2, 2, -3); scene.add(rim);
-  scene.add(c.model); c.model.rotation.y = Math.PI / 2;           // he faces +Z; walking right is +X
+  scene.add(c.model);
+  if (mode === 'depth') {
+    /* OUT OF THE FOG: his far distance fades into the page's own colour, so he condenses out
+       of the background rather than being a small man standing on it. */
+    scene.fog = new THREE.Fog(new THREE.Color(bg), 1, 2);
+  } else c.model.rotation.y = Math.PI / 2;           // he faces +Z; walking right is +X
 
   let W = 0, H = 0, span = 0, x0 = 0, x1 = 0, t = 0, dur = 1, running = false, dead = false;
   const speed = footSpeed * PACE;                                         // metres a second: his feet, measured
   const v = new THREE.Vector3(), clock = new THREE.Clock();
+  /* THE HOMEPAGE'S CAMERA. The hero Colin is drawn by a 22-degree camera into a box 0.7 wide
+     by the stage's height; this one IS that camera -- same lens, same place, same aim -- with
+     its view offset widened to the whole screen, so the box the hero draws into is exactly a
+     window in this picture. Wherever he stops at z = 0 is therefore where the hero stands,
+     at his size, to the pixel, and the page can take him without anything moving. */
+  const stageRect = () => {
+    const st = document.getElementById('home-stage'), r = st?.getBoundingClientRect();
+    return r && r.height > 40 && getComputedStyle(st).display !== 'none' ? r : null;
+  };
+  let depth = mode === 'depth', Z0 = 0, walkT = 0, endT = 0;
+  const STOP = 0.7;   // seconds of slowing to a stand at the end
+  function aim() {
+    const r = stageRect(); if (!r) return false;
+    const ch = r.height, cw = ch * 0.7, L = r.left + r.width / 2 - cw / 2, T = r.top;
+    camera.fov = 22; camera.aspect = 0.7;
+    const dist = h * 0.62 / Math.tan(camera.fov * Math.PI / 360);
+    camera.position.set(0, h * 0.62, dist); camera.lookAt(0, h * 0.5, 0);
+    camera.setViewOffset(cw, ch, -L, -T, W, H); camera.updateProjectionMatrix();
+    scene.fog.near = dist + 0.8; scene.fog.far = dist + Z0 * 1.05;
+    return true;
+  }
   function layout(w, hgt) {
     W = w; H = hgt; renderer.setSize(W, H, false); camera.aspect = W / H;
+    if (depth) {
+      // the walk: about three and a half seconds of steps from far back, then a stand
+      walkT = 5.2; Z0 = speed * (walkT + STOP * 0.5); endT = walkT + STOP;
+      if (aim()) { dur = endT; return; }
+      depth = false; c.model.rotation.y = Math.PI / 2; c.model.position.x = 0; scene.fog = null;   // no stage to aim at: the side walk
+    }
     // frame him about 55% of the screen tall, feet a little below the middle-third line
     const tall = h / 0.42, dist = tall / (2 * Math.tan(camera.fov * Math.PI / 360));
     camera.position.set(0, h * 0.62, dist); camera.lookAt(0, h * 0.62, 0); camera.updateProjectionMatrix();
@@ -127,13 +166,38 @@ export async function mountMe(cv) {
     requestAnimationFrame(frame);
     const dt = Math.min(0.05, clock.getDelta());
     if (!running) return;
-    t += dt; c.model.position.x = x0 + (x1 - x0) * Math.min(1, t / dur);
+    t += dt;
+    if (depth) {
+      aim();                                    // the page may scroll or resize under him: follow its stage
+      // distance covered: full pace, then easing to a stand over STOP (the step slows with him)
+      const u = Math.max(0, Math.min(1, (t - walkT) / STOP)), pace = t < walkT ? 1 : 1 - u;
+      const done = t < walkT ? speed * t : speed * (walkT + STOP * (u - u * u / 2));
+      c.model.position.z = -Z0 + done;
+      if (walkA) walkA.timeScale = PACE * Math.max(0.15, pace);
+      if (idle && !stood && t > walkT + STOP * 0.35) { stood = true; play(c.mixer, idle, { fade: STOP * 0.65 }); }
+    } else c.model.position.x = x0 + (x1 - x0) * Math.min(1, t / dur);
     c.mixer.update(dt);
     renderer.render(scene, camera);
     silhouette();
-    const sx = (c.model.position.x / (span * 2) + 0.5) * W;          // his screen speed, px per 60 Hz frame
+    const sx = depth ? lastX : (c.model.position.x / (span * 2) + 0.5) * W;          // his screen speed, px per 60 Hz frame
     bodyVx = dt > 0 ? (sx - lastX) / (dt * 60) : 0; lastX = sx;
-    if (t > dur + 0.1) dispose();
+    if (!depth && t > dur + 0.1) dispose();
+    if (depth && t > endT) handoff();
+  }
+  /* He holds the spot until the homepage's own Colin is up and drawn there, then the two
+     crossfade over a third of a second -- they are standing in the same place in the same
+     pose, so it reads as nothing happening at all. If the page never brings one (no WebGL,
+     ?nocolin), he fades on his own after a while rather than standing there for ever. */
+  let stood = false, gone = 0;
+  function handoff() {
+    if (gone) return;
+    // ...and only once the intro has lifted: before that the page is still covered, and
+    // fading out here would just make him vanish into the overlay
+    const ready = !document.getElementById('intro') && document.querySelector('#home-stage #mini:not(.loading) canvas');
+    if (ready || t > endT + 12) {
+      gone = 1; cv.style.transition = 'opacity .35s'; cv.style.opacity = '0';
+      setTimeout(dispose, 450);
+    }
   }
   function dispose() {
     if (dead) return; dead = true; running = false;
@@ -153,6 +217,14 @@ export async function mountMe(cv) {
       return { d, nx: -gx / g, ny: -gy / g, vx: bodyVx };
     },
     progress: () => Math.min(1, t / dur),
+    /** walking toward the camera (true) or across (false) -- decided when he starts */
+    get depth() { return depth; },
+    /** where his chest is on screen and how tall he stands there, px */
+    chest() {
+      if (!running) return null;
+      const p = scr(bones.Spine2 || c.model, 0), hd = scr(bones.Head || c.model, 0.1), ft = scr(c.model, 0);
+      return { x: p.x, y: p.y, r: Math.abs(ft.y - hd.y) };
+    },
     body() {
       if (!running) return [];
       const k = pxM(), out = [];
