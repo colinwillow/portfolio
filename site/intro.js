@@ -222,26 +222,31 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
              little and slide up or down, over his head and under his feet they
              hardly move while he passes, and behind him they fill back in. They
              are not carried off with him, and the strand pulls them home after. */
-          /* BRUSHED OFF HIM (walking toward you). The cloud has depth: each dot sits at its
-             own distance (pz), and nothing happens to it until he has walked that far. Then, if
-             his body is actually on it, it is touched -- no ripple, no shared moment, nothing
-             moved by anything it did not meet. A touched dot is pressed off his silhouette (the
-             SHELL: a blurred copy of him, 1 in his middle fading to 0 just outside) and slides
-             ALONG his outline as it goes, out to the side it is nearer -- rolling off him rather
-             than being kicked. Since every dot is touched at its own depth and by its own part
-             of him, they come off one after another. How firmly varies a lot from dot to dot. */
+          /* CLING, THEN THROWN (walking toward you). The cloud has depth: each dot sits at its
+             own distance (pz) and nothing happens to it until he has walked that far. If his body
+             is on it then, it is CAUGHT: held to a band just inside his outline (the shell -- a
+             blurred copy of him, 1 in his middle fading to 0 outside -- pushes it out of his
+             middle and pulls it back if it drifts off), so the touched ones visibly bank up round
+             his edge. Then they go in WAVES: every third of a second, whatever is clinging is
+             thrown off him along his outline's normal, rolling up off his upper half and down off
+             his lower. So two or three puffs, each made of exactly the dots that were touching
+             him -- nothing moves that he did not reach. */
           if (me.on && me.api.depth && crossT && me.api.progress() > pz[i]) {
-            const c0 = me.api.chest() || ch0, rx = px[i] - c0.x;
+            const c0 = me.api.chest() || ch0;
             const sh = me.api.hit(px[i], py[i]);
             if (!passT[i]) passT[i] = now;
-            if (sh && sh.d > 0.03) {
-              if (!hitT[i]) { hitT[i] = now; knock[i] = 1; hitS[i] = (rx < 0 ? -1 : 1) * (py[i] < c0.y ? 1 : -1); }
-              const p = Math.pow(sh.d, 1.2) * (0.6 + 0.9 * amp[i]), vn = vx[i] * sh.nx + vy[i] * sh.ny;
-              if (vn < 0) { const c = Math.min(1, p * 1.8); vx[i] -= vn * sh.nx * c; vy[i] -= vn * sh.ny * c; }
-              // slide ALONG his outline: up and off him above his chest, down and off below it
-              let tx = -sh.ny, ty = sh.nx; if ((py[i] < c0.y) === (ty > 0)) { tx = -tx; ty = -ty; }
-              vx[i] += (sh.nx * 0.9 + tx * 0.8) * p * k; vy[i] += (sh.ny * 0.9 + ty * 0.8) * p * k;
-              const vm = Math.hypot(vx[i], vy[i]), cap = 3 + 3.5 * amp[i]; if (vm > cap) { vx[i] *= cap / vm; vy[i] *= cap / vm; }
+            if (!cl[i] && sh && sh.d > 0.03) {
+              cl[i] = 1; knock[i] = 1;
+              const t0 = now - crossT + 140, wave = Math.ceil(t0 / WAVE) * WAVE;   // the next wave after a beat of clinging
+              relT[i] = crossT + wave + Math.random() * 50;
+            }
+            if (cl[i] === 1) {
+              if (sh) {
+                const band = 0.46, f = (sh.d - band) * 3.2;   // deeper than the band: out; shallower: back in
+                vx[i] += sh.nx * f * k; vy[i] += sh.ny * f * k;
+              } else { vx[i] += (c0.x - px[i]) * 0.004 * k; vy[i] += (c0.y - py[i]) * 0.004 * k; }
+              vx[i] *= Math.pow(0.8, k); vy[i] *= Math.pow(0.8, k);   // it settles on him
+              if (now >= relT[i]) throwOff(i, sh, c0);
             }
           }
           if (me.on && !me.api.depth) {
@@ -299,7 +304,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
            it has been out long enough), and only somewhere he is NOT -- if it is over him at
            that moment it waits until it is clear. Then it stays behind for good, so everything
            that comes back comes back behind him. The swap itself is a short crossfade. */
-        if (!gb2[i] && passT[i] && !hitT[i] && now - passT[i] > 150) { const o = me.api.hit(px[i], py[i]); if (!o || o.d < 0.02) gb2[i] = 1; }
+        if (!gb2[i] && passT[i] && !hitT[i] && !cl[i] && now - passT[i] > 150) { const o = me.api.hit(px[i], py[i]); if (!o || o.d < 0.02) gb2[i] = 1; }
         if (!gb2[i] && hitT[i]) {
           const c1 = me.api.chest() || ch0, rx = px[i] - c1.x, ry = py[i] - c1.y, rm = Math.hypot(rx, ry) || 1;
           const vr = (vx[i] * rx + vy[i] * ry) / rm;
@@ -403,6 +408,14 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     const zm = new Float32Array(N).fill(1), zA = new Float32Array(N), wingS = new Int8Array(N);
     /* Per dot: when the name lets it go (one at a time, not a row at once), when he touched
        it, which way it curls, and how hard he hit it -- mostly a brush, now and then a throw. */
+    const cl = new Uint8Array(N), relT = new Float64Array(N), WAVE = 330;   // 1 = clinging to him, 2 = thrown off
+    function throwOff(i, sh, c0) {
+      cl[i] = 2; hitT[i] = performance.now();
+      let nx = sh ? sh.nx : px[i] - c0.x, ny = sh ? sh.ny : py[i] - c0.y; const nm = Math.hypot(nx, ny) || 1; nx /= nm; ny /= nm;
+      let tx = -ny, ty = nx; if ((py[i] < c0.y) === (ty > 0)) { tx = -tx; ty = -ty; }   // rolling up off him above his chest, down below
+      const sp = 3.5 + 6 * amp[i] * (0.7 + Math.random() * 0.6);
+      vx[i] = nx * sp + tx * sp * 0.45; vy[i] = ny * sp + ty * sp * 0.45;
+    }
     const passT = new Float64Array(N), pz = new Float32Array(N);   // when he walked past its depth; and that depth, as walk progress
     for (let i = 0; i < N; i++) pz[i] = 0.3 + Math.random() * 0.55;
     const gb2 = new Uint8Array(N), pk = new Float32Array(N);   // gone behind him (for good), and its peak outward speed
@@ -416,6 +429,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
        his chest -- and each side is given the opposite turn, so the two halves sweep out and
        curl back in mirror image, round behind him, onto the orb. */
     function wings() {
+      { const c1 = me.api.chest() || ch0; for (let i = 0; i < N; i++) if (cl[i] === 1) throwOff(i, me.api.hit(px[i], py[i]), c1); }
       const ch = me.api.chest() || ch0 || { x: W / 2, y: H * 0.5, r: H * 0.3 };
       for (let i = 0; i < N; i++) {
         const side = px[i] < ch.x ? -1 : 1, oy = Math.max(-1.1, Math.min(0.8, (py[i] - ch.y) / (ch.r || 1)));
