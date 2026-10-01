@@ -237,7 +237,7 @@ const PAGES = {
     after = () => mountAbout();
     return `<div class="wrap about">
       <div id="about-hero">
-        <div class="about-floor" aria-hidden="true"><i class="pool"></i><i class="ring"></i><i class="ring r2"></i><i class="shadow"></i></div>
+        <div class="about-floor" aria-hidden="true"><i class="plane"></i><i class="pool"></i><i class="shadow"></i></div>
         <div class="about-slot"></div>
         <button class="btn accent about-talk">Talk to me</button></div>
       <h2 class="title">Hi, I'm Colin.</h2>
@@ -289,7 +289,7 @@ function render() {
   if (sec) scrollTo(0, 0);
   globe?.setMode(sec && s ? 'section' : 'home', s ? sec : null); aisleKey = null;
   globe?.pause?.(!sec && GLORB_ON);   // at home Glorb is the stage
-  WEAVE?.set(sec || latched || 'home');
+  if (WEAVE) backdrop(sec || latched || 'home');   // (WEAVE exists only after boot, when the deck is defined)
   pushColors();
   wireVideos();
   after?.();
@@ -367,6 +367,21 @@ onAccent(() => pushColors());
    the home page after it. One field, every state: nothing is swapped. */
 const GLORB = { api: null, ready: false, send: () => {} };
 let WEAVE = null;   // the woven band pattern behind him, one per section (weave.js)
+/* EACH SECTION'S BACKDROP behind Glorb. Most are the weave; a section can have its
+   own instead -- Scripts is code raining past (coderain.js), loaded the first time
+   it is needed. One place decides, so the backdrops can never both be showing. */
+let RAIN = null, rainLoading = null;
+const OWN_BACKDROP = { scripts: 'rain' };
+function backdrop(key) {
+  key = key || 'home';
+  const own = OWN_BACKDROP[key];
+  WEAVE?.set(key);
+  WEAVE?.visible(!own);
+  if (own === 'rain' && !RAIN && !rainLoading && GLORB.ready)
+    rainLoading = import('./coderain.js?v=6830cc9a').then(m => { RAIN = m.createCodeRain($('#glorb'), () => GLORB.api); backdrop(current()); });
+  RAIN?.visible(own === 'rain');
+}
+const current = () => route()[0] || latched || 'home';   // only called after boot
 const GLORB_DOT = 0.65;
 const glorbTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 if (GLORB_ON) document.body.classList.add('has-glorb');
@@ -375,11 +390,11 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
-  import('./weave.js?v=40a57577').then(w => {
+  import('./weave.js?v=fae96af3').then(w => {
     WEAVE = w.createWeave($('#glorb'), () => GLORB.api);   // Glorb's particles carve the cloth
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent
-    WEAVE.set(route()[0] || latched || 'home');
+    backdrop(route()[0] || latched || 'home');
   }).catch(err => console.warn('weave', err));
   new MutationObserver(() => { api.post({ glorb: 'theme', theme: glorbTheme(), bg: css('--bg') }); WEAVE?.theme(glorbTheme() === 'dark'); })
     .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -436,7 +451,7 @@ addEventListener('scroll', () => {
   // as the strip rises it catches him low, so his underside visibly flattens on it before he goes
   api.setCentreY(Math.min(room * 0.5, top - R * 0.5));
   api.pause(top < -R * 1.5);
-  WEAVE?.pause(top < 0);
+  WEAVE?.pause(top < 0); RAIN?.pause(top < 0);
   // the main band runs behind Glorb's resting centre (not his live one, so a squash does not drag the cloth)
   WEAVE?.anchor(room * 0.5);
 })();
@@ -513,7 +528,7 @@ let latched = null;
 function latch(key, show = true) {
   if (key === latched) return;
   latched = key;
-  if (!route().length) WEAVE?.set(key || 'home');   // at home the weave follows the shelf you are on
+  if (!route().length) backdrop(key || 'home');   // at home the weave follows the shelf you are on
   deck.querySelectorAll('.key').forEach(k => k.classList.toggle('in', k.dataset.key === key));
   const k = key && deck.querySelector(`.key[data-key="${key}"]`);
   if (k && show) { const r = k.getBoundingClientRect(), d = deck.getBoundingClientRect();

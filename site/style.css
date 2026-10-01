@@ -643,3 +643,28 @@ body.stage-page .about-floor { bottom: calc(44px + 0.085 * (100% - 44px)); }
 /* About: Colin back at his original size and spot; the floor fitted under his feet there */
 body.stage-page .about-slot { inset: 0; transform: translateY(6px); }
 body.stage-page .about-floor { bottom: calc(0.085 * 100% - 6px); aspect-ratio: 5 / 1; transform: translate(-50%, 50%); }
+/* backdrops behind Glorb fade between sections */
+#glorb canvas.weave { transition: opacity .7s ease; }
+#glorb canvas.weave.off { opacity: 0; }
+
+/* ---- About: a GROUND PLANE, not rings ----------------------------------------------
+   A flat floor he stands on: it starts at a soft horizon a little above his feet and
+   runs to the strip, opaque enough that the pattern stops where the floor begins (so
+   nothing intersects him), lit by a faint violet pool under him, with a dark contact
+   shadow at his soles. */
+body.stage-page .about-floor { left: 0; right: 0; width: auto; aspect-ratio: auto; transform: none; bottom: 0;
+  height: calc(0.085 * 100% + 34px); }
+.about-floor .plane { inset: 0; border-radius: 0;
+  background: linear-gradient(to bottom, transparent 0, color-mix(in srgb, var(--bg) 70%, transparent) 26%, var(--bg) 70%);
+  border-top: 0; }
+.about-floor .plane::before { content: ''; position: absolute; left: 6%; right: 6%; top: 26%; height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, #a94dff 55%, transparent), transparent); }
+.about-floor .pool { inset: 18% 14% -10%; border-radius: 50%; filter: blur(14px); animation: none;
+  background: radial-gradient(closest-side, rgba(169, 77, 255, .28), rgba(169, 77, 255, .08) 60%, transparent); }
+.about-floor .shadow { inset: auto 34% calc(0.085 * 100% * 0 + 22px); height: 18px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,0,0,.7), transparent); }
+/* and he stands a little smaller on the stage */
+body.stage-page .about-slot { inset: 22% 0 0 0; }
+/* while the little Colin on the strip is a bit bigger */
+#mini:not(.hero) .mini-body { width: 118px; height: 168px; }
+@media (min-width: 900px) { #mini:not(.hero) .mini-body { width: 146px; height: 208px; } }

@@ -149,6 +149,29 @@ function yarns(acc, shift, dark) {
   return { g, a, b, c };
 }
 
+/* THE BOOLEAN SUBTRACT, shared by every backdrop behind Glorb: wherever his particles
+   are, the backdrop is cut away with a soft margin, so it stops at his silhouette and
+   parts around him as he moves. The particles are stamped into a quarter-size mask
+   (cheap for thousands of dots), and scaling it back up is what softens the edge. */
+export function makeCarve(CARVE = { r: 9, feather: 7, q: 4 }) {
+  const mask = document.createElement('canvas'), mg = mask.getContext('2d');
+  return function carve(ctx, cv, api, dpr) {
+    if (!api) return;
+    const q = CARVE.q, mw = Math.ceil(cv.width / q), mh = Math.ceil(cv.height / q);
+    if (mask.width !== mw || mask.height !== mh) { mask.width = mw; mask.height = mh; }
+    mg.clearRect(0, 0, mw, mh);
+    const { px, py } = api.field, n = api.n, s = dpr / q, TAU = Math.PI * 2;
+    for (const [rad, a] of [[CARVE.r + CARVE.feather, 0.45], [CARVE.r, 1]]) {
+      mg.globalAlpha = a; mg.fillStyle = '#fff'; mg.beginPath();
+      const r = rad * s;
+      for (let i = 0; i < n; i++) { const x = px[i] * s, y = py[i] * s; if (x < -r || y < -r || x > mw + r || y > mh + r) continue; mg.moveTo(x + r, y); mg.arc(x, y, r, 0, TAU); }
+      mg.fill();
+    }
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'destination-out'; ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(mask, 0, 0, cv.width, cv.height); ctx.restore();
+  };
+}
+
 /* SHAPES, NOT TILES. Every motif is written as filled shapes (the easiest way to
    describe one), and this pen RECORDS them instead of painting: each fill becomes
    one shape -- its outline as a list of points -- and a full-width band becomes two
@@ -304,30 +327,15 @@ export function createWeave(host, field = () => null) {
      with a soft margin, so the pattern stops at his silhouette and parts around
      him as he moves. The particles are stamped into a quarter-size mask (cheap
      for thousands of dots) and scaling it back up is what softens the edge. */
-  const mask = document.createElement('canvas'), mg = mask.getContext('2d');
   const CARVE = { r: 9, feather: 7, q: 4 };
-  function carve() {
-    const api = field(); if (!api) return;
-    const q = CARVE.q, mw = Math.ceil(cv.width / q), mh = Math.ceil(cv.height / q);
-    if (mask.width !== mw || mask.height !== mh) { mask.width = mw; mask.height = mh; }
-    mg.clearRect(0, 0, mw, mh);
-    const { px, py } = api.field, n = api.n, s = dpr / q;
-    const TAU = Math.PI * 2;
-    for (const [rad, a] of [[CARVE.r + CARVE.feather, 0.45], [CARVE.r, 1]]) {
-      mg.globalAlpha = a; mg.fillStyle = '#fff'; mg.beginPath();
-      const r = rad * s;
-      for (let i = 0; i < n; i++) { const x = px[i] * s, y = py[i] * s; if (x < -r || y < -r || x > mw + r || y > mh + r) continue; mg.moveTo(x + r, y); mg.arc(x, y, r, 0, TAU); }
-      mg.fill();
-    }
-    ctx.save(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'destination-out'; ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(mask, 0, 0, cv.width, cv.height); ctx.restore();
-  }
+  const carver = makeCarve(CARVE);
+  const carve = () => carver(ctx, cv, field(), dpr);
 
   let frameN = 0;
   function frame(now) {
     requestAnimationFrame(frame);
     const ds = scrollY - S.scroll; S.scroll = scrollY;
-    if (S.paused || document.hidden) { S.last = now; S.par += ds * PARALLAX; return; }
+    if (S.paused || document.hidden || (S.hidden && now - S.hidAt > 900)) { S.last = now; S.par += ds * PARALLAX; return; }
     if (now - S.last < 30) { S.par += ds * PARALLAX; step(0, ds * PARALLAX * dpr); return; }
     const dt = Math.min(0.1, (now - S.last) / 1000); S.last = now; S.t += dt; frameN++;
     S.par += ds * PARALLAX;
@@ -362,6 +370,8 @@ export function createWeave(host, field = () => null) {
       for (const [k, c] of live) { const a = hash(k) * 6.28; c.vx += Math.cos(a) * 60 * amt * dpr; c.v += Math.sin(a) * 60 * amt * dpr; }
     },
     pause(p) { S.paused = !!p; },
+    /** hide it (another backdrop is showing); it fades */
+    visible(v) { if (S.hidden === !v) return; cv.classList.toggle('off', !v); S.hidden = !v; S.hidAt = performance.now(); },
     CARVE, LINE, MOTION,
     /** where the main band should run (CSS px from the top): behind Glorb's centre */
     anchor(y) { S.anchor = y; },
