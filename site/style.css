@@ -842,3 +842,9 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
   box-shadow: 0 8px 24px -10px rgb(0 0 0 / .5); }
 .game-head > div { min-width: 0; }
 .game-head .title { margin-top: 0; }
+/* THE NAME IN HIS COLOURS: the big C is Glorb's violet, the two Os his green, the rest of the
+   letters the page's ink -- soft on cream, neon on the dark page, the same as he is */
+:root { --logo-c: #8a64c2; --logo-o: #6f9f5e; }
+:root[data-theme="dark"] { --logo-c: #a855f7; --logo-o: #72ec5c; }
+.logo > path { color: var(--logo-c); }
+.logo > g > path { color: var(--logo-o); }
