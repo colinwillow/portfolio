@@ -385,7 +385,7 @@ function render() {
 // moves when the line moves. Anywhere else he goes back to the strip; About borrows him itself.
 function heroSync() {
   const sec = route()[0], line = document.body.classList.contains('colin-in-line');
-  if (!sec || sec === 'characters' || line) withColin(c => { c.adopt(HOMESTAGE); c.present(!sec && !line); });
+  if (!sec || sec === 'characters' || line) withColin(c => { c.adopt(HOMESTAGE); c.present(false); });   // arms down (the procedural presenting pose was not it)
   else if (sec !== 'about') colin?.release();
 }
 
@@ -572,14 +572,28 @@ addEventListener('scroll', () => {
     // where he stands: the hero spot (riding the scroll), or the line-up's seat for him, eased
     // between the two so stepping into the line is a move and not a cut
     const foot0 = y + H * 0.9032, px0 = H / 1.24, hx = innerWidth / 2;
-    const want = SEAT ? { x: SEAT.cx, f: SEAT.foot, k: SEAT.px / px0, lit: SEAT.lit } : { x: hx, f: foot0 + (top - rest), k: 1, lit: 1 };
+    // on home, once you press a key he WALKS over and stands above it -- and follows it if the
+    // row of keys is scrolled sideways; nothing pressed (or back at the top), centre stage
+    let gx = hx;
+    if (!SEAT && home && pressed) {
+      const kb = deck.querySelector(`.key[data-key="${pressed}"]`)?.getBoundingClientRect();
+      if (kb?.width) gx = Math.max(48, Math.min(innerWidth - 48, kb.left + kb.width / 2));
+    }
+    const want = SEAT ? { x: SEAT.cx, f: SEAT.foot, k: SEAT.px / px0, lit: SEAT.lit } : { x: gx, f: foot0 + (top - rest), k: 1, lit: 1 };
     const P = HOMESTAGE._p ||= { ...want };
+    const now = performance.now(), dt = Math.min(0.05, (now - (HOMESTAGE._t || now)) / 1000); HOMESTAGE._t = now;
     const e = SEAT && HOMESTAGE._seat ? 1 : 0.14;   // in the line he IS the seat; between modes, eased
-    for (const n of ['x', 'f', 'k', 'lit']) P[n] += (want[n] - P[n]) * e;
+    for (const n of ['f', 'k', 'lit']) P[n] += (want[n] - P[n]) * e;
+    let walk = SEAT?.dir || 0;
+    if (SEAT) P.x += (want.x - P.x) * e;
+    else {   // a walk, at a walking pace for a man his size on screen -- not a slide
+      const d = want.x - P.x, v = 1.5 * (px0 * P.k / 1.85);
+      if (Math.abs(d) > 2) { walk = Math.sign(d); P.x += walk * Math.min(Math.abs(d), v * dt); } else P.x = want.x;
+    }
     HOMESTAGE._seat = !!SEAT && Math.abs(P.k - want.k) < 0.01 && Math.abs(P.x - want.x) < 1;
     HOMESTAGE.style.transform = `translate(${(P.x - hx).toFixed(1)}px,${(P.f - foot0).toFixed(1)}px) scale(${P.k.toFixed(4)})`;
     HOMESTAGE.style.filter = P.lit < 0.995 ? `brightness(${P.lit.toFixed(3)})` : '';
-    colin?.heroWalk?.(SEAT?.dir || 0);
+    colin?.heroWalk?.(walk);
     HOMESTAGE.style.visibility = top < 0 ? 'hidden' : '';   // the strip has gone off the top, and the stage with it
   }
   api.pause(top < -R * 1.5);
