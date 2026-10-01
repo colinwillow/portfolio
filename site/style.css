@@ -824,3 +824,7 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
 .rv { opacity: 0; transform: translateY(24px) scale(.985); transition: opacity .5s ease var(--rv, 0ms), transform .7s cubic-bezier(.2,.8,.2,1) var(--rv, 0ms); }
 .rv.in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } }
+/* which build this is, on the very first screen: "it is still doing it" and "that build has not reached me yet" look the same otherwise */
+.intro-build { position: absolute; left: 14px; bottom: calc(12px + env(safe-area-inset-bottom)); font: 600 10px var(--mono); letter-spacing: .12em;
+  color: var(--muted); opacity: .75; pointer-events: none; }
+#intro.walk .intro-build, #intro.out .intro-build { opacity: 0; transition: opacity .4s; }

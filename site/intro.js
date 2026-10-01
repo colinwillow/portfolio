@@ -17,14 +17,15 @@
 // in exactly the place the dots were, and it opens out into Glorb from there.
 // One field; nothing fades out while something else fades in somewhere else.
 
-export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '#72ec5c', glorb = null, dotK = 1 } = {}) {
+export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '#72ec5c', glorb = null, dotK = 1 } = {}) {
   return new Promise(resolve => {
     const el = document.createElement('div');
     el.id = 'intro';
     const logo = document.querySelector('#hud .logo');
     el.innerHTML = `<canvas></canvas><div class="intro-word">${logo ? logo.outerHTML : '<b>COLIN</b> WILLOW'}</div>
       ${role ? `<p class="intro-role">${role.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}</p>` : ''}
-      <button class="intro-enter">Enter</button>`;
+      <button class="intro-enter">Enter</button>
+      ${build ? `<span class="intro-build">build ${String(build).replace(/[^\w.-]/g, '')}</span>` : ''}`;
     /* HIM. While the portal runs, his rig loads in the background; on Enter he
        walks in from the left, straight through the particles -- they part
        around his body as he goes -- and it is as he passes that they start
