@@ -63,7 +63,7 @@ export const PLAY = [
   { slug: 'shredworld', icon: 'shredworld', shot: 'shredworld', gallery: ['shredworld-key'], title: 'Shredworld', kind: 'Game', status: 'dev', thumb: 'shredworld',
     url: GH + 'city/', tags: ['three.js', 'mobile', 'open world'],
     blurb: 'Skate an open low-poly city. Board tricks, grinds, ladders, a jetpack, a blaster, the police, and a ship you can fly off a rooftop.' },
-  { slug: 'rollergirl', icon: 'rollergirl', shot: 'rollergirl', title: 'Rollergirl', kind: 'Game', status: 'dev',
+  { slug: 'rollergirl', icon: 'rollergirl-2', shot: 'rollergirl', title: 'Rollergirl', kind: 'Game', status: 'dev',
     url: GH + 'rollergirl/', tags: ['three.js', 'skate park'],
     blurb: 'Rollerblading in a procedural park: half pipes, a bowl, kickers and real transition physics.' },
   { slug: 'peggy', icon: 'peggy', shot: 'peggy', title: 'Peggy', kind: 'Game', status: 'dev', thumb: 'peggy',
