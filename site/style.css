@@ -780,4 +780,5 @@ body.at-home #home-stage { display: flex; justify-content: center; align-items: 
 #mini.hero .mini-tools { bottom: calc(9.7% + 14px); }
 #mini.hero .mini-tag { bottom: calc(9.7% + 66px); }
 /* the line-up brings its own Colin: the hero one steps aside so there is only ever one of him */
-body.colin-in-line #home-stage { visibility: hidden; }
+body.colin-in-line #home-stage { visibility: visible; display: flex; justify-content: center; align-items: flex-end; z-index: 14; }
+#home-stage { transform-origin: 50% 90.32%; }

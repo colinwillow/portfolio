@@ -372,7 +372,14 @@ function render() {
   if (typeof deckSync === 'function') deckSync();
   // home: Colin stands big in the middle of the hero, presenting; anywhere else he goes back to the strip
   // (About borrows him itself, once its page is built)
-  if (!sec) withColin(c => c.adopt(HOMESTAGE, { present: true }));
+  heroSync();
+}
+// ONE COLIN. On home he stands in the hero presenting; whenever the line-up is up (the
+// Characters page, or its key down on home) he is the man in its empty middle seat, and
+// moves when the line moves. Anywhere else he goes back to the strip; About borrows him itself.
+function heroSync() {
+  const sec = route()[0], line = document.body.classList.contains('colin-in-line');
+  if (!sec || sec === 'characters' || line) withColin(c => { c.adopt(HOMESTAGE); c.present(!sec && !line); });
   else if (sec !== 'about') colin?.release();
 }
 
@@ -463,9 +470,9 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=9b16ba87').then(m => {
+    lineupLoading = import('./lineup.js?v=3669d690').then(m => {
       LINEUP = m.createLineup($('#glorb'), [...ASSETS.slice(0, 4), { slug: 'colin', colin: true, h: 1.9, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...ASSETS.slice(4)], { onPick: slug => CHARPICK.show?.(slug),
-        colin: { from: () => colin?.body?.(), to: cx => colin?.standAt?.(cx), joined: v => document.body.classList.toggle('colin-in-line', v) } });
+        colin: { place: p => { SEAT = p; }, joined: v => { document.body.classList.toggle('colin-in-line', v); heroSync(); } } });
       LINEUP.fog(css('--bg') || '#0e0e0f'); backdrop(current()); });
   LINEUP?.visible(own === 'lineup');
   if (own === 'rain' && !RAIN && !rainLoading && GLORB.ready)
@@ -505,6 +512,7 @@ const HEAD = { anchor: 0, auto: 0, target: 0, sk: 1 };
    floor (the middle of the strip's top face) and his head is on Glorb's centre. His
    canvas frames him with his soles 9.7% up from its bottom and his head about 84.6% up,
    so the box is (floor - head) / 0.749 tall and hangs that far below his feet. */
+let SEAT = null;
 const HOMESTAGE = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'home-stage' }));
 /* The page's CSS sizes everything in svh (the screen WITH the browser bar showing)
    and innerHeight is the screen as it is right now -- on a phone those differ by
@@ -547,13 +555,24 @@ addEventListener('scroll', () => {
   api.setFloor(top - 1);
   // as the strip rises it catches him low, so his underside visibly flattens on it before he goes
   api.setCentreY(Math.min(room * 0.5, top - R * 0.5));
-  if (home) {
+  {
     // sized off the page AT REST, so scrolling only moves him: resizing his canvas every frame
     // as the hero shrank cleared it (the flashing) and shrank him with it
     const lg = parseFloat(css('--ledge')) || 26, rest = headRest(), floor = rest - lg * 0.5;
     const H = Math.round(Math.max(80, (floor - rest * 0.5) / 0.749)), y = Math.round(floor + 0.0968 * H - H);
     if (HOMESTAGE._h !== H) { HOMESTAGE._h = H; HOMESTAGE.style.height = H + 'px'; HOMESTAGE.style.top = y + 'px'; }
-    HOMESTAGE.style.transform = `translateY(${Math.round(top - rest)}px)`;
+    // where he stands: the hero spot (riding the scroll), or the line-up's seat for him, eased
+    // between the two so stepping into the line is a move and not a cut
+    const foot0 = y + H * 0.9032, px0 = H / 1.24, hx = innerWidth / 2;
+    const want = SEAT ? { x: SEAT.cx, f: SEAT.foot, k: SEAT.px / px0, lit: SEAT.lit } : { x: hx, f: foot0 + (top - rest), k: 1, lit: 1 };
+    const P = HOMESTAGE._p ||= { ...want };
+    const e = SEAT && HOMESTAGE._seat ? 1 : 0.14;   // in the line he IS the seat; between modes, eased
+    for (const n of ['x', 'f', 'k', 'lit']) P[n] += (want[n] - P[n]) * e;
+    HOMESTAGE._seat = !!SEAT && Math.abs(P.k - want.k) < 0.01 && Math.abs(P.x - want.x) < 1;
+    HOMESTAGE.style.transform = `translate(${(P.x - hx).toFixed(1)}px,${(P.f - foot0).toFixed(1)}px) scale(${P.k.toFixed(4)})`;
+    HOMESTAGE.style.filter = P.lit < 0.995 ? `brightness(${P.lit.toFixed(3)})` : '';
+    colin?.heroWalk?.(SEAT?.dir || 0);
+    HOMESTAGE.style.visibility = top < 0 ? 'hidden' : '';   // the strip has gone off the top, and the stage with it
   }
   api.pause(top < -R * 1.5);
   WEAVE?.pause(top < 0); RAIN?.pause(top < 0);
@@ -830,5 +849,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=e4a550bc').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=d1bdfc2a').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

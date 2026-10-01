@@ -74,6 +74,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
   layout();
 
   function clip(s, name) {
+    if (s.ghost) return;
     const c = s.clips[name] || s.clips.idle; if (!c || s.cur === c) return; s.cur = c;
     play(s.mixer, c, { fade: 0.25 });
   }
@@ -83,25 +84,18 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     s.delay = delay; s.y = 0; s.z = s.tz; s.state = s.how === 'here' ? 'idle' : 'wait';
     s.x = s.how === 'here' ? s.tx : off(s); s.yaw = s.how === 'here' ? s.rest : (s.how === 'left' ? 1 : -1) * Math.PI / 2;
     s.group.visible = false; s.grow0 = 0;
-    if (s.how === 'here') takeColin(s);
+    if (s.how === 'here') { s.x = s.tx; s.state = 'idle'; colin?.joined?.(true); }
   }
-  // THE SAME COLIN. The little one on the strip is replaced, at the exact spot and size he
-  // is standing, by this one -- who then walks to his seat and grows to match the crew.
-  function takeColin(s) {
-    const b = colin?.from?.(), ppm = frameCamera(), r = cv.getBoundingClientRect();
-    if (b && ppm) {
-      s.x = S.camX + (b.cx - (r.left + r.width / 2)) / ppm;
-      s.grow0 = Math.min(1, b.px / ((s.c.h || 1.8) * ppm)); s.from = s.x;
-      s.state = 'enter'; s.walkIn = true; clip(s, 'walk');
-    } else { s.x = s.tx; s.state = 'idle'; clip(s, 'idle'); }
-    s.group.visible = true; colin?.joined?.(true);
-  }
-
+  // COLIN'S SEAT IS EMPTY ON PURPOSE. There is only ever one Colin -- the hero on the page --
+  // so the line keeps a seat for him and says, every frame, where on screen it is and how
+  // big a man standing in it would be (`colin.place`). He stands there; it is as if they
+  // were all in the one canvas.
   async function loadAll() {
     // the middle of the line first, then outward, so the screen fills from the centre
     const mid = (slots.length - 1) / 2;
     const seq = [...slots].sort((a, b) => Math.abs(a.i - mid) - Math.abs(b.i - mid));
     for (const s of seq) {
+      if (s.c.colin) { s.ghost = true; s.loaded = true; s.mixer = { update() {} }; stageLeft(s, 0); continue; }
       try {
         const ch = await loadCharacter(new URL('../' + s.c.glb, import.meta.url).href);
         if (s.c.colin) {                                           // Colin's own file: donor heads out, his face shape on
@@ -221,8 +215,17 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
       for (const { m, base } of s.mats) m.color.copy(base).multiplyScalar(s.lit);
     }
     renderer.render(scene, camera);
+    seat();
   }
   requestAnimationFrame(frame);
+  const sv = new THREE.Vector3();
+  function seat() {
+    const s = slots.find(t => t.ghost); if (!s) return;
+    const r = cv.getBoundingClientRect();
+    sv.set(s.x, 0, s.z).project(camera); const cx = r.left + (sv.x + 1) / 2 * r.width, foot = r.top + (1 - sv.y) / 2 * r.height;
+    sv.set(s.x, s.c.h || 1.8, s.z).project(camera); const head = r.top + (1 - sv.y) / 2 * r.height;
+    colin?.place?.({ cx, foot, px: foot - head, lit: s.lit, dir: s.state === 'walk' && Math.abs(s.tx - s.x) > 0.06 ? Math.sign(s.tx - s.x) : 0 });
+  }
 
   // drag to walk the line; a tap picks whoever is under the thumb
   cv.addEventListener('pointerdown', e => { S.drag = { x: e.clientX, camX: S.camX, moved: 0 }; });
@@ -265,13 +268,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
         for (const s of slots) if (s.loaded && s.how !== 'here') {   // they run off the way they came
           s.state = 'exit'; s.exitX = off(s); clip(s, s.clips.run ? 'run' : 'walk');
         }
-        // and Colin steps back out of this scene onto the strip, where he is standing now
-        const me = slots.find(s => s.how === 'here');
-        if (me?.loaded && me.group.visible) {
-          const v = new THREE.Vector3(me.x, 0, me.z).project(camera), r = cv.getBoundingClientRect();
-          colin?.to?.(r.left + (v.x + 1) / 2 * r.width); me.group.visible = false;
-        }
-        colin?.joined?.(false);
+        colin?.place?.(null); colin?.joined?.(false);
         S.exitUntil = performance.now() + 900;
       }
     },

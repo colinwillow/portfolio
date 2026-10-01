@@ -163,6 +163,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const pxPerM = () => { const r = canvas.getBoundingClientRect(); return r.height / (2 * camera.position.z * Math.tan(camera.fov * Math.PI / 360)); };
   const bodyW = () => canvas.getBoundingClientRect().width || 120;
   const lane = () => [8, Math.max(8, innerWidth - bodyW() - 8)];
+  let heroDir = 0;
   function lifeClip(name) {
     const c = LIFE.clips[name]; if (!c || LIFE.cur === c) return; LIFE.cur = c;
     play(ch.mixer, c, { fade: 0.35 });
@@ -204,9 +205,10 @@ export function createMiniColin({ go, known, items, pageOf }) {
     if (!ch) return;
     if (dock.classList.contains('hero')) {
       // borrowed by a page: he stands centre stage, facing out, whatever he was doing on the strip
+      // (or, in the line-up, walks with the line when it shifts: `heroWalk`)
       if (LIFE.mode !== 'idle') { LIFE.mode = 'idle'; LIFE.t = 3; }
-      LIFE.face = 0; lifeClip('idle');
-      LIFE.faceNow += (0 - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
+      LIFE.face = heroDir; lifeClip(heroDir ? 'walk' : 'idle');
+      LIFE.faceNow += (heroDir - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
       ch.model.rotation.y = LIFE.faceNow * Math.PI / 2;
       dock.style.transform = '';
       return;
@@ -541,5 +543,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
     LIFE.gone = false; LIFE.exit = false; dock.classList.remove('away');
     LIFE.x = cx - bodyW() / 2; LIFE.mode = 'idle'; LIFE.face = 0; LIFE.faceNow = 0; LIFE.t = 3 + Math.random() * 4; lifeClip('idle');
   }
-  return { act, ask, wake, sleep, adopt, release, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
+  const present = v => { presWant = v ? 1 : 0; };
+  const heroWalk = d => { heroDir = d || 0; };
+  return { act, ask, wake, sleep, adopt, release, present, heroWalk, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
 }
