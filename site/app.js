@@ -3,7 +3,10 @@ import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours
 
 const BASE = window.BASE || '/';
 // Which build this is (the content hash npm run bump stamped on app.js) -- in the footer, so a phone can say.
-const BUILD = new URL(import.meta.url).searchParams.get('v') || 'dev';
+// the build badge: the script's hash AND the stylesheet's, so a change to either shows as a new number
+const BUILD = (() => { const js = new URL(import.meta.url).searchParams.get('v') || 'dev';
+  const css = new URL(document.querySelector('link[href*="style.css"]')?.href || location.href).searchParams.get('v') || '';
+  return css ? js.slice(0, 4) + css.slice(0, 4) : js; })();
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const view = $('#view');
