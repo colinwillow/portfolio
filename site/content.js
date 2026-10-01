@@ -8,6 +8,11 @@
 // Your Gumroad profile, e.g. 'https://colinwillow.gumroad.com'. Empty = the
 // buy/download buttons stay hidden rather than pointing nowhere.
 export const GUMROAD = '';
+/* SUPPORT. Everything here is free; this is the "if it helped you, buy me a coffee"
+   link. Paste your page's address in `url` (Buy Me a Coffee, Ko-fi, GitHub Sponsors --
+   any of them works) and the support card goes live on every page. Empty = the card
+   says it is coming rather than linking nowhere. */
+export const SUPPORT = { url: '', label: 'Buy me a coffee', note: 'Everything on this site is free: the games, the code, the models, the tutorials. If something here saved you time or taught you something, a coffee keeps it coming.' };
 
 export const GH = 'https://colinwillow.github.io/';
 
@@ -31,6 +36,7 @@ export const SECTIONS = [
   { key: 'writing',   label: 'Thoughts',   tier: 2, lat:  30, lon:  165, blurb: 'Essays about art and making, read aloud.' },
   { key: 'audio',     label: 'Audio',     tier: 2, lat: -30, lon:  -95, blurb: 'Game soundtracks, and free sound effects to download.' },
   { key: 'workbench', label: 'Workbench', tier: 3, lat: -55, lon:  -30, blurb: 'Illustration, logos, and everything made by hand.' },
+  { key: 'tutorials', label: 'Tutorials', tier: 1, lat:  45, lon:  130, blurb: 'How the games and characters are made, step by step. Free, with the files.' },
   { key: 'about',     label: 'Colin',     tier: 3, lat:  -8, lon: -170, blurb: 'Who made this.' },
 ];
 
@@ -122,6 +128,17 @@ export const WRITING = [
 ];
 
 // Scripts. Slugs exist before the files do so tutorial links can go out early.
+/* Tutorials: each one breaks down a piece of a game, with the files free to download.
+   { slug, title, game, blurb, video (YouTube/mp4 url), files: [{ label, href }], status: 'live' | 'soon' } */
+export const TUTORIALS = [
+  { slug: 'rigged-character-to-threejs', title: 'From a rigged character to a phone game', game: "Zap 'n Clancy", status: 'soon',
+    blurb: 'Mixamo rig, draco + WebP, one material, and the clip set that makes a character feel good under two thumbs.' },
+  { slug: 'particle-orb', title: 'Building Glorb', game: 'Glorb', status: 'soon',
+    blurb: 'A sound-reactive particle orb in plain canvas: rings, shapes, and the physics that makes it breathe.' },
+  { slug: 'breakable-buildings', title: 'Buildings that come apart', game: "Zap 'n Clancy", status: 'soon',
+    blurb: 'Chunked walls, oriented-box colliders and debris, batched so a whole street is a handful of draw calls.' },
+];
+
 export const SCRIPTS = [
   { slug: 'arp-to-mixamo', title: 'Auto-Rig Pro → Mixamo', app: 'Cinema 4D', status: 'soon',
     blurb: 'Converts an Auto-Rig Pro rig to Mixamo naming so Mixamo clips and web retargeting just work.', file: '', video: '' },

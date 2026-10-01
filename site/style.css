@@ -708,3 +708,15 @@ body.stage-page .about-slot { inset: 22% 0 0 0; transform: translateY(calc(10.5%
 body.stage-page .about-floor { height: var(--ledge); bottom: 0; }
 body.stage-page .about-floor .plane, body.stage-page .about-floor .pool { display: none; }
 body.stage-page .about-floor .shadow { inset: auto 36% calc(var(--ledge) * .5 - 8px); height: 16px; }
+
+/* ---- support: the buy-me-a-coffee card ---------------------------------------------- */
+.support { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; justify-content: space-between; margin: 34px 0 6px;
+  padding: 14px 16px; border: 1px solid var(--line); border-radius: 16px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--card)), var(--card)); }
+.support b { font: 700 15px var(--ui); }
+.support p { margin: 4px 0 0; color: var(--muted); font-size: 13px; max-width: 60ch; }
+.support.big { padding: 20px; margin-top: 28px; }
+.support.big b { font-size: 18px; }
+.support.big + .foot, .wrap > .support.big + .support { display: block; }
+.vidwrap { position: relative; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: #000; }
+.vidwrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }

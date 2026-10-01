@@ -7,7 +7,7 @@
 // on its own persistent canvas (the fading trail IS the persistence); every frame
 // it is copied onto the visible canvas and Glorb's particles are carved out of it,
 // the same boolean subtract the weave uses.
-import { makeCarve } from './weave.js?v=78f4cd2d';
+import { makeCarve } from './weave.js?v=c37c269e';
 
 const SOURCE = `import c4d
 from c4d import gui, documents

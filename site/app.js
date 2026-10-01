@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=cd5052e9';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=ef3c7e11';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -82,7 +82,10 @@ const STATUS = { live: 'Live', dev: 'In development', soon: 'Coming soon' };
 const sectionOf = k => SECTIONS.find(s => s.key === k);
 const crumbs = (...parts) => `<nav class="crumbs">${[link('./', 'Home'), ...parts].join(' / ')}</nav>`;
 const head = (s, extra = '') => `${crumbs(esc(s.label))}<h2 class="title">${esc(s.label)}</h2><p class="lede">${esc(s.blurb)}${extra}</p>`;
-const foot = () => `<footer class="foot"><span>© ${new Date().getFullYear()} ${esc(SITE.name)}</span>
+// The support card: on every page, quiet, and honest when the link is not set yet.
+const support = (big = false) => `<aside class="support${big ? ' big' : ''}"><div><b>☕ Free, and staying free</b><p>${esc(SUPPORT.note)}</p></div>
+  ${SUPPORT.url ? ext(SUPPORT.url, esc(SUPPORT.label) + ' ↗', 'btn accent') : `<span class="btn accent" aria-disabled="true">${esc(SUPPORT.label)} · soon</span>`}</aside>`;
+const foot = (sup = true) => `${sup ? support() : ''}<footer class="foot"><span>© ${new Date().getFullYear()} ${esc(SITE.name)}</span>
   <span>${ext(SITE.github, 'GitHub')} · <a href="classic.html">Previous portfolio</a> · build ${esc(BUILD)}</span></footer>`;
 
 // ---- pages ----------------------------------------------------------------
@@ -197,6 +200,26 @@ const PAGES = {
         <h4>${esc(it.title)}</h4>${specs(it)}<div class="meta"><span class="pill">${esc(it.from)}</span>${it.gumroad ? '<span class="pill hot">On Gumroad</span>' : ''}</div>`, 'card')).join('')}</div>
       <h3 class="sub">Also coming</h3><ul class="soon"><li>3D-printable figures (STL)</li></ul>
       ${GUMROAD ? `<div class="row">${ext(GUMROAD, 'Whole store on Gumroad ↗', 'btn ghost')}</div>` : ''}${foot()}</div>`;
+  },
+
+  tutorials(slug) {
+    const s = sectionOf('tutorials');
+    const vid = t => !t.video ? '' : /youtu/.test(t.video)
+      ? `<div class="vidwrap"><iframe src="${esc(t.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'www.youtube.com/embed/'))}" allowfullscreen loading="lazy" title="${esc(t.title)}"></iframe></div>`
+      : `<video src="${esc(t.video)}" controls playsinline preload="metadata"></video>`;
+    if (slug) {
+      const t = TUTORIALS.find(x => x.slug === slug);
+      if (!t) return missing();
+      return `<div class="wrap narrow">${crumbs(link('tutorials', 'Tutorials'), esc(t.title))}
+        <h2 class="title">${esc(t.title)}</h2><p class="lede">${esc(t.blurb)}</p>
+        ${vid(t) || '<p class="soon">The video is on its way.</p>'}
+        ${(t.files || []).length ? `<h3 class="sub">Free files</h3><div class="row">${t.files.map(f => ext(f.href, '↓ ' + esc(f.label), 'btn ghost')).join('')}</div>` : ''}
+        ${support(true)}${foot(false)}</div>`;
+    }
+    return `<div class="wrap">${head(s, ' Every tutorial comes with its files: the models, the code, the scene. Take them apart.')}
+      <div class="grid">${TUTORIALS.map(t => link('tutorials/' + t.slug, `<div class="mono">▶</div><h4>${esc(t.title)}</h4><p>${esc(t.blurb)}</p>
+        <div class="meta"><span class="pill">${esc(t.game)}</span>${t.status === 'soon' ? '<span class="pill">Coming soon</span>' : '<span class="pill hot">Free</span>'}</div>`, 'card')).join('')}</div>
+      ${support(true)}${foot(false)}</div>`;
   },
 
   // Assets: everything that is not a character. Nothing is up yet; characters that
@@ -424,7 +447,7 @@ function backdrop(key) {
       LINEUP = m.createLineup($('#glorb'), ASSETS, { onPick: slug => CHARPICK.show?.(slug) }); backdrop(current()); });
   LINEUP?.visible(own === 'lineup');
   if (own === 'rain' && !RAIN && !rainLoading && GLORB.ready)
-    rainLoading = import('./coderain.js?v=6a5fd671').then(m => { RAIN = m.createCodeRain($('#glorb'), () => GLORB.api); backdrop(current()); });
+    rainLoading = import('./coderain.js?v=2119d60c').then(m => { RAIN = m.createCodeRain($('#glorb'), () => GLORB.api); backdrop(current()); });
   RAIN?.visible(own === 'rain');
 }
 const current = () => route()[0] || latched || 'home';   // only called after boot
@@ -436,7 +459,7 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=db5be3d1').then(m => {
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
-  import('./weave.js?v=78f4cd2d').then(w => {
+  import('./weave.js?v=c37c269e').then(w => {
     WEAVE = w.createWeave($('#glorb'), () => GLORB.api);   // Glorb's particles carve the cloth
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent
