@@ -123,25 +123,38 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
              flight, with a drag that does the same. So the trajectories bend
              round into him rather than stopping and starting again, and only
              in the last fifth is the landing made exact. */
-          const u = Math.max(0, Math.min(1, (blown - tD[i]) / (FLY - tD[i])));
+          // the approach is done by 70% of the flight; the rest is the spring settling, so every
+          // dot is home (bouncing gently) by the handover rather than still on its way in
+          const u = Math.max(0, Math.min(1, (blown - tD[i]) / (0.7 * FLY - tD[i])));
           /* Onto its own place in HIS ORB, not onto one of his live particles: on a phone
              those can still be drifting in from where he started (they came in as a clump
              from the right edge and dragged the whole flight with them). The place is his
              ring or his core round his live centre, turning slowly so it is alive. */
           const gc = G.gb.centre, a = tA[i] + blown * 0.35 * tS[i], rr = tR[i] * gc.scale;
           const ox = G.left + gc.x + Math.cos(a) * rr, oy = G.top + gc.y + Math.sin(a) * rr * 1.22;
-          /* ARRIVAL IS A SPRING, UNDERDAMPED: the pull firms up smoothly and the drag stays
-             light, so a dot overshoots its place, swings back and settles in a bounce or two
-             (each with its own damping, so they do not bounce in step) -- instead of the old
-             heavy drag that made them shoot in and stop dead. */
-          const ks = 0.002 + 0.03 * u * u, c = 0.01 + 0.085 * tC[i] * u;
-          // the flow: curl noise at two scales (big lazy eddies and small tight ones), so the
-          // swarm braids into strands and clumps of different sizes; strongest far out, gone by
-          // the landing, so the landing stays exact
-          const [fx, fy] = curl(px[i], py[i], blown), sw = tC[i] * (1 - u) * (1 - u) * 0.16;
-          vx[i] += ((ox - px[i]) * ks - vx[i] * c + fx * sw) * k;
-          vy[i] += ((oy - py[i]) * ks - vy[i] * c + fy * sw) * k;
-          // (no forced snap at the end: the handover copies where they are and how they move)        } else if (blown) {
+          /* HOME, BY STEERING -- the flow only BENDS the way. Each dot wants to head for its
+             place; the curl-noise flow (two scales: big lazy eddies and small tight ones) tilts
+             that heading, so neighbours braid into strands and clumps, strongest far out and gone
+             by the end. As a FORCE of its own the flow carried dots down its streamlines and off
+             the screen; as a tilt on a homeward heading it cannot take one anywhere but home.
+             They come in still moving (never slowed to nothing), and the last stretch is a light
+             UNDERDAMPED spring, each with its own damping: an overshoot, a swing back, a settle. */
+          const dx = ox - px[i], dy = oy - py[i], dist = Math.hypot(dx, dy) || 1;
+          if (blown < tD[i]) {                       // not yet called home: drift on with what it has
+            vx[i] *= Math.pow(0.985, k); vy[i] *= Math.pow(0.985, k);
+          } else if (u < 1) {
+            const [fx, fy] = curl(px[i], py[i], blown), fm = Math.hypot(fx, fy) || 1, bend = 1.3 * (1 - u) * (1 - u) * tC[i];
+            let hx = dx / dist + fx / fm * bend, hy = dy / dist + fy / fm * bend; const hm = Math.hypot(hx, hy) || 1;
+            const want = Math.min(9, Math.max(2.4, dist * 0.07));
+            const st = 1 - Math.pow(1 - (0.035 + 0.06 * u), k);
+            vx[i] += (hx / hm * want - vx[i]) * st; vy[i] += (hy / hm * want - vy[i]) * st;
+          } else {
+            const ks = 0.03, c = 0.05 + 0.07 * tC[i];   // damping ratio about 0.3-0.5
+            vx[i] += (dx * ks - vx[i] * c) * k; vy[i] += (dy * ks - vy[i] * c) * k;
+          }
+          const vm = Math.hypot(vx[i], vy[i]); if (vm > 12) { vx[i] *= 12 / vm; vy[i] *= 12 / vm; }
+          // (no forced snap at the end: the handover copies where they are and how they move)
+        } else if (blown) {
           // no Glorb to go to: the old door opening
           const dx = px[i] - W / 2, dy = py[i] - H / 2, d = Math.hypot(dx, dy) || 1;
           vx[i] += dx / d * 2.2 * k; vy[i] += dy / d * 2.2 * k;
@@ -280,7 +293,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           const sc = 1 / Math.min(W, H);
           const n = 0.5 + 0.32 * Math.sin(px[i] * sc * 5.1 + 1.3) * Math.cos(py[i] * sc * 4.3 - 0.7)
                         + 0.18 * Math.sin(px[i] * sc * 13.7 - py[i] * sc * 11.9 + 2.1);
-          tD[i] = Math.max(0, Math.min(1, n)) * 0.6 * FLY; tC[i] = 0.85 + 0.3 * Math.random();
+          tD[i] = Math.max(0, Math.min(1, n)) * 0.38 * FLY; tC[i] = 0.85 + 0.3 * Math.random();
         }
         for (let i = 0; i < N; i++) {
           sx0[i] = px[i]; sy0[i] = py[i];
@@ -302,6 +315,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
        a swarm spiralling home rather than arriving in formation. */
     function land() {
       G.landed = true;
+      if (window.__introDebug) { let y0 = 1e9, y1 = -1e9, far = 0; for (let i = 0; i < N; i++) { y0 = Math.min(y0, py[i]); y1 = Math.max(y1, py[i]); if (py[i] < 0 || py[i] > H) far++; } window.__introDebug = { y0, y1, far, N }; }
       const f = G.f, gb = typeof glorb === 'function' ? glorb() : glorb, c = gb?.centre || { x: W / 2 - G.left, y: H / 2 - G.top };
       const seen = new Uint16Array(N);
       for (let j = 0; j < G.n; j++) {
@@ -309,15 +323,20 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
         let x = px[d] - G.left, y = py[d] - G.top, ux = vx[d], uy = vy[d];
         if (m) {
           const back = (m * 2.2 + Math.random() * 3) * (0.6 + Math.random() * 0.8);   // frames behind the dot
-          const sp = Math.hypot(ux, uy) || 1, spread = 3 + back * 1.6;
-          x -= ux * back + (-uy / sp) * (Math.random() - 0.5) * spread * 2;
-          y -= uy * back + (ux / sp) * (Math.random() - 0.5) * spread * 2;
+          // a SHORT trail: its length is capped in pixels, not scaled by speed -- a dot arriving
+          // mid-bounce is moving fast, and a speed-scaled trail laid 160px of particles off the screen
+          const sp = Math.hypot(ux, uy) || 1, len = Math.min(sp * back, 10 + m * 5), spread = Math.min(3 + back * 1.6, 18);
+          x -= ux / sp * len + (-uy / sp) * (Math.random() - 0.5) * spread * 2;
+          y -= uy / sp * len + (ux / sp) * (Math.random() - 0.5) * spread * 2;
           // a swirl round his centre, a different strength for each, so they do not travel as a sheet
           const rx = x - c.x, ry = y - c.y, rr = Math.hypot(rx, ry) || 1, sw = (1.2 + Math.random() * 2.8) * (Math.random() < 0.5 ? 1 : 0.6);
           ux = ux * (0.55 + Math.random() * 0.3) + (-ry / rr) * sw + (Math.random() - 0.5) * 1.5;
           uy = uy * (0.55 + Math.random() * 0.3) + (rx / rr) * sw + (Math.random() - 0.5) * 1.5;
         } else { x += (Math.random() - 0.5) * 2; y += (Math.random() - 0.5) * 2; }
-        f.px[j] = x; f.py[j] = y; f.vx[j] = ux; f.vy[j] = uy;   // still moving: no stop at the handover either
+        // still moving -- but handed over CALMED: Glorb has his own pull and his own drag, and
+        // the full mid-bounce speed flung 350 of his particles off the screen
+        const um = Math.hypot(ux, uy), uc = Math.min(1, 3 / (um || 1)) * 0.6;
+        f.px[j] = x; f.py[j] = y; f.vx[j] = ux * uc; f.vy[j] = uy * uc;
       }
     }
     function finish() { done = true; if (!me.on) { me.api?.dispose(); me.cv.remove(); } removeEventListener('resize', size); removeEventListener('keydown', key); el.remove(); cvF.remove(); }
