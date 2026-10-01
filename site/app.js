@@ -505,7 +505,7 @@ let WEAVE = null;   // the woven band pattern behind him, one per section (weave
 let RAIN = null, rainLoading = null;
 const OWN_BACKDROP = { scripts: 'rain', characters: 'lineup' };
 let LINEUP = null, lineupLoading = null;
-window.cw = { get LINEUP() { return LINEUP; }, get WEAVE() { return WEAVE; }, get RAIN() { return RAIN; } };   // console handles
+window.cw = { get GLORB() { return GLORB; }, get LINEUP() { return LINEUP; }, get WEAVE() { return WEAVE; }, get RAIN() { return RAIN; } };   // console handles
 const CHARPICK = { show: null, want: null };
 // ONE GAME'S CAST AT A TIME on the stage: picking someone from another game sends this lot
 // running off and brings theirs on (Colin keeps his seat in the middle)
@@ -912,7 +912,7 @@ const globeReady = GLORB_ON ? Promise.resolve() : (USE_SWARM ? import('./stage-s
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
 const intro = wantIntro
-  ? import('./intro.js?v=24b08106').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
+  ? import('./intro.js?v=a1c4c063').then(m => m.playIntro({ role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
       .catch(err => console.warn('intro', err))
   : Promise.resolve();
 

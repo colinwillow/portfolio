@@ -251,13 +251,30 @@ export function playIntro({ role = '', bg = '#f3f2ef', rim = '#9a1cf0', core = '
        carrying that dot's motion, so the field underneath is exactly the
        picture on top at the instant this canvas starts to let go -- and his own
        physics opens it back out into Glorb from there. */
+    /* There are four or five of his particles to every dot, and stacking them all on the dot
+       made each pile move as one lump -- the extra density arrived as a ready-made orb sliding
+       into place. So only ONE of his particles sits exactly on each dot; the rest are SHED
+       along the trail behind it, like smoke off a moving thing, drifting wider the further
+       back they are, each with its own swirl round his centre -- so the orb thickens in as
+       a swarm spiralling home rather than arriving in formation. */
     function land() {
       G.landed = true;
-      const f = G.f;
+      const f = G.f, gb = typeof glorb === 'function' ? glorb() : glorb, c = gb?.centre || { x: W / 2 - G.left, y: H / 2 - G.top };
+      const seen = new Uint16Array(N);
       for (let j = 0; j < G.n; j++) {
-        const d = G.owner[j];
-        f.px[j] = px[d] - G.left + (Math.random() - 0.5) * 2; f.py[j] = py[d] - G.top + (Math.random() - 0.5) * 2;
-        f.vx[j] = vx[d]; f.vy[j] = vy[d];  // and still moving the way the dot was: no stop at the handover either
+        const d = G.owner[j], m = seen[d]++;
+        let x = px[d] - G.left, y = py[d] - G.top, ux = vx[d], uy = vy[d];
+        if (m) {
+          const back = (m * 2.2 + Math.random() * 3) * (0.6 + Math.random() * 0.8);   // frames behind the dot
+          const sp = Math.hypot(ux, uy) || 1, spread = 3 + back * 1.6;
+          x -= ux * back + (-uy / sp) * (Math.random() - 0.5) * spread * 2;
+          y -= uy * back + (ux / sp) * (Math.random() - 0.5) * spread * 2;
+          // a swirl round his centre, a different strength for each, so they do not travel as a sheet
+          const rx = x - c.x, ry = y - c.y, rr = Math.hypot(rx, ry) || 1, sw = (1.2 + Math.random() * 2.8) * (Math.random() < 0.5 ? 1 : 0.6);
+          ux = ux * (0.55 + Math.random() * 0.3) + (-ry / rr) * sw + (Math.random() - 0.5) * 1.5;
+          uy = uy * (0.55 + Math.random() * 0.3) + (rx / rr) * sw + (Math.random() - 0.5) * 1.5;
+        } else { x += (Math.random() - 0.5) * 2; y += (Math.random() - 0.5) * 2; }
+        f.px[j] = x; f.py[j] = y; f.vx[j] = ux; f.vy[j] = uy;   // still moving: no stop at the handover either
       }
     }
     function finish() { done = true; if (!me.on) { me.api?.dispose(); me.cv.remove(); } removeEventListener('resize', size); removeEventListener('keydown', key); el.remove(); cvF.remove(); }
