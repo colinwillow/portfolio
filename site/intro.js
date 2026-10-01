@@ -36,7 +36,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
        head projected every frame, so an arm swing is what shoves them. */
     const me = { ok: false, on: false, cv: Object.assign(document.createElement('canvas'), { className: 'intro-me' }) };
     document.body.appendChild(me.cv);   // outside the intro: he keeps walking after it has faded
-    import('./intro-me.js?v=b8179991').then(m => m.mountMe(me.cv, { bg, mode: DEPTH ? 'depth' : 'side' })).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
+    import('./intro-me.js?v=7b54531f').then(m => m.mountMe(me.cv, { bg, mode: DEPTH ? 'depth' : 'side' })).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
     document.body.appendChild(el);
     const cv = el.querySelector('canvas'), g = cv.getContext('2d'), g0 = g;
     /* Depth: a third of the dots are drawn on a layer ABOVE him, so he walks
@@ -234,6 +234,16 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
                 const side = rx < 0 ? -1 : 1; hitS[i] = ry < 0 ? side : -side;
               }
             }
+            /* THE SHELL. His silhouette, blurred into a field that is 1 in his middle and fades
+               to 0 a little outside him, presses everything off him -- hardest at the centre --
+               and takes away whatever was heading further in. Nothing can sit on top of him,
+               so they bank up round his outline like air round a solid. */
+            const sh = me.api.hit(px[i], py[i]);
+            if (sh && sh.d > 0.02) {
+              const p = Math.pow(sh.d, 1.4), vn = vx[i] * sh.nx + vy[i] * sh.ny;
+              if (vn < 0) { vx[i] -= vn * sh.nx * Math.min(1, p * 1.6); vy[i] -= vn * sh.ny * Math.min(1, p * 1.6); }
+              vx[i] += sh.nx * p * 2.4 * k; vy[i] += sh.ny * p * 2.4 * k;
+            }
             if (hitT[i]) {
               const e = (now - hitT[i]) / 320;
               if (e < 1) {
@@ -292,7 +302,13 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           want = 1 + amp[i] * amp[i] * 2.4 * up * back;
         }
         zm[i] += (want - zm[i]) * (1 - Math.pow(0.8, k));
-        front[i] = zm[i] > 1.18 ? 1 : 0;
+        // in front while thrown toward you, behind once it has curled back -- but it only ever
+        // changes sides somewhere he is NOT, so nothing pops through him
+        // and the change is a CROSSFADE, never a cut: for a fifth of a second it is drawn on
+        // both sides of him at once, fading out of one and into the other
+        const want2 = zm[i] > 1.18 ? 1 : 0;
+        fb[i] += (want2 - fb[i]) * (1 - Math.pow(0.84, k));
+        front[i] = fb[i] > 0.98 ? 1 : fb[i] < 0.02 ? 0 : 2;
       }
       const qs = (i) => {
         const s0 = rad[i] * (1 + Math.min(4, Math.hypot(vx[i], vy[i]) * 0.04)) * 1.3 * zm[i];
@@ -303,7 +319,8 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
       if (lock < 1) for (const L of [0, 1]) for (const h of [0, 1]) {
         const g = L ? gF : g0;
         g.fillStyle = h ? core : rim;
-        g.globalAlpha = (blown && !G ? Math.max(0, 1 - blown * 1.4) : h ? 0.9 : 0.75) * (1 - lock);
+        const a0 = (blown && !G ? Math.max(0, 1 - blown * 1.4) : h ? 0.9 : 0.75) * (1 - lock);
+        g.globalAlpha = a0;
         g.beginPath();
         for (let i = 0; i < N; i++) {
           if (hot[i] !== h || front[i] !== L) continue;
@@ -311,6 +328,13 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           g.moveTo(x + s, y); g.arc(x, y, s, 0, 6.2832);
         }
         g.fill();
+        // the few mid-crossfade: on this layer at their share of it
+        for (let i = 0; i < N; i++) {
+          if (hot[i] !== h || front[i] !== 2) continue;
+          g.globalAlpha = a0 * (L ? fb[i] : 1 - fb[i]);
+          const s = qs(i), x = qx(i), y = qy(i);
+          g.beginPath(); g.arc(x, y, s, 0, 6.2832); g.fill();
+        }
       }
       if (Dl && blown > FLY - LOCK - BUD) {
         /* In HIS colours, bucketed by his palette index so it is one fill per colour.
@@ -373,6 +397,7 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     const zm = new Float32Array(N).fill(1), zA = new Float32Array(N), wingS = new Int8Array(N);
     /* Per dot: when the name lets it go (one at a time, not a row at once), when he touched
        it, which way it curls, and how hard he hit it -- mostly a brush, now and then a throw. */
+    const fb = new Float32Array(N).fill(1);   // 1 = in front of him, 0 = behind, between = crossing over
     const rel = new Float32Array(N), hitT = new Float64Array(N), hitS = new Int8Array(N), amp = new Float32Array(N);
     for (let i = 0; i < N; i++) {
       rel[i] = 200 + Math.random() * 800;

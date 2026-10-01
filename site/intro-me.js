@@ -151,6 +151,9 @@ export async function mountMe(cv, { bg = '#f3f2ef', mode = 'depth' } = {}) {
     for (let y = 0; y < mh; y++) { const sr = (mh - 1 - y) * mw * 4, dr = y * mw;
       for (let x = 0; x < mw; x++) fld[dr + x] = raw[sr + x * 4] > 60 ? 1 : 0; }
     blur(fld, tmp, 2); blur(fld, tmp, 2);
+    // walking toward you the field is a SHELL: deep in his middle, ramping off to nothing a little
+    // outside him -- a wide soft bevel, so the particles pile up round him rather than on him
+    if (depth) { const r = Math.max(2, Math.round(mw / 40)); blur(fld, tmp, r); blur(fld, tmp, r); }
     fresh = true;
   }
   const at = (x, y) => { x = Math.max(0, Math.min(mw - 1.001, x)); y = Math.max(0, Math.min(mh - 1.001, y));
