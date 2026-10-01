@@ -282,7 +282,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     },
     /** the strip's top edge in CSS px from the top of the host: their floor */
     ground(y) { S.ground = y; },
-    pause(p) { S.paused = !!p; },
+    pause(p) { p = !!p; if (p === S.paused) return; S.paused = p; cv.style.visibility = p ? 'hidden' : ''; },   // off the top: gone, not a frozen frame
     fog(hex) { scene.fog.color.set(hex); },
     LINE, _slots: slots, _camera: camera, _S: S, _renderer: renderer, _scene: scene,
   };

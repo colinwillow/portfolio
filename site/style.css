@@ -759,3 +759,11 @@ body.stage-page .about-slot { transform: translateY(calc(9.7% - var(--ledge) * .
 .support .ways { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .support .lbl { font: 600 10px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); width: 3.4em; }
 .btn.sm { padding: 7px 12px; font-size: 13px; }
+/* the picked character: big, in 3D, above what they are */
+.char-detail.on { display: block; }
+.char-detail #char-viewer { margin: 0 0 14px; }
+/* home shelf: the same small faces as the Characters page, not a second set of big ones */
+.shelf-figures .figure { width: 84px; }
+.shelf-figures .figure img { aspect-ratio: 1; }
+.shelf-figures .tile-meta b { font-size: 12px; text-align: center; }
+.shelf-figures .tile-meta span { display: none; }

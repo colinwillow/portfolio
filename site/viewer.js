@@ -18,7 +18,7 @@ export function mountViewer(host, { url, prefer = [] }) {
   host.innerHTML = `
     <div class="viewer-stage"><canvas></canvas>
       <div class="viewer-status">Loading…</div>
-      <div class="viewer-hint">drag to turn · pinch or scroll to zoom</div>
+      <div class="viewer-hint">drag to turn him · pinch or scroll to zoom</div>
     </div>
     <div class="viewer-side">
       <dl class="specs live"></dl>
@@ -68,7 +68,7 @@ export function mountViewer(host, { url, prefer = [] }) {
     const p = ptrs.get(e.pointerId); if (!p) return;
     if (ptrs.size === 1) {
       orbit.yaw -= (e.clientX - p.clientX) * 0.01;
-      orbit.pitch = Math.max(-0.3, Math.min(1.1, orbit.pitch + (e.clientY - p.clientY) * 0.006));
+      // turn only: the orbit stays on the horizontal plane, no tilting him over
     }
     ptrs.set(e.pointerId, e);
     if (ptrs.size === 2) { const [a, b] = [...ptrs.values()];

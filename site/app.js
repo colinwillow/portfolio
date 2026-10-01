@@ -114,7 +114,7 @@ const PAGES = {
     const rail = inner => `<div class="rail" tabindex="0">${inner}</div>`;
     const games = PLAY.map(it => link('play/' + it.slug, `${appIcon(it)}
       <div class="tile-meta"><b>${esc(it.title)}</b><span>${esc(it.kind)} · ${STATUS[it.status]}</span></div>`, 'tile game'));
-    const figs = ASSETS.map(it => link('characters/' + it.slug, `<img src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy">
+    const figs = ASSETS.map(it => link('characters', `<img src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy" data-pick="${esc(it.slug)}">
       <div class="tile-meta"><b>${esc(it.title)}</b><span>${it.clips} clips · ${(it.tris / 1000).toFixed(1)}k tris</span></div>`, 'figure'));
     const clips = MOTION.slice(0, 9).map(m => `<figure><video data-src="${esc(m.src)}" poster="${esc(m.poster)}" muted loop playsinline preload="none"></video><figcaption>${esc(m.title)}</figcaption></figure>`);
     const essays = WRITING.map(w => link('writing/' + w.slug, `<span class="kicker">${w.reading ? '▶ ' + esc(w.voice || 'Listen') : 'Read'}</span>
@@ -171,7 +171,7 @@ const PAGES = {
     if (slug) {
       const it = ASSETS.find(x => x.slug === slug);
       if (!it) return missing();
-      after = () => import('./viewer.js?v=728192eb').then(m => { mounted = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer }); });
+      after = () => import('./viewer.js?v=10e606d0').then(m => { mounted = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer }); });
       return `<div class="wrap">${crumbs(link('characters', 'Characters'), esc(it.title))}
         <h2 class="title">${esc(it.title)}</h2>
         <p class="lede">From ${esc(it.from)}. ${it.notes.map(esc).join(' · ')}.</p>
@@ -182,33 +182,36 @@ const PAGES = {
     }
     // The line-up stands above (the backdrop); here: a row of everyone small, and the
     // one you picked, bigger, with what they are and where to go next.
-    const detail = it => it ? `<img class="char-shot" src="site/shots/char-${esc(it.slug)}.webp" alt="">
+    const detail = it => it ? `<div id="char-viewer" class="viewer"></div>
         <div><h3>${esc(it.title)}</h3><p class="from">From ${esc(it.from)}</p>${specs(it)}
         <p class="notes">${it.notes.map(esc).join(' · ')}</p>
-        <div class="row">${link('characters/' + it.slug, 'Animations &amp; 3D →', 'btn accent')}${buy(it)}</div></div>`
-      : `<p class="soon">Tap anyone in the line-up, or a face below.</p>`;
+        <div class="row">${buy(it)}</div></div>`
+      : `<p class="soon">Pick someone: tap them in the line-up, or a face above.</p>`;
     after = () => {
       const panel = view.querySelector('.char-detail');
+      let viewer = null;
       const show = slug => {
         const it = ASSETS.find(x => x.slug === slug);
+        viewer?.destroy(); viewer = null;
         panel.innerHTML = detail(it); panel.classList.toggle('on', !!it);
+        // the bigger version: them in 3D, playing through their animations
+        if (it) import('./viewer.js?v=10e606d0').then(m => { if (CHARPICK.show === show && panel.querySelector('#char-viewer'))
+          viewer = m.mountViewer(panel.querySelector('#char-viewer'), { url: it.glb, prefer: it.prefer }); });
         view.querySelectorAll('.char-thumbs button').forEach(b => b.classList.toggle('on', b.dataset.char === slug));
       };
       CHARPICK.show = show;
       view.querySelector('.char-thumbs').onclick = e => {
         const b = e.target.closest('button[data-char]'); if (!b) return;
         LINEUP?.focus(b.dataset.char); show(b.dataset.char);
-        scrollTo({ top: 0, behavior: 'smooth' });                    // up to the line-up, where the camera is going
       };
-      mounted = { destroy() { CHARPICK.show = null; LINEUP?.focus(null); } };
+      // arriving from the home shelf with someone already picked
+      if (CHARPICK.pending) { const p = CHARPICK.pending; CHARPICK.pending = null; setTimeout(() => { LINEUP?.focus(p); show(p); }, 50); }
+      mounted = { destroy() { viewer?.destroy(); CHARPICK.show = null; LINEUP?.focus(null); } };
     };
     return `<div class="wrap">${head(s, ' Every number is read off the file: triangles, joints, clips, size. Optimised, animated and running in real three.js games on phones.')}
       <div class="char-thumbs">${ASSETS.map(it => `<button data-char="${esc(it.slug)}" aria-label="${esc(it.title)}">
         <img src="site/shots/char-${esc(it.slug)}.webp" alt="" loading="lazy"><span>${esc(it.title)}</span></button>`).join('')}</div>
       <div class="char-detail">${detail(null)}</div>
-      <h3 class="sub">Everyone</h3>
-      <div class="grid">${ASSETS.map(it => link('characters/' + it.slug, `<img class="char-shot" src="site/shots/char-${esc(it.slug)}.webp" alt="${esc(it.title)}" loading="lazy">
-        <h4>${esc(it.title)}</h4>${specs(it)}<div class="meta"><span class="pill">${esc(it.from)}</span>${it.gumroad ? '<span class="pill hot">On Gumroad</span>' : ''}</div>`, 'card')).join('')}</div>
       <h3 class="sub">Also coming</h3><ul class="soon"><li>3D-printable figures (STL)</li></ul>
       ${GUMROAD ? `<div class="row">${ext(GUMROAD, 'Whole store on Gumroad ↗', 'btn ghost')}</div>` : ''}${foot()}</div>`;
   },
@@ -447,7 +450,8 @@ let RAIN = null, rainLoading = null;
 const OWN_BACKDROP = { scripts: 'rain', characters: 'lineup' };
 let LINEUP = null, lineupLoading = null;
 window.cw = { get LINEUP() { return LINEUP; }, get WEAVE() { return WEAVE; }, get RAIN() { return RAIN; } };   // console handles
-const CHARPICK = { show: null };
+const CHARPICK = { show: null, pending: null };
+document.addEventListener('click', e => { const p = e.target.closest('.shelf-figures a')?.querySelector('[data-pick]'); if (p) CHARPICK.pending = p.dataset.pick; }, true);
 function backdrop(key) {
   key = key || 'home';
   const own = OWN_BACKDROP[key];
@@ -455,7 +459,7 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=8d406d6d').then(m => {
+    lineupLoading = import('./lineup.js?v=c6d9b5e3').then(m => {
       LINEUP = m.createLineup($('#glorb'), [...ASSETS.slice(0, 4), { slug: 'colin', colin: true, h: 1.9, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...ASSETS.slice(4)], { onPick: slug => CHARPICK.show?.(slug),
         colin: { from: () => colin?.body?.(), to: cx => colin?.standAt?.(cx), joined: v => document.body.classList.toggle('colin-in-line', v) } });
       LINEUP.fog(css('--bg') || '#0e0e0f'); backdrop(current()); });
