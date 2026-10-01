@@ -220,14 +220,17 @@ const PAGES = {
     if (slug) {
       const it = PLAY.find(x => x.slug === slug || x.aliases?.includes(slug));
       if (!it) return missing();
+      // its icon beside its name; its wide art is not on the page any more -- it is the header behind
+      // Colin (gameArt / backdrop), standing in for gameplay footage until there is some
+      const wide = gameArt(it);
       return `<div class="wrap">${crumbs(link('play', 'Games'), esc(it.title))}
-        <h2 class="title">${esc(it.title)}</h2><p class="lede">${esc(it.blurb)}</p>
+        <div class="game-head">${it.icon ? `<img class="app" src="site/icons/${esc(it.icon)}.webp" alt="${esc(it.title)} icon">` : ''}
+          <div><h2 class="title">${esc(it.title)}</h2><p class="lede">${esc(it.blurb)}</p></div></div>
         <div class="row">${ext(it.url, 'Open ' + esc(it.title) + ' ↗', 'btn accent')}
           <span class="pill ${it.status === 'live' ? 'hot' : ''}">${STATUS[it.status]}</span>
           ${it.tags.map(t => `<span class="pill">${esc(t)}</span>`).join('')}</div>
         ${(() => {   // its app icon first, then whatever current art it has (never the throwaways)
-          const pics = [...(it.icon ? [`<img class="app" src="site/icons/${esc(it.icon)}.webp" alt="${esc(it.title)} icon" loading="lazy">`] : []),
-            ...(it.gallery || (it.shot ? [it.shot] : [])).map(g => `<img src="site/shots/${esc(g)}.webp" alt="${esc(it.title)}" loading="lazy">`)];
+          const pics = (it.gallery || (it.shot ? [it.shot] : [])).filter(g => g !== wide).map(g => `<img src="site/shots/${esc(g)}.webp" alt="${esc(it.title)}" loading="lazy">`);
           return pics.length ? `<div class="gallery">${pics.join('')}</div>` : ''; })()}
         ${(() => {   // the game's own cast, the same faces as everywhere else -- tap one to meet them on the Characters stage
           const cast = ASSETS.filter(a => a.from === it.title || a.also?.includes(it.title));
@@ -520,8 +523,28 @@ function castFor(slug) {
   if (LINEUP) { const old = LINEUP; old.visible(false); setTimeout(() => old.destroy(), 1000); LINEUP = null; lineupLoading = null; colin && document.body.classList.remove('colin-in-line'); SEAT = null; }
   backdrop(current());
 }
+/* A GAME'S OWN SCREEN. On a game's page the header is that game: its wide art (gameplay
+   footage, when there is some) fills the stage behind Colin, and he turns round to look at it. */
+function gameArt(it) { return (it?.gallery || [])[0] || it?.shot || null; }
+function gameShown() {
+  const r = route(); if (r[0] !== 'play' || !r[1]) return null;
+  const it = PLAY.find(x => x.slug === r[1] || x.aliases?.includes(r[1])); return it && gameArt(it) ? it : null;
+}
+let gameBg = null;
+function gameBackdrop() {
+  const it = gameShown(), host = $('#glorb');
+  if (it && host) {
+    const src = `site/shots/${gameArt(it)}.webp`;
+    if (!gameBg) { gameBg = document.createElement('img'); gameBg.className = 'game-bg'; gameBg.alt = ''; host.appendChild(gameBg); }
+    if (!gameBg.src.endsWith(src)) { gameBg.classList.remove('on'); gameBg.onload = () => gameBg.classList.add('on'); gameBg.src = src; }
+    else gameBg.classList.add('on');
+  } else gameBg?.classList.remove('on');
+  withColin(c => c.lookBack?.(!!it));
+  return !!it;
+}
 function backdrop(key) {
   key = key || 'home';
+  if (gameBackdrop()) { WEAVE?.visible(false); LINEUP?.visible(false); RAIN?.visible(false); return; }
   const own = OWN_BACKDROP[key];
   WEAVE?.set(key);
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
@@ -936,5 +959,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=c854297d').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=98c25a93').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

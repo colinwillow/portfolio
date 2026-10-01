@@ -165,7 +165,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const pxPerM = () => { const r = canvas.getBoundingClientRect(); return r.height / (2 * camera.position.z * Math.tan(camera.fov * Math.PI / 360)); };
   const bodyW = () => canvas.getBoundingClientRect().width || 120;
   const lane = () => [8, Math.max(8, innerWidth - bodyW() - 8)];
-  let heroDir = 0, groove = false;
+  let heroDir = 0, groove = false, lookBackOn = false;
   // MUSIC ON: wherever he would stand idle he bops instead. The calmest dance in his file
   // (measured: the least rotation of the six); dance_hiphop_03 is the next most casual.
   const DANCE = 'dance_wiggle_feet';
@@ -233,7 +233,10 @@ export function createMiniColin({ go, known, items, pageOf }) {
       const hd = state !== 'off' ? 0 : heroDir;   // talking: always facing out, never walking
       LIFE.face = hd; lifeClip(hd ? 'walk' : 'idle');
       LIFE.faceNow += (hd - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
-      ch.model.rotation.y = LIFE.faceNow * Math.PI / 2;
+      // on a game's page he turns round to look at the game behind him (not while walking or talking)
+      const back = lookBackOn && !hd && state === 'off' ? 1 : 0;
+      LIFE.back = (LIFE.back || 0) + (back - (LIFE.back || 0)) * (1 - Math.exp(-4 * dt));
+      ch.model.rotation.y = LIFE.faceNow * Math.PI / 2 + LIFE.back * Math.PI * 0.82;
       dock.style.transform = '';
       return;
     }
@@ -595,5 +598,5 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const grooveSet = on => { on = !!on; if (on === groove) return; groove = on;
     if (ch && (LIFE.cur === LIFE.clips.idle || LIFE.cur === LIFE.clips.dance)) lifeClip('idle'); };
   const watch = f => { watchers.add(f); f(state !== 'off'); return () => watchers.delete(f); };
-  return { act, ask, wake, sleep, adopt, release, present, heroWalk, watch, groove: grooveSet, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
+  return { act, ask, wake, sleep, adopt, release, present, heroWalk, lookBack: v => { lookBackOn = !!v; }, watch, groove: grooveSet, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
 }
