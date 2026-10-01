@@ -614,7 +614,7 @@ const HOMESTAGE = document.body.appendChild(Object.assign(document.createElement
 const svhProbe = document.body.appendChild(Object.assign(document.createElement('div'),
   { style: 'position:fixed;left:0;top:0;width:0;height:100svh;visibility:hidden;pointer-events:none' }));
 const svh = () => svhProbe.offsetHeight || innerHeight;
-const headRest = () => svh() * (innerWidth > svh() ? 0.72 : 0.54);
+const headRest = () => Math.min(innerWidth * 2 / 3, svh() * 0.72);   // the 3:2 stage, as --band in the CSS
 const deckH = () => $('#deck')?.offsetHeight || 58;
 function headOffset() {
   if (HEAD.auto) return 0;
