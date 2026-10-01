@@ -92,6 +92,17 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
     }
 
     const tgt = [0, 0];
+    /* Curl of a smooth potential (two octaves of drifting sines): divergence-free, so it
+       moves dots along without bunching them all into one place or tearing them apart --
+       which is what makes strands, the way a flow field does in X-Particles. */
+    const cf = [0, 0];
+    function curl(x, y, t) {
+      const s = 1 / Math.min(W, H), e = 2;
+      const P = (a, b) => Math.sin(a * s * 3.1 + t * 0.6) * Math.cos(b * s * 2.7 - t * 0.4)
+                        + 0.45 * Math.sin(a * s * 8.3 - b * s * 6.1 + t * 1.1) + 0.25 * Math.cos(b * s * 14.9 + a * s * 3.3 - t * 1.7);
+      cf[0] = (P(x, y + e) - P(x, y - e)) / (2 * e * s) * 0.6; cf[1] = -(P(x + e, y) - P(x - e, y)) / (2 * e * s) * 0.6;
+      return cf;
+    }
     function frame(now) {
       if (done) return;
       requestAnimationFrame(frame);
@@ -120,10 +131,12 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           const gc = G.gb.centre, a = tA[i] + blown * 0.35 * tS[i], rr = tR[i] * gc.scale;
           const ox = G.left + gc.x + Math.cos(a) * rr, oy = G.top + gc.y + Math.sin(a) * rr * 1.22;
           const ks = 0.0012 + 0.045 * u * u * u, c = 0.012 + 0.25 * u * u;
-          // the swirl: round the orb, strongest while it is still far out, gone by the landing
-          const dx0 = px[i] - (G.left + gc.x), dy0 = py[i] - (G.top + gc.y), dd = Math.hypot(dx0, dy0) || 1, sw = tC[i] * (1 - u) * (1 - u) * 0.35;
-          vx[i] += ((ox - px[i]) * ks - vx[i] * c - dy0 / dd * sw) * k;
-          vy[i] += ((oy - py[i]) * ks - vy[i] * c + dx0 / dd * sw) * k;
+          // the flow: curl noise at two scales (big lazy eddies and small tight ones), so the
+          // swarm braids into strands and clumps of different sizes; strongest far out, gone by
+          // the landing, so the landing stays exact
+          const [fx, fy] = curl(px[i], py[i], blown), sw = tC[i] * (1 - u) * (1 - u) * 0.16;
+          vx[i] += ((ox - px[i]) * ks - vx[i] * c + fx * sw) * k;
+          vy[i] += ((oy - py[i]) * ks - vy[i] * c + fy * sw) * k;
           if (u > 0.8) { const w = Math.pow((u - 0.8) / 0.2, 2) * 0.5; px[i] += (ox - px[i]) * w; py[i] += (oy - py[i]) * w; }        } else if (blown) {
           // no Glorb to go to: the old door opening
           const dx = px[i] - W / 2, dy = py[i] - H / 2, d = Math.hypot(dx, dy) || 1;
@@ -136,10 +149,11 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
           let sx = dx / d * v - vx[i], sy = dy / d * v - vy[i];
           const sm = Math.hypot(sx, sy); if (sm > maxF[i]) { sx *= maxF[i] / sm; sy *= maxF[i] / sm; }
           let ax = sx, ay = sy;
-          // keep off the name -- only while there IS a name: once Enter starts it dissolving, the
-          // box it stood in is gone and nothing should still be bouncing off it
+          // keep off the name -- while he walks through it too (that is what bunches them into
+          // strands against him), and gone once he is past it, so the strands flowing back off
+          // him do not pile into a box that is no longer there
           const nx = Math.max(wx - rx, Math.min(px[i], wx + rx)), ny = Math.max(wy - ry, Math.min(py[i], wy + ry));
-          const ex = px[i] - nx, ey = py[i] - ny, ed = walking ? 1e9 : Math.hypot(ex, ey);
+          const ex = px[i] - nx, ey = py[i] - ny, ed = walking && me.api.progress() > 0.5 ? 1e9 : Math.hypot(ex, ey);
           if (ed < 0.5) { const ox = px[i] - wx || 0.1, oy = py[i] - wy, om = Math.hypot(ox, oy); ax += ox / om * maxF[i] * 14; ay += oy / om * maxF[i] * 14; }
           else if (ed < 14) { ax += ex / ed * maxF[i] * 3.5 * (1 - ed / 14); ay += ey / ed * maxF[i] * 3.5 * (1 - ed / 14); }
 
@@ -254,14 +268,15 @@ export function playIntro({ build = '', role = '', bg = '#f3f2ef', rim = '#9a1cf
         for (let i = 0; i < N; i++) {
           tA[i] = Math.random() * Math.PI * 2; tS[i] = Math.random() < 0.5 ? 1 : -0.6;
           tR[i] = hot[i] ? Math.sqrt(Math.random()) * 0.085 : 0.19 + Math.random() * 0.11;
-          /* NO LUMPS. The dots he walked through ride along on him, and on a phone at full
-             frame rate he collects a lot of them -- so when the flight began they all left
-             his chest at the right edge together, with one velocity, and travelled as a
-             clump. A random puff broke it up and looked like an explosion; instead each dot
-             starts for home at its OWN moment, so a clump unspools as a ribbon, and they all
-             curl the SAME way round the orb (a little faster or slower each), so the ribbons
-             spiral in as one vortex rather than scattering. */
-          tD[i] = Math.random() * 0.55 * FLY; tC[i] = 0.8 + Math.random() * 0.6;
+          /* STRUCTURE, NOT NOISE. When a dot sets off for home is a smooth function of WHERE it
+             is, so whole patches leave together -- clumps of every size peel away in turn --
+             rather than each dot on its own coin toss (which reads as an even, noisy cloud).
+             The flight then rides a curl-noise flow field (below): neighbours get nearly the
+             same push, so they travel as strands. */
+          const sc = 1 / Math.min(W, H);
+          const n = 0.5 + 0.32 * Math.sin(px[i] * sc * 5.1 + 1.3) * Math.cos(py[i] * sc * 4.3 - 0.7)
+                        + 0.18 * Math.sin(px[i] * sc * 13.7 - py[i] * sc * 11.9 + 2.1);
+          tD[i] = Math.max(0, Math.min(1, n)) * 0.6 * FLY; tC[i] = 0.85 + 0.3 * Math.random();
         }
         for (let i = 0; i < N; i++) {
           sx0[i] = px[i]; sy0[i] = py[i];
