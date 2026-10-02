@@ -674,7 +674,7 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=86d15747').then(m => {
   try { if (bgQ) localStorage.setItem('cw.bg', bgQ); } catch {}
   const BG = bgQ || (() => { try { return localStorage.getItem('cw.bg'); } catch { return null; } })() || 'mandala';
   (BG === 'weave' ? import('./weave.js?v=68b8ebba').then(w => w.createWeave($('#glorb'), () => GLORB.api))
-    : import('./mandala.js?v=97c0d561').then(m => { const md = m.createMandala($('#glorb'), () => GLORB.api); vizHook(md, m.clock); return md; })).then(w => {
+    : import('./mandala.js?v=4f21aad3').then(m => { const md = m.createMandala($('#glorb'), () => GLORB.api); vizHook(md, m.clock); return md; })).then(w => {
     WEAVE = w;   // Glorb's particles carve it, whichever it is
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent

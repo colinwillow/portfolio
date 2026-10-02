@@ -19,7 +19,9 @@
 import { makeCarve } from './weave.js?v=68b8ebba';
 
 export const MANDALA = {
-  size: 1,          // world units -> px: the spokes reach `2200 * size` units = half the longer side
+  // world units -> px: `4000 * size` units = half the SHORTER side, so the whole spread fits.
+  // `?vizsize=1.4` in the address tries another size live (bigger number = bigger mandala).
+  size: +new URLSearchParams(location.search).get('vizsize') || 1,
   spin: 0.06,       // rad/s of slow overall drift (Robits' menu value)
   alpha: 0.9,       // the original's line opacity
   carve: true,      // Glorb's particles cut the lines, the way they cut the weave
@@ -80,7 +82,7 @@ export function createMandala(host, field = () => null) {
   function draw() {
     const W = cv.width, H = cv.height, api = field(), c = api?.centre;
     const cx = c?.x != null ? c.x * dpr : W / 2, cy = c?.y != null ? c.y * dpr : (S.anchor != null ? S.anchor * dpr : H / 2);
-    const k = Math.max(W, H) / 2 / 2200 * MANDALA.size;
+    const k = Math.min(W, H) / 2 / 4000 * MANDALA.size;
     const rot = S.rot, rc = Math.cos(rot), rs = Math.sin(rot);
     // world (x up, y up, z toward the camera) -> canvas: the group's drift, perspective, y flipped
     const P = (pts, x, y, z) => { const X = x * rc - y * rs, Y = x * rs + y * rc, f = CAMZ / (CAMZ - z) * k; pts.push(cx + X * f, cy - Y * f); };
