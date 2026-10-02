@@ -868,7 +868,9 @@ const KEYART = { play: 2.913, assets: 3.038, motion: 2.923, web: 2.625, scripts:
 function secTitle(sec) {
   const host = $('#glorb'); if (!host) return;
   let el = secTitle.el; if (!el) { el = secTitle.el = document.createElement('div'); el.className = 'sec-title'; host.appendChild(el); }
-  const s = sec && sectionOf(sec) && !(sec === 'about' && !route()[1]) ? sectionOf(sec) : null;
+  // a detail page (one game, one character...) has its own title down the page, so the orb stays
+  // clear there; About is the reverse -- its front page is Colin's, its sub-pages get a title
+  const sub = route()[1], s = sec && sectionOf(sec) && (sec === 'about' ? sub : !sub) ? sectionOf(sec) : null;
   if (!s) { el.classList.remove('on'); el.dataset.k = ''; secTitle.mask = null; GLORB.api?.setMask?.(null); return; }
   if (el.dataset.k === s.key) { el.classList.add('on'); return; }
   el.dataset.k = s.key; el.classList.remove('on'); el.setAttribute('aria-label', s.label);
@@ -934,6 +936,7 @@ function latch(key, show = true, press = false) {
   if (key === latched && !press) return;
   latched = key;
   if (!route().length) backdrop(pressed || 'home');
+  if (!route().length) secTitle(pressed);   // at home a key scrolls to its shelf rather than opening a page, so the title follows the PRESS
   deck.querySelectorAll('.key').forEach(k => k.classList.toggle('in', k.dataset.key === key));
   const k = key && deck.querySelector(`.key[data-key="${key}"]`);
   if (k && show) { const r = k.getBoundingClientRect(), d = deck.getBoundingClientRect();
