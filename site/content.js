@@ -50,10 +50,10 @@ export const SECTIONS = [
 
 // ORDER MATTERS: most developed first (Colin's ranking). status: 'live' | 'dev' (playable but in development) | 'soon'
 export const PLAY = [
-  { slug: 'robits', icon: 'robits', shot: 'robits', title: 'Robits Neon Blast', kind: 'Game', status: 'dev', thumb: 'robits',
+  { video: 'robits', slug: 'robits', icon: 'robits', shot: 'robits', title: 'Robits Neon Blast', kind: 'Game', status: 'dev', thumb: 'robits',
     url: GH + 'robits/', tags: ['three.js', 'twin-stick'],
     blurb: 'Neon robot arena shooter with wall-crawling and crazy gravity. The first Majia title.' },
-  { video: ['weirdport-1', 'weirdport-2', 'weirdport-3', 'weirdport-4'], slug: 'weirdport', icon: 'zap-n-clancy', aliases: ['melee', 'zap-n-clancy'], shot: 'zap-n-clancy-key', gallery: ['zap-n-clancy-key'],
+  { video: 'weirdport', slug: 'weirdport', icon: 'zap-n-clancy', aliases: ['melee', 'zap-n-clancy'], shot: 'zap-n-clancy-key', gallery: ['zap-n-clancy-key'],
     title: "Zap 'n Clancy", kind: 'Game', status: 'dev', thumb: 'weirdport',
     url: GH + 'weirdport/', tags: ['three.js', 'twin-stick', 'open city'],
     blurb: 'Zap and his alien dog Clancy loose in Weirdport, a toon Portland: blaster, hammer, a DNA gun that turns you into whoever you shoot, skateboarding and buildings that come apart.' },
