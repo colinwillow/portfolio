@@ -417,6 +417,7 @@ function render() {
   globe?.setMode(sec && s ? 'section' : 'home', s ? sec : null); aisleKey = null;
   globe?.pause?.(!sec && GLORB_ON);   // at home Glorb is the stage
   if (WEAVE) backdrop(sec || pressed || 'home');   // (WEAVE exists only after boot, when the deck is defined)
+  if (!sec || (sec === 'play' && !slug)) warmAll();   // the header clips, ahead of their pages
   pushColors();
   wireVideos();
   after?.();
@@ -531,6 +532,22 @@ function gameShown() {
   const it = PLAY.find(x => x.slug === r[1] || x.aliases?.includes(r[1])); return it && (it.video || gameArt(it)) ? it : null;
 }
 let gameBg = null;
+/* WARM IT FIRST. Safari will not start a muted autoplay until it believes it can play the clip
+   through, which on a phone's connection means most of the file -- so a header video fetched only
+   when its page opens sits on its poster for seconds. The clip is fetched quietly ahead of time
+   (on the homepage and the Games list, and the instant a game's card is touched), so by the time
+   the page opens it is already in the cache. Whichever copy this browser will actually choose. */
+function warmVideo(it) {   // (declarations, not consts: render() calls this before this line has run)
+  const W = warmVideo; W.done ||= new Set();
+  if (W.av1 === undefined) { try { W.av1 = !!document.createElement('video').canPlayType('video/mp4; codecs="av01.0.05M.08"'); } catch { W.av1 = false; } }
+  if (!it?.video || W.done.has(it.video)) return; W.done.add(it.video);
+  fetch(`site/video/${it.video}${W.av1 ? '.av1' : ''}.mp4`, { priority: 'low' }).catch(() => W.done.delete(it.video));
+}
+function warmAll() { const f = () => PLAY.forEach(warmVideo); window.requestIdleCallback ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 1500); }
+document.addEventListener('pointerdown', e => {
+  const a = e.target.closest?.('a[href^="play/"]'); if (!a) return;
+  const slug = a.getAttribute('href').split('/')[1]; warmVideo(PLAY.find(x => x.slug === slug || x.aliases?.includes(slug)));
+}, true);
 function gameBackdrop() {
   const it = gameShown(), host = $('#glorb');
   if (it && host) {
@@ -971,8 +988,12 @@ const globeReady = GLORB_ON ? Promise.resolve() : (USE_SWARM ? import('./stage-s
   globe.pause?.(!sec && GLORB_ON);
 }).catch(err => { console.warn('globe unavailable', err); document.body.classList.add('no-globe'); });
 
+/* He waves once as the intro hands him to the homepage: walking toward you, at the moment his
+   intro self crossfades into this one; walking across, as the intro lets go. (Not when he LOADS --
+   that is while the intro still covers the page, and the wave was over before anyone saw it.) */
+addEventListener('cw:handoff', () => { if (!route().length) withColin(c => c.wave?.()); });
 const intro = wantIntro
-  ? import('./intro.js?v=3d9f4773').then(m => m.playIntro({ build: BUILD, role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
+  ? import('./intro.js?v=479ff83e').then(m => m.playIntro({ build: BUILD, role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
       .catch(err => console.warn('intro', err))
   : Promise.resolve();
 
@@ -991,5 +1012,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=cab93673').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); if (wantIntro && !route().length) colin.wave?.(); }))
+  import('./colin.js?v=8568a315').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

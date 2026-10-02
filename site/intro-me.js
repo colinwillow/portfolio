@@ -199,6 +199,7 @@ export async function mountMe(cv, { bg = '#efe8da', mode = 'depth' } = {}) {
     const ready = !document.getElementById('intro') && document.querySelector('#home-stage #mini:not(.loading) canvas');
     if (ready || t > endT + 12) {
       gone = 1; cv.style.transition = 'opacity .35s'; cv.style.opacity = '0';
+      if (ready) dispatchEvent(new Event('cw:handoff'));
       setTimeout(dispose, 450);
     }
   }

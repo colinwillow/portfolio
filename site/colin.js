@@ -188,7 +188,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   }
   function lifeClip(name) {
     if (name === 'idle' && groove && state === 'off' && LIFE.clips.dance) name = 'dance';
-    const c = LIFE.clips[name]; if (!c || LIFE.cur === c) return; LIFE.cur = c;
+    const c = LIFE.clips[name]; if (!c || LIFE.cur === c) return; LIFE.cur = c; document.body.dataset.colinClip = name;   // (readable from outside: which clip he is in)
     play(ch.mixer, c, { fade: 0.35 });
   }
   function walkTo(x) { LIFE.to = x; LIFE.mode = 'walk'; LIFE.face = x > LIFE.x ? 1 : -1; lifeClip(LIFE.walk);
