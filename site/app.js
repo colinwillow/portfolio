@@ -1027,12 +1027,18 @@ let vizClock = null;
 function vizHook(md, clock) {
   vizClock = clock;
   md.drive(() => {
-    if (!music.playing || !music.an3) return null;
-    if (music.seeking) return null;
-    if (/Yoga_Pants/.test(music.el.src)) clock.set(music.el.currentTime);   // pause it and the bake carries on from here
+    if (!music.playing || !music.an3 || music.seeking) return null;
+    // trust what is actually HEARD, not the flag: a phone can leave `paused` false while the
+    // playhead has stopped (paused from the lock screen, an interruption...), and the live ear
+    // then reads silence -- which is the idle pulse, i.e. "no reaction". A playhead that has not
+    // moved for 0.4 s, or a silent ear, hands the dance back to the bake.
+    const now = performance.now(), ct = music.el.currentTime;
+    if (ct !== vizHook.ct) { vizHook.ct = ct; vizHook.at = now; }
+    if (now - vizHook.at > 400) return null;
+    if (/Yoga_Pants/.test(music.el.src)) clock.set(ct);   // stop it and the bake carries on from here
     music.an3.getByteFrequencyData(music.f3);
     let sum = 0; for (let i = 6; i < 30; i++) sum += music.f3[i];
-    return sum;
+    return sum > 24 ? sum : null;
   });
 }
 const sound = { get el() { return music.el; }, get an() { return music.an; }, get buf() { return music.buf; } };
