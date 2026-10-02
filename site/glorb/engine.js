@@ -40,7 +40,7 @@ export function createGlorb({ mini: __mini = false, host, theme: __theme = 'dark
   // hidden hero costs nothing and picks up exactly where it stopped
   let __paused = false; const __parked = new Set();
   const requestAnimationFrame = (f) => __paused ? (__parked.add(f), 0) : __real.requestAnimationFrame(f);
-  let __start = null, __floor = 1e9, __cy = null, __sk = 1;
+  let __start = null, __floor = 1e9, __cy = null, __sk = 1, __mask = null;
 
 const BANDS = 64, TAU = Math.PI * 2;
 
@@ -13104,6 +13104,26 @@ function loop() {
           if (vn > 0) { vx[i] -= wnx * vn; vy[i] -= wny * vn; }
         }
       }
+      /* A SHAPE HE CANNOT GO THROUGH: the page hands over a soft mask (1 deep inside the shape,
+         fading to 0 just outside it) placed on screen. A particle in it is pushed out along the
+         mask's slope -- harder the deeper it is -- and loses whatever was carrying it further in,
+         so the field flows round the shape and banks against its edge instead of crossing it. */
+      if (__mask) {
+        const M = __mask, u = (px[i] - M.x) / M.s, v = (py[i] - M.y) / M.s;
+        if (u > 1 && v > 1 && u < M.w - 2 && v < M.h - 2) {
+          const at = (a, b) => { const i0 = a | 0, j0 = b | 0, fx = a - i0, fy = b - j0, o = j0 * M.w + i0, D = M.d;
+            return (D[o] * (1 - fx) + D[o + 1] * fx) * (1 - fy) + (D[o + M.w] * (1 - fx) + D[o + M.w + 1] * fx) * fy; };
+          const d = at(u, v);
+          if (d > 0.02) {
+            let gx = at(u - 1, v) - at(u + 1, v), gy = at(u, v - 1) - at(u, v + 1); const gm = Math.hypot(gx, gy);
+            if (gm > 1e-4) { gx /= gm; gy /= gm; } else { gx = 0; gy = -1; }
+            const vn = vx[i] * gx + vy[i] * gy;
+            if (vn < 0) { const c = Math.min(1, d * 1.6); vx[i] -= gx * vn * c; vy[i] -= gy * vn * c; }
+            vx[i] += gx * d * d * 2.2; vy[i] += gy * d * d * 2.2;
+            if (d > 0.55) { px[i] += gx * (d - 0.55) * 6; py[i] += gy * (d - 0.55) * 6; }
+          }
+        }
+      }
       // the page's strip: a flat floor he cannot go through (see tools/port-glorb.mjs)
       if (py[i] > __floor) {
         py[i] = __floor - Math.random() * 2;
@@ -14406,6 +14426,8 @@ __start = loop;
     resize() { __resize.forEach((f) => f()); },
     /** the strip's top edge in his canvas pixels (1e9 = no floor), and where his centre rests (null = middle) */
     setFloor(y) { __floor = y; },
+    /** a soft obstacle: { d: Float32Array w*h (0..1), w, h, x, y (canvas px of cell 0), s (px per cell) }, or null */
+    setMask(m) { __mask = m || null; },
     setCentreY(y) { __cy = y; },
     /** how big he is against the screen (1 = his own size): a stage page makes him the backdrop */
     setScale(k) { __sk = k; },

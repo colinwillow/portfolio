@@ -517,7 +517,7 @@ let WEAVE = null;   // the woven band pattern behind him, one per section (weave
 let RAIN = null, rainLoading = null;
 const OWN_BACKDROP = { scripts: 'rain', characters: 'lineup' };
 let LINEUP = null, lineupLoading = null;
-window.cw = { get GLORB() { return GLORB; }, get LINEUP() { return LINEUP; }, get WEAVE() { return WEAVE; }, get RAIN() { return RAIN; } };   // console handles
+window.cw = { get GLORB() { return GLORB; }, get secTitle() { return secTitle; }, get LINEUP() { return LINEUP; }, get WEAVE() { return WEAVE; }, get RAIN() { return RAIN; } };   // console handles
 const CHARPICK = { show: null, want: null };
 // ONE GAME'S CAST AT A TIME on the stage: picking someone from another game sends this lot
 // running off and brings theirs on (Colin keeps his seat in the middle)
@@ -643,7 +643,7 @@ const current = () => route()[0] || (route().length ? latched : pressed) || 'hom
 const GLORB_DOT = 0.65;
 const glorbTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 if (GLORB_ON) document.body.classList.add('has-glorb');
-const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=1d4253d4').then(m => {
+const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=323a7f9d').then(m => {
   const api = m.createGlorb({ host: $('#glorb'), theme: glorbTheme(), bg: css('--bg') });
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
@@ -841,21 +841,54 @@ const deck = $('.deck-keys');
 // over its height as cut from his strip, so every word keeps the same letter size.
 const KEYART = { play: 2.913, assets: 3.038, motion: 2.923, web: 2.625, scripts: 2.971, studios: 2.962, writing: 3.24,
   audio: 2.673, workbench: 3.225, about: 2.647, characters: 3.373, tutorials: 2.951 };
-/* THE SECTION'S NAME, UP IN THE STAGE: its own key lettering, big, in the logo's violet-to-green,
-   in the upper right under the round buttons. Home has none (the stage is Colin's). It sits inside
-   the stage, so it scrolls away with it. */
+/* THE SECTION'S NAME, IN THE ORB: its own key lettering in the logo's violet-to-green, set in the
+   middle of Glorb a little above Colin's head -- and it is SOLID to him: the lettering is drawn into
+   a soft mask (1 inside the letters, fading to 0 just outside) that the engine pushes his particles
+   out of, so the orb flows round the word the way the intro's dots flowed round Colin. Home has
+   none (the stage is Colin's); the About page has its own stage. */
 function secTitle(sec) {
   const host = $('#glorb'); if (!host) return;
   let el = secTitle.el; if (!el) { el = secTitle.el = document.createElement('div'); el.className = 'sec-title'; host.appendChild(el); }
-  const s = sec && sectionOf(sec);
-  if (!s) { el.classList.remove('on'); el.dataset.k = ''; return; }
+  const s = sec && sectionOf(sec) && !(sec === 'about' && !route()[1]) ? sectionOf(sec) : null;
+  if (!s) { el.classList.remove('on'); el.dataset.k = ''; secTitle.mask = null; GLORB.api?.setMask?.(null); return; }
   if (el.dataset.k === s.key) { el.classList.add('on'); return; }
   el.dataset.k = s.key; el.classList.remove('on'); el.setAttribute('aria-label', s.label);
-  el.innerHTML = KEYART[s.key]
-    ? `<i style="--art:url(${new URL(`site/keys/${s.key}.webp`, document.baseURI).href});--ar:${KEYART[s.key]}"></i>`
-    : `<b>${esc(s.label)}</b>`;
+  const src = KEYART[s.key] ? new URL(`site/keys/${s.key}.webp`, document.baseURI).href : null;
+  el.style.setProperty('--ar', KEYART[s.key] || 3);
+  el.innerHTML = src ? `<i style="--art:url(${src})"></i>` : `<b>${esc(s.label)}</b>`;
+  secTitle.mask = null; secTitle.img = null;
+  if (src) { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { if (el.dataset.k === s.key) { secTitle.img = im; secTitle.mw = 0; } }; im.src = src; }
   void el.offsetWidth; el.classList.add('on');
 }
+// every frame: sit the lettering on the orb, and keep his collider under it
+(function secTitleFrame() {
+  requestAnimationFrame(secTitleFrame);
+  const el = secTitle.el, api = GLORB.api; if (!el || !api || !el.dataset.k) return;
+  const c = api.centre, sc = c.scale || 300, w = Math.round(Math.min(innerWidth * 0.7, sc * 0.46)), h = Math.round(w / (+el.style.getPropertyValue('--ar') || 3));
+  const x = Math.round(c.x - w / 2), y = Math.round(c.y - sc * 0.125 - h / 2);
+  Object.assign(el.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+  const im = secTitle.img; if (!im || !api.setMask) return;
+  // the mask, rebuilt only when the lettering changes size: a quarter-resolution copy of the letters
+  // with a margin, blurred twice so it has a slope to push along
+  const Q = 3, pad = 6;
+  if (secTitle.mw !== w) {
+    secTitle.mw = w;
+    const mw = Math.ceil(w / Q) + pad * 2, mh = Math.ceil(h / Q) + pad * 2;
+    const cv = document.createElement('canvas'); cv.width = mw; cv.height = mh;
+    const g = cv.getContext('2d'); g.drawImage(im, pad, pad, mw - pad * 2, mh - pad * 2);
+    let px; try { px = g.getImageData(0, 0, mw, mh).data; } catch { return; }
+    let d = new Float32Array(mw * mh), t = new Float32Array(mw * mh);
+    for (let k = 0; k < mw * mh; k++) d[k] = px[k * 4 + 3] / 255 > 0.3 ? 1 : 0;
+    const blur = (a, b, r) => {
+      for (let j = 0; j < mh; j++) for (let i = 0; i < mw; i++) { let s2 = 0, n = 0; for (let k = -r; k <= r; k++) { const ii = i + k; if (ii >= 0 && ii < mw) { s2 += a[j * mw + ii]; n++; } } b[j * mw + i] = s2 / n; }
+      for (let j = 0; j < mh; j++) for (let i = 0; i < mw; i++) { let s2 = 0, n = 0; for (let k = -r; k <= r; k++) { const jj = j + k; if (jj >= 0 && jj < mh) { s2 += b[jj * mw + i]; n++; } } a[j * mw + i] = s2 / n; }
+    };
+    blur(d, t, 2); blur(d, t, 2);
+    for (let k = 0; k < d.length; k++) d[k] = Math.min(1, d[k] * 1.8);
+    secTitle.mask = { d, w: mw, h: mh, s: Q, pad };
+  }
+  const M = secTitle.mask; if (M) api.setMask({ d: M.d, w: M.w, h: M.h, s: M.s, x: x - M.pad * M.s, y: y - M.pad * M.s });
+})();
 deck.innerHTML = SECTIONS.map(s => KEYART[s.key]
   ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}"><span class="gw"><i class="glyph" style="--art:url(${new URL(`site/keys/${s.key}.webp`, document.baseURI).href});--ar:${KEYART[s.key]}"></i></span></a>`
   : `<a class="key" href="${s.key}" data-key="${s.key}"><b>${esc(s.label)}</b></a>`).join('');
