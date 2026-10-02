@@ -280,8 +280,7 @@ a.card.media:hover .cover { transform: scale(1.03); }
   background: #fff; margin-right: 6px; vertical-align: 1px; animation: breathe 1.2s ease-in-out infinite; }
 #mini[data-state="thinking"] .mini-tag { opacity: .75; }
 #mini[data-state="speaking"] .mini-tag { background: var(--ink); color: var(--sheet); border-color: transparent; }
-#mini.on .mini-body::after { content: ''; position: absolute; inset: auto 10% 0; height: 14px; border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 55%, transparent), transparent); z-index: -1; }
+/* (the pink glow under him while talking is gone: he stands on a real floor now, and it spilled over the keys) */
 
 /* ---- the aisle: every section on display, no digging -------------------------- */
 .aisle { margin: 0 calc(-1 * var(--gut)); }
