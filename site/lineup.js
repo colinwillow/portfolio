@@ -13,7 +13,9 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=222cfe45';
 
-export const LINE = { gap: 1.05, stagger: 0.18, forward: 0.32, tall: 0.4, tex: 512, dim: 1, pop: 1.12, fov: 30 };
+// back: how far behind Colin the line stands (they read smaller, so more of them fit); forward: where the
+// picked one walks out to, in front of him
+export const LINE = { gap: 1.0, stagger: 0.22, back: 2.8, forward: 0.45, tall: 0.4, tex: 512, dim: 1, pop: 1.05, fov: 30 };
 
 function shrinkTextures(model) {
   const done = new Set();
@@ -75,7 +77,11 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
   // the line keeps its order; picking someone slides the WHOLE line so they stand in the
   // middle -- everyone walks the same way the same distance, so nobody crosses anybody
   function layout() {
-    slots.forEach((s, k) => { s.tx = (k - home - S.shift) * LINE.gap; s.tz = S.sel === s.c.slug ? LINE.forward : (k % 2 ? -LINE.stagger : 0); });
+    /* TWO DEPTHS: Colin up front; the rest in a line behind him, a step apart in depth every other
+       one. Whoever is picked walks out of that line into the foreground -- the line slides so they
+       come out in the middle, and Colin steps aside with it. */
+    slots.forEach((s, k) => { s.tx = (k - home - S.shift) * LINE.gap;
+      s.tz = S.sel === s.c.slug ? LINE.forward : s.c.colin ? 0 : -LINE.back - (k % 2 ? LINE.stagger : 0); });
   }
   layout();
 
@@ -207,7 +213,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     const D = S.colinPx ? (H * 1.9) / (S.colinPx * 2 * t) : (H * 1.8) / (LINE.tall * (H - S.below) * 2 * t);
     const ppm = H / (2 * D * t), y = 1.0 + (g - H / 2 - ppm) / ppm;
     camera.position.set(S.camX, y, D); camera.lookAt(S.camX, y, 0);
-    scene.fog.near = D + 1.2; scene.fog.far = D + 7.5;
+    scene.fog.near = D + LINE.back + 2; scene.fog.far = D + LINE.back + 9;   // the back line stays lit; only the far mist fades
     return ppm;
   }
 

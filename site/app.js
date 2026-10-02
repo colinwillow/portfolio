@@ -668,7 +668,7 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=69d8607f').then(m => {
+    lineupLoading = import('./lineup.js?v=23500a5e').then(m => {
       /* COLIN IN THE MIDDLE, and the cast dealt out from him in their order -- one to his right, one to
          his left, the next a step further out each side -- so the first ones listed (the originals, with
          their own animations) stand round him and the borrowed-animation crowd fills the ends */
