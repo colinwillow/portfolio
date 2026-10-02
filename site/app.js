@@ -628,7 +628,7 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=6b21a4f0').then(m => {
+    lineupLoading = import('./lineup.js?v=679a991a').then(m => {
       const cast = ASSETS.filter(a => a.from === CAST.game || a.also?.includes(CAST.game)), half = Math.ceil(cast.length / 2);
       LINEUP = m.createLineup($('#glorb'), [...cast.slice(0, half), { slug: 'colin', colin: true, h: 1.9, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...cast.slice(half)], { onPick: slug => CHARPICK.show?.(slug),
         colin: { place: p => { SEAT = p; }, joined: v => { document.body.classList.toggle('colin-in-line', v); heroSync(); } } });
@@ -732,6 +732,7 @@ addEventListener('scroll', () => {
     // where he stands: the hero spot (riding the scroll), or the line-up's seat for him, eased
     // between the two so stepping into the line is a move and not a cut
     const foot0 = y + H * 0.9032, px0 = H / 1.24, hx = innerWidth / 2;
+    LINEUP?.colinPx?.(px0);   // the line-up frames everyone so Colin is this size there too
     // on home, once you press a key he WALKS over and stands above it -- and follows it if the
     // row of keys is scrolled sideways; nothing pressed (or back at the top), centre stage
     let gx = hx;

@@ -200,7 +200,11 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
   // and is raised or lowered so the floor (y = 0) lands exactly on the strip's top edge
   function frameCamera() {
     const H = cv.clientHeight || 1, g = H - S.below - 2, t = Math.tan(LINE.fov * Math.PI / 360);
-    const D = (H * 1.8) / (LINE.tall * (H - S.below) * 2 * t);
+    /* When the page says how tall Colin is everywhere else (`colinPx`, his on-screen height in px),
+       the camera stands back exactly far enough that his seat in the line comes out that size --
+       so the Characters page is the same stage with the same-sized Colin as every other page,
+       and everyone else is to scale beside him. Otherwise: a 1.8 m person is `tall` of the room. */
+    const D = S.colinPx ? (H * 1.9) / (S.colinPx * 2 * t) : (H * 1.8) / (LINE.tall * (H - S.below) * 2 * t);
     const ppm = H / (2 * D * t), y = 1.0 + (g - H / 2 - ppm) / ppm;
     camera.position.set(S.camX, y, D); camera.lookAt(S.camX, y, 0);
     scene.fog.near = D + 1.2; scene.fog.far = D + 7.5;
@@ -312,6 +316,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     },
     /** the strip's top edge in CSS px from the top of the host: their floor */
     ground(y, below) { S.ground = y; if (below != null) S.below = Math.round(below); },
+    colinPx(px) { S.colinPx = px > 20 ? px : 0; },
     pause(p) { p = !!p; if (p === S.paused) return; S.paused = p; cv.style.visibility = p ? 'hidden' : ''; },   // off the top: gone, not a frozen frame
     fog(hex) { scene.fog.color.set(hex); },
     /** gone for good: a different game's cast is taking the stage */
