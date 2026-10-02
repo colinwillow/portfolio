@@ -55,7 +55,7 @@ export function playIntro({ build = '', role = '', bg = '#efe8da', rim = '#9a1cf
     const px = new Float32Array(N), py = new Float32Array(N), vx = new Float32Array(N), vy = new Float32Array(N);
     const strand = new Uint8Array(N), tt = new Float32Array(N), spd = new Float32Array(N),
           maxV = new Float32Array(N), maxF = new Float32Array(N), rad = new Float32Array(N), hot = new Uint8Array(N);
-    const knock = new Float32Array(N);
+    const knock = new Float32Array(N), freed = new Float64Array(N), nearB = new Uint8Array(N);
     const front = new Uint8Array(N); for (let i = 0; i < N; i++) front[i] = Math.random() < 0.34 ? 1 : 0;             // 1 just after he hit it, easing back to 0
     const DEF = [
       { la: 3, lb: 2, A: 120, B: 110 }, { la: 5, lb: 4, A: 130, B: 100 }, { la: 4, lb: 3, A: 110, B: 120 }, { la: 5, lb: 3, A: 120, B: 120 },
@@ -203,7 +203,24 @@ export function playIntro({ build = '', role = '', bg = '#efe8da', rim = '#9a1cf
              delay and .5s fade the CSS gives the word), so the field falls in on him to be
              walked into, instead of holding a hole the shape of a word nobody can see. */
           const cs = !walking ? 1 : me.api.depth ? Math.max(0, Math.min(1, 1 - (now - walkT0 - rel[i]) / 260)) : me.api.progress() > 0.5 ? 0 : 1;
-          const ex = px[i] - nx, ey = py[i] - ny, ed = cs <= 0 ? 1e9 : Math.hypot(ex, ey);
+          const ex = px[i] - nx, ey = py[i] - ny, ed0 = Math.hypot(ex, ey), ed = cs <= 0 ? 1e9 : ed0;
+          /* LET GO, AND LOSE THE BOX. Dots that were stacked against the name's edges when it
+             let go would otherwise walk inward together in four straight rows -- the box drawn a
+             second time. So each one released from the edge gets a small random shove, the
+             strand's pull softens for a moment, and the same curl-noise flow the strands use
+             later carries it, so the rows break into loose strands as they fall in. */
+          if (walking && cs <= 0 && !freed[i]) {
+            freed[i] = now;
+            if (ed0 < 22) { nearB[i] = 1; const a = Math.random() * 6.283, m = 0.8 + Math.random() * 1.8; vx[i] += Math.cos(a) * m; vy[i] += Math.sin(a) * m; }
+          }
+          if (nearB[i] && freed[i]) {
+            const q = 1 - (now - freed[i]) / 1500;
+            if (q > 0) {
+              knock[i] = Math.max(knock[i], 0.85 * q);
+              const [fx, fy] = curl(px[i], py[i], now / 1000);
+              ax += fx * 0.07 * q; ay += fy * 0.07 * q;
+            } else nearB[i] = 0;
+          }
           if (ed < 0.5) { const ox = px[i] - wx || 0.1, oy = py[i] - wy, om = Math.hypot(ox, oy); ax += ox / om * maxF[i] * 14 * cs; ay += oy / om * maxF[i] * 14 * cs; }
           else if (ed < 14) { ax += ex / ed * maxF[i] * 3.5 * (1 - ed / 14) * cs; ay += ey / ed * maxF[i] * 3.5 * (1 - ed / 14) * cs; }
 

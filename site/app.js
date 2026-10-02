@@ -1159,9 +1159,30 @@ const globeReady = GLORB_ON ? Promise.resolve() : (USE_SWARM ? import('./stage-s
    intro self crossfades into this one; walking across, as the intro lets go. (Not when he LOADS --
    that is while the intro still covers the page, and the wave was over before anyone saw it.) */
 addEventListener('cw:handoff', () => { if (!route().length) withColin(c => c.wave?.()); });
+/* THE ELEVATOR. Walking toward you, he comes out through the name in the MIDDLE of the screen,
+   so for the intro the whole stage -- Glorb, the backdrop, his spot and everything below it -- is
+   lowered (--lift) until his head lands on the name. When the page's own Colin has taken over
+   (and waved), the stage rises to its place: a performer carried up on the platform. */
+const LIFT = { y: 0 };
+const setLift = y => { LIFT.y = y; document.documentElement.style.setProperty('--lift', y.toFixed(1) + 'px'); };
+function rise(delay = 350, dur = 1700) {
+  if (!LIFT.y || LIFT.rising) return; LIFT.rising = true;
+  const y0 = LIFT.y, t0 = performance.now() + delay;
+  (function step(now) {
+    const u = Math.max(0, Math.min(1, (now - t0) / dur)), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+    setLift(y0 * (1 - e));
+    if (u < 1) requestAnimationFrame(step); else { setLift(0); document.documentElement.style.removeProperty('--lift'); }
+  })(performance.now());
+}
+if (wantIntro && !/[?&]walk=side/.test(location.search)) {
+  setLift(Math.max(0, innerHeight * 0.5 - headRest() * HEAD_AT));
+  addEventListener('cw:handoff', () => rise());
+  addEventListener('scroll', () => { if (!document.getElementById('intro')) rise(0, 500); }, { passive: true });   // never strand him low
+}
 const intro = wantIntro
-  ? import('./intro.js?v=479ff83e').then(m => m.playIntro({ build: BUILD, role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
+  ? import('./intro.js?v=8c285f98').then(m => m.playIntro({ build: BUILD, role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
       .catch(err => console.warn('intro', err))
+      .finally(() => { const t = setInterval(() => { if (!document.getElementById('intro')) { clearInterval(t); setTimeout(() => rise(), 2500); } }, 400); })   // (if the handoff never comes, rise anyway, once the intro has gone)
   : Promise.resolve();
 
 // Mini-Colin: 8 MB of him, so he arrives once everything else has settled.

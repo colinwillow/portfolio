@@ -836,9 +836,11 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
 /* no vertical travel in a row of faces either: the picked one is marked by its underline and light, not a lift */
 .shelf-figures .figure.on img, .char-thumbs button.on img { transform: none; }
 @media (min-aspect-ratio: 1/1) { :root { --band: min(66.667vw, 72svh); } }
-/* intro, walking toward you: the name sits higher, over where he walks out from */
-#intro.depth .intro-word { top: 36%; }
-#intro.depth .intro-role { top: calc(36% + min(15vw, 84px)); }
+/* intro, walking toward you: the name is centre stage, and the whole stage is lowered (--lift)
+   so he walks out through it; once the page has him, the stage rises to its place (app.js) */
+#intro.depth .intro-word { top: 50%; }
+#intro.depth .intro-role { top: calc(50% + min(15vw, 84px)); }
+#glorb, #home-stage, #deck, #view { translate: 0 var(--lift, 0px); }
 /* a game's page: its wide art is the stage behind Colin; its icon sits beside its name */
 #glorb .game-bg { position: absolute; left: 0; right: 0; top: 0; height: 50%; overflow: hidden; opacity: 0; transition: opacity .6s; pointer-events: none; }
 #glorb .game-bg.on { opacity: 1; }
@@ -857,7 +859,7 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
 .logo > g > path { color: var(--logo-o); }
 /* walking toward you, the name sits higher, so Enter comes up under the role line rather than
    being left at the foot of the screen */
-#intro.depth .intro-enter { bottom: auto; top: calc(36% + min(15vw, 84px) + 64px); }
+#intro.depth .intro-enter { bottom: auto; top: calc(50% + min(15vw, 84px) + 64px); }
 #glorb .game-bg video.off { visibility: hidden; }
 /* the section's name, in the stage (secTitle) */
 .sec-title { position: absolute; z-index: 3; pointer-events: none; opacity: 0; transform: scale(.9);
