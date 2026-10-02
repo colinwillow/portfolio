@@ -538,10 +538,20 @@ let gameBg = null;
    (on the homepage and the Games list, and the instant a game's card is touched), so by the time
    the page opens it is already in the cache. Whichever copy this browser will actually choose. */
 function warmVideo(it) {   // (declarations, not consts: render() calls this before this line has run)
-  const W = warmVideo; W.done ||= new Set();
+  /* Downloaded by the PAGE into memory, and the video is handed that copy (a blob URL). iPhone's
+     player does not reuse what fetch() put in the cache -- it goes back to the network with its own
+     range requests and holds a muted autoplay until it thinks it can play through -- so a clip it
+     has to stream itself sits on its poster for seconds. A clip that is already in memory starts
+     on the next frame. Promise per clip, so the warm-up and the page share one download. */
+  const W = warmVideo; W.p ||= new Map();
   if (W.av1 === undefined) { try { W.av1 = !!document.createElement('video').canPlayType('video/mp4; codecs="av01.0.05M.08"'); } catch { W.av1 = false; } }
-  if (!it?.video || W.done.has(it.video)) return; W.done.add(it.video);
-  fetch(`site/video/${it.video}${W.av1 ? '.av1' : ''}.mp4`, { priority: 'low' }).catch(() => W.done.delete(it.video));
+  if (!it?.video) return null;
+  if (!W.p.has(it.video)) {
+    const url = `site/video/${it.video}${W.av1 ? '.av1' : ''}.mp4`;
+    W.p.set(it.video, fetch(url).then(r => { if (!r.ok) throw r.status; return r.blob(); })
+      .then(b => URL.createObjectURL(b)).catch(() => { W.p.delete(it.video); return url; }));
+  }
+  return W.p.get(it.video);
 }
 function warmAll() { const f = () => PLAY.forEach(warmVideo); window.requestIdleCallback ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 1500); }
 document.addEventListener('pointerdown', e => {
@@ -568,10 +578,9 @@ function gameBackdrop() {
         const v = document.createElement('video');
         Object.assign(v, { muted: true, loop: true, autoplay: true, playsInline: true, poster: still, preload: 'auto' });
         v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
-        // both MP4 with the index at the FRONT, so playback starts on the first bytes. (The AV1 one
-        // was WebM, whose index is at the end; Safari waited for the whole file before playing.)
-        v.innerHTML = `<source src="site/video/${it.video}.av1.mp4" type='video/mp4; codecs="av01.0.05M.08"'><source src="site/video/${it.video}.mp4" type="video/mp4">`;
-        gameBg.appendChild(v); show(); v.play?.().catch(() => {});
+        gameBg.appendChild(v); show();
+        // the poster holds until the clip is in memory (see warmVideo), then it plays at once
+        warmVideo(it).then(src => { if (gameBg.dataset.key !== key || !src) return; v.src = src; v.play?.().catch(() => {}); });
       } else {
         const im = new Image(); im.alt = ''; im.onload = show; im.src = still; gameBg.appendChild(im);
       }
@@ -644,6 +653,10 @@ const HOMESTAGE = document.body.appendChild(Object.assign(document.createElement
 const svhProbe = document.body.appendChild(Object.assign(document.createElement('div'),
   { style: 'position:fixed;left:0;top:0;width:0;height:100svh;visibility:hidden;pointer-events:none' }));
 const svh = () => svhProbe.offsetHeight || innerHeight;
+/* Where the orb's centre sits in the stage, as a fraction of its height -- and his head sits on
+   it, with his feet on the ground, so this one number is also how big he is: higher centre, taller
+   Colin. 0.5 was the middle; 0.4 makes him about a fifth bigger. */
+const HEAD_AT = 0.4;
 const headRest = () => Math.min(innerWidth * 2 / 3, svh() * 0.72);   // the 3:2 stage, as --band in the CSS
 const deckH = () => $('#deck')?.offsetHeight || 58;
 function headOffset() {
@@ -679,12 +692,12 @@ addEventListener('scroll', () => {
   const R = api.centre.scale * 0.34, room = home ? headRest() : stage ? top * 0.76 : top;
   api.setFloor(top - 1);
   // as the strip rises it catches him low, so his underside visibly flattens on it before he goes
-  api.setCentreY(Math.min(room * 0.5, top - R * 0.5));
+  api.setCentreY(Math.min(room * HEAD_AT, top - R * 0.5));
   {
     // sized off the page AT REST, so scrolling only moves him: resizing his canvas every frame
     // as the hero shrank cleared it (the flashing) and shrank him with it
     const lg = parseFloat(css('--ledge')) || 26, rest = headRest(), floor = rest - lg * 0.5;
-    const H = Math.round(Math.max(80, (floor - rest * 0.5) / 0.749)), y = Math.round(floor + 0.0968 * H - H);
+    const H = Math.round(Math.max(80, (floor - rest * HEAD_AT) / 0.749)), y = Math.round(floor + 0.0968 * H - H);
     if (HOMESTAGE._h !== H) { HOMESTAGE._h = H; HOMESTAGE.style.height = H + 'px'; HOMESTAGE.style.top = y + 'px'; }
     // where he stands: the hero spot (riding the scroll), or the line-up's seat for him, eased
     // between the two so stepping into the line is a move and not a cut
@@ -721,7 +734,7 @@ addEventListener('scroll', () => {
   // they stand in the middle of the strip's top face, not on its front edge
   { const lg = parseFloat(css('--ledge')) || 26; LINEUP?.ground(top - lg * 0.5, lg * 0.5); } LINEUP?.pause(top < 0);
   // the main band runs behind Glorb's resting centre (not his live one, so a squash does not drag the cloth)
-  WEAVE?.anchor(room * 0.5);
+  WEAVE?.anchor(room * HEAD_AT);
 })();
 
 /* A NEW GLORB FOR EVERY PRESS. The particles are thrown out from his middle,
