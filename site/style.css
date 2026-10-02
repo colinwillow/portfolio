@@ -854,3 +854,14 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
    being left at the foot of the screen */
 #intro.depth .intro-enter { bottom: auto; top: calc(36% + min(15vw, 84px) + 64px); }
 #glorb .game-bg video.off { visibility: hidden; }
+/* the section's name, in the stage (secTitle) */
+.sec-title { position: absolute; right: 16px; top: calc(78px + env(safe-area-inset-top)); z-index: 3; pointer-events: none;
+  opacity: 0; transform: translateX(14px); transition: opacity .45s, transform .55s cubic-bezier(.2,.8,.2,1); }
+.sec-title.on { opacity: 1; transform: none; }
+.sec-title i { display: block; height: clamp(30px, 7vw, 54px); aspect-ratio: var(--ar);
+  background: linear-gradient(100deg, var(--logo-c), var(--logo-o));
+  -webkit-mask: var(--art) center / contain no-repeat; mask: var(--art) center / contain no-repeat;
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / .35)); }
+.sec-title b { font: 700 clamp(26px, 6vw, 44px)/1 var(--ui); letter-spacing: -.01em;
+  background: linear-gradient(100deg, var(--logo-c), var(--logo-o)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+body.stage-page .sec-title { display: none; }

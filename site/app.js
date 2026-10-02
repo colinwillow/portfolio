@@ -85,7 +85,8 @@ const appIcon = it => it.icon
 const STATUS = { live: 'Live', dev: 'In development', soon: 'Coming soon' };
 const sectionOf = k => SECTIONS.find(s => s.key === k);
 const crumbs = (...parts) => `<nav class="crumbs">${[link('./', 'Home'), ...parts].join(' / ')}</nav>`;
-const head = (s, extra = '') => `${crumbs(esc(s.label))}<h2 class="title">${esc(s.label)}</h2><p class="lede">${esc(s.blurb)}${extra}</p>`;
+// the section's NAME lives up in the stage now (secTitle); down here, just where you are and what it is
+const head = (s, extra = '') => `${crumbs(esc(s.label))}<p class="lede">${esc(s.blurb)}${extra}</p>`;
 // The support card: on every page, quiet, and honest when the link is not set yet.
 const support = (big = false) => {
   const free = SOCIALS.filter(x => x.url).map(x => ext(x.url, esc(big ? x.label : x.short), 'btn ghost sm'));
@@ -420,6 +421,7 @@ function render() {
   globe?.setMode(sec && s ? 'section' : 'home', s ? sec : null); aisleKey = null;
   globe?.pause?.(!sec && GLORB_ON);   // at home Glorb is the stage
   if (WEAVE) backdrop(sec || pressed || 'home');   // (WEAVE exists only after boot, when the deck is defined)
+  requestAnimationFrame(() => secTitle(sec));   // (next frame: KEYART is declared further down)
   if (!sec || (sec === 'play' && !slug)) warmAll();   // the header clips, ahead of their pages
   pushColors();
   wireVideos();
@@ -838,6 +840,21 @@ const deck = $('.deck-keys');
 // over its height as cut from his strip, so every word keeps the same letter size.
 const KEYART = { play: 2.913, assets: 3.038, motion: 2.923, web: 2.625, scripts: 2.971, studios: 2.962, writing: 3.24,
   audio: 2.673, workbench: 3.225, about: 2.647, characters: 3.373, tutorials: 2.951 };
+/* THE SECTION'S NAME, UP IN THE STAGE: its own key lettering, big, in the logo's violet-to-green,
+   in the upper right under the round buttons. Home has none (the stage is Colin's). It sits inside
+   the stage, so it scrolls away with it. */
+function secTitle(sec) {
+  const host = $('#glorb'); if (!host) return;
+  let el = secTitle.el; if (!el) { el = secTitle.el = document.createElement('div'); el.className = 'sec-title'; host.appendChild(el); }
+  const s = sec && sectionOf(sec);
+  if (!s) { el.classList.remove('on'); el.dataset.k = ''; return; }
+  if (el.dataset.k === s.key) { el.classList.add('on'); return; }
+  el.dataset.k = s.key; el.classList.remove('on'); el.setAttribute('aria-label', s.label);
+  el.innerHTML = KEYART[s.key]
+    ? `<i style="--art:url(${new URL(`site/keys/${s.key}.webp`, document.baseURI).href});--ar:${KEYART[s.key]}"></i>`
+    : `<b>${esc(s.label)}</b>`;
+  void el.offsetWidth; el.classList.add('on');
+}
 deck.innerHTML = SECTIONS.map(s => KEYART[s.key]
   ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}"><span class="gw"><i class="glyph" style="--art:url(${new URL(`site/keys/${s.key}.webp`, document.baseURI).href});--ar:${KEYART[s.key]}"></i></span></a>`
   : `<a class="key" href="${s.key}" data-key="${s.key}"><b>${esc(s.label)}</b></a>`).join('');
