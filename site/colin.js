@@ -13,7 +13,7 @@
 // here, the page moves at once, and he talks about it while it does.
 
 import * as THREE from '../vendor/three.module.min.js';
-import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=222cfe45';
+import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=54637da4';
 import { mouth, speakBuffer, hush, VISEME, JAW } from './speech.js?v=d7e94a3c';
 
 export const BRAIN = 'https://orb-brain.colinwillowtree.workers.dev';
@@ -643,5 +643,5 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const grooveSet = on => { on = !!on; if (on === groove) return; groove = on;
     if (ch && (LIFE.cur === LIFE.clips.idle || LIFE.cur === LIFE.clips.dance)) lifeClip('idle'); };
   const watch = f => { watchers.add(f); f(state !== 'off'); return () => watchers.delete(f); };
-  return { act, ask, wake, sleep, adopt, release, present, heroWalk, heroAir, lookBack: v => { lookBackOn = !!v; }, wave: () => { waveWant = true; }, watch, groove: grooveSet, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
+  return { _mixer: () => ch?.mixer, act, ask, wake, sleep, adopt, release, present, heroWalk, heroAir, lookBack: v => { lookBackOn = !!v; }, wave: () => { waveWant = true; }, watch, groove: grooveSet, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
 }

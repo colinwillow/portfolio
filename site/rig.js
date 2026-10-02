@@ -130,12 +130,25 @@ export function pickClip(clips, ...want) {
 export function play(mixer, clip, { fade = 0.3, once = false, back = null } = {}) {
   if (!clip) return null;
   const a = mixer.clipAction(clip);
-  a.reset().setEffectiveWeight(1).fadeIn(fade).play();
+  /* A CROSSFADE THAT KEEPS THE WEIGHTS SUMMING TO ONE. three's fadeIn always starts at 0 and its
+     fadeOut always starts at 1, wherever the clip actually is -- so changing clip while a fade is
+     still running (up, then down a fifth of a second later, as a throw does) jumped a half-faded
+     clip back to full (a total near 2: the pose overdriven) or a returning one back to nothing (a
+     total under 1: the rest of the weight goes to the BIND pose, the T-pose flash). Each clip fades
+     from the weight it HAS: the others down to 0, this one up to 1, over the same time -- so if
+     they summed to 1 before, they sum to 1 all the way. A clip still fading out when it is asked
+     for again carries on from where it is rather than restarting. */
+  const w0 = a.enabled && a.isScheduled() ? a.getEffectiveWeight() : 0;   // (a never-played action reports weight 1 before it has run)
+  if (w0 < 0.001 || once) a.reset();
+  a.enabled = true; a.setEffectiveWeight(1); a._scheduleFading(fade, w0, 1); a.play();
   a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity);
   a.clampWhenFinished = once;
   // Ask the WEIGHT, never isRunning(): a finished LoopOnce clip is paused, so it
   // is "not running" while still holding its last frame at full weight.
-  for (const other of mixer._actions) if (other !== a && other.getEffectiveWeight() > 0) other.fadeOut(fade);
+  for (const other of mixer._actions) {
+    if (other === a) continue;
+    const w = other.isScheduled() ? other.getEffectiveWeight() : 0; if (w > 0) { other.stopFading(); other._scheduleFading(fade, w, 0); }
+  }
   if (once && back) {
     const done = e => { if (e.action !== a) return; mixer.removeEventListener('finished', done); play(mixer, back, { fade }); };
     mixer.addEventListener('finished', done);
