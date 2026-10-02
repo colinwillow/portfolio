@@ -798,6 +798,30 @@ addEventListener('scroll', () => {
     const now = performance.now(), dt = Math.min(0.05, (now - (HOMESTAGE._t || now)) / 1000); HOMESTAGE._t = now;
     const e = SEAT && HOMESTAGE._seat ? 1 : 0.14;   // in the line he IS the seat; between modes, eased
     for (const n of ['f', 'k', 'lit']) P[n] += (want[n] - P[n]) * e;
+    /* HE HAS WEIGHT. On the homepage his feet are not glued to the stage: every frame he falls
+       freely, and if that would put him below the stage he stands on it, moving with it. So a
+       stage that drops away faster than gravity (a hard scroll down) leaves him in the air for a
+       moment, and one that carries him up and stops (a flick up) throws him -- he flies on and
+       comes down onto it. Gravity is a cartoon's (2.5x, scaled to his size) and the throw is
+       capped, so a big fling is a good hop and never a trip off the screen. */
+    if (home && !SEAT) {
+      const A = HOMESTAGE._air ||= { y: want.f, v: 0, gy: want.f, air: 0, peak: 0 };
+      const gpx = 2.5 * 9.8 * (px0 / 1.85), ground = want.f, gv = dt > 0 ? (ground - A.gy) / dt : 0;
+      A.gy = ground;
+      if (dt > 0 && dt < 0.1) {
+        A.v += gpx * dt; A.y += A.v * dt;
+        if (A.y >= ground) {
+          const hit = A.v - gv;
+          if (A.air > 0.3 || (A.air > 0.12 && hit > gpx * 0.18)) colin?.heroAir?.('roll');   // a real landing: he rolls out of it
+          else if (A.air) colin?.heroAir?.(null);
+          A.y = ground; A.v = Math.max(-gpx * 0.36, Math.min(gpx * 0.5, gv)); A.air = 0;   // riding it (the throw it can give is capped)
+        } else {
+          A.air += dt;
+          if (ground - A.y > 6 && A.air > 0.06) colin?.heroAir?.(A.v < 0 ? 'up' : 'down');
+        }
+      } else { A.y = ground; A.v = 0; A.air = 0; }
+      P.f = A.y;
+    } else if (HOMESTAGE._air) { HOMESTAGE._air = null; colin?.heroAir?.(null); }
     let walk = SEAT?.dir || 0;
     if (SEAT) P.x += (want.x - P.x) * e;
     else {   // a walk, at a walking pace for a man his size on screen -- not a slide
@@ -1237,5 +1261,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=dff5fa3c').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=2af582c7').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

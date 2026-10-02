@@ -84,7 +84,7 @@ async function voice(text, prev, next) {
 }
 
 // --- the body --------------------------------------------------------------------
-const ACT = { wave: 'waving', dance: 'dance_hiphop_01', happy: 'dance_wiggle_feet', jump: 'dance_wiggle_feet',
+const ACT = { wave: 'waving', dance: 'dance_bopping', happy: 'dance_wiggle_feet', jump: 'dance_wiggle_feet',
   strut: 'walk_fwd_swagger', tiptoe: 'walk_fwd_tiptoe', sad: 'idle_sad_kick', bored: 'idle_exhausted',
   kneel: 'idle_kneeling', fan: 'dance_moonwalk' };
 
@@ -165,10 +165,10 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const pxPerM = () => { const r = canvas.getBoundingClientRect(); return r.height / (2 * camera.position.z * Math.tan(camera.fov * Math.PI / 360)); };
   const bodyW = () => canvas.getBoundingClientRect().width || 120;
   const lane = () => [8, Math.max(8, innerWidth - bodyW() - 8)];
-  let heroDir = 0, groove = false, lookBackOn = false, waveWant = false, waveT = 0;
-  // MUSIC ON: wherever he would stand idle he bops instead. The calmest dance in his file
-  // (measured: the least rotation of the six); dance_hiphop_03 is the next most casual.
-  const DANCE = 'dance_wiggle_feet';
+  let heroDir = 0, groove = false, lookBackOn = false, waveWant = false, waveT = 0, airMode = null, rollT = 0;
+  // MUSIC ON: wherever he would stand idle he bops instead -- dance_bopping, the one made for
+  // it (the old file's calmest, wiggle feet, if an export ever drops it)
+  const DANCE = 'dance_bopping', DANCE0 = 'dance_wiggle_feet';
   /* HIS MOUTH. The export's mouth mesh has no material, so it is coloured here: it is four
      separate pieces -- the upper and lower rows of teeth (the two biggest), and the upper gums
      and the lower gums-and-tongue -- found by welding the vertices and grouping what connects. */
@@ -234,7 +234,10 @@ export function createMiniColin({ go, known, items, pageOf }) {
       // one wave hello, when asked (the homepage, as he arrives off the intro): the clip once, then idle
       if (waveWant && !hd && state === 'off' && LIFE.clips.wave) { waveWant = false; waveT = LIFE.clips.wave.duration * 0.95; }
       if (waveT > 0) waveT -= dt;
-      LIFE.face = hd; lifeClip(hd ? 'walk' : waveT > 0 ? 'wave' : 'idle');
+      // in the air (the homepage throws him when you flick the page): up, down, then a roll out of the landing
+      if (rollT > 0) rollT -= dt;
+      const airC = airMode === 'up' || airMode === 'down' ? airMode : rollT > 0 ? 'roll' : null;
+      LIFE.face = airC ? 0 : hd; lifeClip(airC || (hd ? 'walk' : waveT > 0 ? 'wave' : 'idle'));
       LIFE.faceNow += (hd - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
       // on a game's page he turns round to look at the game behind him (not while walking or talking)
       const back = lookBackOn && !hd && state === 'off' ? 1 : 0;
@@ -370,7 +373,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
     });
     scene.add(c.model);
     idle = pickClip(c.clips, 'idle_neutral', 'neutral_idle');
-    Object.assign(LIFE.clips, { dance: c.clips.find(x => x.name === DANCE) || null, idle, walk: pickClip(c.clips, 'walk_fwd_neutral'), swagger: pickClip(c.clips, 'walk_fwd_swagger'),
+    Object.assign(LIFE.clips, { dance: c.clips.find(x => x.name === DANCE) || c.clips.find(x => x.name === DANCE0) || null, up: c.clips.find(x => x.name === 'jump_going_up') || null, down: c.clips.find(x => x.name === 'jump_coming_down') || null, roll: c.clips.find(x => x.name === 'landing_roll') || null, idle, walk: pickClip(c.clips, 'walk_fwd_neutral'), swagger: pickClip(c.clips, 'walk_fwd_swagger'),
       kick: pickClip(c.clips, 'idle_sad_kick'), wave: pickClip(c.clips, 'waving'), moon: pickClip(c.clips, 'dance_moonwalk'),
       tired: pickClip(c.clips, 'idle_exhausted') });
     LIFE.walk = 'walk'; LIFE.cur = idle;
@@ -598,8 +601,14 @@ export function createMiniColin({ go, known, items, pageOf }) {
   }
   const present = v => { presWant = v ? 1 : 0; };
   const heroWalk = d => { heroDir = d || 0; };
+  /** the page says he is airborne ('up' / 'down'), has landed hard ('roll'), or is standing (null) */
+  const heroAir = m => {
+    if (m === 'roll') { airMode = null; if (LIFE.clips.roll && rollT <= 0) rollT = LIFE.clips.roll.duration * 0.92; return; }
+    if (m && !LIFE.clips[m]) m = null;
+    airMode = m;
+  };
   const grooveSet = on => { on = !!on; if (on === groove) return; groove = on;
     if (ch && (LIFE.cur === LIFE.clips.idle || LIFE.cur === LIFE.clips.dance)) lifeClip('idle'); };
   const watch = f => { watchers.add(f); f(state !== 'off'); return () => watchers.delete(f); };
-  return { act, ask, wake, sleep, adopt, release, present, heroWalk, lookBack: v => { lookBackOn = !!v; }, wave: () => { waveWant = true; }, watch, groove: grooveSet, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
+  return { act, ask, wake, sleep, adopt, release, present, heroWalk, heroAir, lookBack: v => { lookBackOn = !!v; }, wave: () => { waveWant = true; }, watch, groove: grooveSet, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
 }
