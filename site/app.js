@@ -643,7 +643,7 @@ const current = () => route()[0] || (route().length ? latched : pressed) || 'hom
 const GLORB_DOT = 0.65;
 const glorbTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 if (GLORB_ON) document.body.classList.add('has-glorb');
-const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=323a7f9d').then(m => {
+const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=86d15747').then(m => {
   const api = m.createGlorb({ host: $('#glorb'), theme: glorbTheme(), bg: css('--bg') });
   // his dots at 65% of his own app's size: here he is a smaller thing on a busier page
   api.cfg.dot *= GLORB_DOT;
@@ -870,24 +870,39 @@ function secTitle(sec) {
   const im = secTitle.img; if (!im || !api.setMask) return;
   // the mask, rebuilt only when the lettering changes size: a quarter-resolution copy of the letters
   // with a margin, blurred twice so it has a slope to push along
-  const Q = 3, pad = 6;
+  // TWO FIELDS: `d` is the wall -- the letters grown by a border of BORDER cells, so the field
+  // banks a little way off the ink rather than against it -- and `f` is a much wider halo past
+  // that wall, where the engine only nudges and jitters, so what settles round the word shimmers.
+  const Q = 3, pad = 14, BORDER = 2;
   if (secTitle.mw !== w) {
     secTitle.mw = w;
-    const mw = Math.ceil(w / Q) + pad * 2, mh = Math.ceil(h / Q) + pad * 2;
+    const mw = Math.ceil(w / Q) + pad * 2, mh = Math.ceil(h / Q) + pad * 2, N = mw * mh;
     const cv = document.createElement('canvas'); cv.width = mw; cv.height = mh;
     const g = cv.getContext('2d'); g.drawImage(im, pad, pad, mw - pad * 2, mh - pad * 2);
     let px; try { px = g.getImageData(0, 0, mw, mh).data; } catch { return; }
-    let d = new Float32Array(mw * mh), t = new Float32Array(mw * mh);
-    for (let k = 0; k < mw * mh; k++) d[k] = px[k * 4 + 3] / 255 > 0.3 ? 1 : 0;
-    const blur = (a, b, r) => {
-      for (let j = 0; j < mh; j++) for (let i = 0; i < mw; i++) { let s2 = 0, n = 0; for (let k = -r; k <= r; k++) { const ii = i + k; if (ii >= 0 && ii < mw) { s2 += a[j * mw + ii]; n++; } } b[j * mw + i] = s2 / n; }
-      for (let j = 0; j < mh; j++) for (let i = 0; i < mw; i++) { let s2 = 0, n = 0; for (let k = -r; k <= r; k++) { const jj = j + k; if (jj >= 0 && jj < mh) { s2 += b[jj * mw + i]; n++; } } a[j * mw + i] = s2 / n; }
+    const b = new Float32Array(N);
+    for (let k = 0; k < N; k++) b[k] = px[k * 4 + 3] / 255 > 0.3 ? 1 : 0;
+    const d = new Float32Array(N), t = new Float32Array(N);
+    for (let j = 0; j < mh; j++) for (let i = 0; i < mw; i++) {
+      let m = 0;
+      for (let q = -BORDER; q <= BORDER && !m; q++) for (let k = -BORDER; k <= BORDER; k++) {
+        if (k * k + q * q > BORDER * BORDER + 1) continue;
+        const ii = i + k, jj = j + q; if (ii >= 0 && ii < mw && jj >= 0 && jj < mh && b[jj * mw + ii]) { m = 1; break; }
+      }
+      d[j * mw + i] = m;
+    }
+    const blur = (a, o, r) => {
+      for (let j = 0; j < mh; j++) for (let i = 0; i < mw; i++) { let s2 = 0, n = 0; for (let k = -r; k <= r; k++) { const ii = i + k; if (ii >= 0 && ii < mw) { s2 += a[j * mw + ii]; n++; } } o[j * mw + i] = s2 / n; }
+      for (let j = 0; j < mh; j++) for (let i = 0; i < mw; i++) { let s2 = 0, n = 0; for (let k = -r; k <= r; k++) { const jj = j + k; if (jj >= 0 && jj < mh) { s2 += o[jj * mw + i]; n++; } } a[j * mw + i] = s2 / n; }
     };
+    const f = Float32Array.from(d);
     blur(d, t, 2); blur(d, t, 2);
-    for (let k = 0; k < d.length; k++) d[k] = Math.min(1, d[k] * 1.8);
-    secTitle.mask = { d, w: mw, h: mh, s: Q, pad };
+    for (let k = 0; k < N; k++) d[k] = Math.min(1, d[k] * 1.8);
+    blur(f, t, 5); blur(f, t, 5); blur(f, t, 4);
+    for (let k = 0; k < N; k++) f[k] = Math.min(1, f[k] * 2.4);
+    secTitle.mask = { d, f, w: mw, h: mh, s: Q, pad };
   }
-  const M = secTitle.mask; if (M) api.setMask({ d: M.d, w: M.w, h: M.h, s: M.s, x: x - M.pad * M.s, y: y - M.pad * M.s });
+  const M = secTitle.mask; if (M) api.setMask({ d: M.d, f: M.f, w: M.w, h: M.h, s: M.s, x: x - M.pad * M.s, y: y - M.pad * M.s });
 })();
 deck.innerHTML = SECTIONS.map(s => KEYART[s.key]
   ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}"><span class="gw"><i class="glyph" style="--art:url(${new URL(`site/keys/${s.key}.webp`, document.baseURI).href});--ar:${KEYART[s.key]}"></i></span></a>`

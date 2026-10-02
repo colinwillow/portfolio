@@ -13111,16 +13111,26 @@ function loop() {
       if (__mask) {
         const M = __mask, u = (px[i] - M.x) / M.s, v = (py[i] - M.y) / M.s;
         if (u > 1 && v > 1 && u < M.w - 2 && v < M.h - 2) {
-          const at = (a, b) => { const i0 = a | 0, j0 = b | 0, fx = a - i0, fy = b - j0, o = j0 * M.w + i0, D = M.d;
+          const at = (D, a, b) => { const i0 = a | 0, j0 = b | 0, fx = a - i0, fy = b - j0, o = j0 * M.w + i0;
             return (D[o] * (1 - fx) + D[o + 1] * fx) * (1 - fy) + (D[o + M.w] * (1 - fx) + D[o + M.w + 1] * fx) * fy; };
-          const d = at(u, v);
+          const d = at(M.d, u, v);
           if (d > 0.02) {
-            let gx = at(u - 1, v) - at(u + 1, v), gy = at(u, v - 1) - at(u, v + 1); const gm = Math.hypot(gx, gy);
+            let gx = at(M.d, u - 1, v) - at(M.d, u + 1, v), gy = at(M.d, u, v - 1) - at(M.d, u, v + 1); const gm = Math.hypot(gx, gy);
             if (gm > 1e-4) { gx /= gm; gy /= gm; } else { gx = 0; gy = -1; }
             const vn = vx[i] * gx + vy[i] * gy;
             if (vn < 0) { const c = Math.min(1, d * 1.6); vx[i] -= gx * vn * c; vy[i] -= gy * vn * c; }
             vx[i] += gx * d * d * 2.2; vy[i] += gy * d * d * 2.2;
             if (d > 0.55) { px[i] += gx * (d - 0.55) * 6; py[i] += gy * (d - 0.55) * 6; }
+          }
+          /* THE HALO: a wider, weaker field past the wall. Inside it a particle is eased gently away
+             and given a small random kick every frame, so the ones banked against the word never
+             quite settle -- they shimmer round it instead of piling up on it. */
+          const f = M.f ? at(M.f, u, v) : 0;
+          if (f > 0.02) {
+            let hx = at(M.f, u - 1, v) - at(M.f, u + 1, v), hy = at(M.f, u, v - 1) - at(M.f, u, v + 1); const hm = Math.hypot(hx, hy);
+            if (hm > 1e-4) { hx /= hm; hy /= hm; vx[i] += hx * f * 0.32; vy[i] += hy * f * 0.32; }
+            const j = f * (1 - d * 0.6) * 0.55;
+            vx[i] += (Math.random() - 0.5) * j; vy[i] += (Math.random() - 0.5) * j;
           }
         }
       }
