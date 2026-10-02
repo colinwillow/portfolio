@@ -243,7 +243,9 @@ const PAGES = {
     const tile = it => link('play/' + it.slug, `${appIcon(it)}
       <div class="tile-meta"><b>${esc(it.title)}</b><span>${esc(it.kind)} · ${STATUS[it.status]}</span></div>`, 'tile game');
     const row = list => `<div class="rail" tabindex="0">${list.map(tile).join('')}</div>`;
-    return `<div class="wrap">${head(s)}
+    // no crumbs or lede here: the section name is already in the header, so the games come first.
+    // ${head(s)} puts them back.
+    return `<div class="wrap">
       <h3 class="sub">Games</h3>${row(PLAY.filter(x => x.kind === 'Game'))}
       <h3 class="sub">Apps</h3>${row(PLAY.filter(x => x.kind !== 'Game'))}${foot()}</div>`;
   },
