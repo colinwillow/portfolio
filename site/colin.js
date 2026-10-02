@@ -408,9 +408,10 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const log = (who, text) => { const p = document.createElement('p'); p.className = who; p.textContent = text;
     logEl.appendChild(p); while (logEl.children.length > 10) logEl.firstChild.remove(); logEl.scrollTop = 1e6; return p; };
   let capT = 0;
-  const caption = (text, force = false) => {
-    if (!cc && !force) return;
-    cap.textContent = text; cap.hidden = !text; clearTimeout(capT);
+  // on the stage the captions ARE his speech bubble (always on, no CC toggle there); on the strip, CC as before
+  const caption = (text, force = false, you = false) => {
+    if (!cc && !force && !dock.classList.contains('hero')) return;
+    cap.textContent = text; cap.hidden = !text; cap.classList.toggle('you', you); clearTimeout(capT);
     if (text) capT = setTimeout(() => { if (state !== 'speaking') cap.hidden = true; }, 6000);
   };
 
@@ -428,6 +429,14 @@ export function createMiniColin({ go, known, items, pageOf }) {
   (function eqFrame(now) {
     requestAnimationFrame(eqFrame);
     if (state === 'off' || !dock.classList.contains('hero')) { if (eqE) { eqE = 0; eqBars.forEach(b => b.style.transform = 'scaleY(0)'); } return; }
+    // the caption bubble rides above his head (the Stop bubble is beside it), kept on screen
+    if (!cap.hidden) { const h = headScreen(), par = cap.offsetParent;
+      if (h && par) { const pr = par.getBoundingClientRect(), w = cap.offsetWidth, ht = cap.offsetHeight;
+        cap.style.left = Math.max(8, Math.min(pr.width - w - 8, h.x - pr.left - w * 0.42)).toFixed(1) + 'px';
+        let top = h.y - pr.top - h.h * 0.17 - ht;
+        const sb = document.querySelector('.about-talk')?.getBoundingClientRect();   // stack above the Stop bubble, never under it
+        if (sb?.height) top = Math.min(top, sb.top - pr.top - ht - 10);
+        cap.style.top = Math.max(64 - pr.top, top).toFixed(1) + 'px'; } }   // (it may rise above the stage box, to just under the top bar)
     if (state === 'speaking' && now > eqNext) { eqKick(0.45 + Math.random() * 0.55); eqNext = now + 70 + Math.random() * 120; }
     const floor = state === 'listening' ? 0.24 : state === 'thinking' ? 0.16 + 0.1 * Math.sin(now / 180) : 0.1;
     eqE = Math.max(floor, eqE * 0.93);
@@ -522,7 +531,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
     rec.onresult = ev => {
       const was = heard; heard = [...ev.results].map(r => r[0].transcript).join(' ').trim();
       if (heard !== was) eqKick(0.55 + Math.min(0.45, (heard.length - was.length) * 0.06));   // the bars jump as your words come in
-      if (cc) caption('“' + heard + '”');
+      if (cc || dock.classList.contains('hero')) caption('“' + heard + '”', false, true);
       clearTimeout(gapT);
       gapT = setTimeout(() => { const h = heard; if (h) ask(h); }, 750);
     };
