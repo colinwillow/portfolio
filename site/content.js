@@ -202,7 +202,7 @@ export const WEB = [
 ];
 
 export const STUDIOS = [
-  { slug: 'seawillow', title: 'SeaWillow', url: GH + 'seawillow/', blurb: 'Holding company and design studio.' },
+  { slug: 'seawillow', shot: 'studio-seawillow', thumb: 'seawillow', title: 'SeaWillow', url: GH + 'seawillow/', blurb: 'Holding company and design studio.' },
   { slug: 'majia', shot: 'studio-majia', title: 'Majia', url: GH + 'majia/', thumb: 'majia', blurb: 'Game studio. Makers of Robits.' },
   { slug: 'unknown', shot: 'unknown-key', title: 'Unknown', url: GH + 'unknown/', blurb: 'Clothing label.' },
 ];

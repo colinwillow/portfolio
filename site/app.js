@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=a3034d4b';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=d3129d48';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
