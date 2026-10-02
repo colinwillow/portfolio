@@ -103,6 +103,9 @@ h2.title { font: 700 clamp(30px, 5vw, 54px)/1 var(--ui); letter-spacing: -.03em;
 .lede { color: var(--muted); max-width: 60ch; margin: 0 0 28px; font-size: 17px; }
 h3.sub { font: 500 12px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 40px 0 14px;
   padding-top: 14px; border-top: 1px solid var(--line); }
+/* a page that OPENS on a sub-heading (Games, since its crumbs and lede went) has the deck right
+   above it already: no rule and no gap to separate it from nothing */
+.wrap > h3.sub:first-child { margin-top: -10px; padding-top: 0; border-top: 0; }
 
 /* home index: every section as a row */
 .index { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
