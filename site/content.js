@@ -57,7 +57,7 @@ export const PLAY = [
     title: "Zap 'n Clancy", kind: 'Game', status: 'dev', thumb: 'weirdport',
     url: GH + 'weirdport/', tags: ['three.js', 'twin-stick', 'open city'],
     blurb: 'Zap and his alien dog Clancy loose in Weirdport, a toon Portland: blaster, hammer, a DNA gun that turns you into whoever you shoot, skateboarding and buildings that come apart.' },
-  { slug: 'plutopia', icon: 'plutopia', shot: 'plutopia', gallery: [], title: 'Plutopia', kind: 'Game', status: 'dev', thumb: 'plutopia',
+  { video: 'plutopia', slug: 'plutopia', icon: 'plutopia', shot: 'plutopia', gallery: [], title: 'Plutopia', kind: 'Game', status: 'dev', thumb: 'plutopia',
     url: GH + 'plutopia/', tags: ['three.js', 'mobile'],
     blurb: 'A tiny painted planet with a toon alien, a flyable ship with articulated jets and landing gear, and a claw.' },
   { slug: 'shredworld', icon: 'shredworld', shot: 'shredworld', gallery: ['shredworld-key'], title: 'Shredworld', kind: 'Game', status: 'dev', thumb: 'shredworld',
