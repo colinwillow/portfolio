@@ -13,7 +13,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=222cfe45';
 
-export const LINE = { gap: 1.05, stagger: 0.18, forward: 0.25, tall: 0.4, tex: 512, dim: 0.32, fov: 30 };
+export const LINE = { gap: 1.05, stagger: 0.18, forward: 0.32, tall: 0.4, tex: 512, dim: 1, pop: 1.12, fov: 30 };
 
 function shrinkTextures(model) {
   const done = new Set();
@@ -233,8 +233,13 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
       if (!s.loaded) continue;
       s.mixer.update(dt);
       s.group.position.set(s.x, s.y, s.z); s.group.rotation.y = s.yaw;
+      let g = 1;
       if (s.grow0) { const span0 = Math.abs(s.tx - s.from) || 1, p = Math.min(1, 1 - Math.abs(s.tx - s.x) / span0);
-        const e = p * p * (3 - 2 * p); s.group.scale.setScalar(s.grow0 + (1 - s.grow0) * e); if (p >= 1) { s.grow0 = 0; s.group.scale.setScalar(1); } }
+        const e = p * p * (3 - 2 * p); g = s.grow0 + (1 - s.grow0) * e; if (p >= 1) s.grow0 = 0; }
+      // the picked one is not lit while the rest go dark: everyone stays lit, and they STEP UP -- forward
+      // (the slot does that) and a touch bigger
+      s.pop = (s.pop || 1) + (((S.sel === s.c.slug) ? LINE.pop : 1) - (s.pop || 1)) * (1 - Math.exp(-7 * dt));
+      s.group.scale.setScalar(g * s.pop);
       const want = !S.sel || S.sel === s.c.slug ? 1 : LINE.dim;
       s.lit += (want - s.lit) * (1 - Math.exp(-6 * dt));
       for (const { m, base } of s.mats) m.color.copy(base).multiplyScalar(s.lit);

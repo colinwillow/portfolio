@@ -665,9 +665,13 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=679a991a').then(m => {
-      const cast = ASSETS.filter(a => a.from === CAST.game || a.also?.includes(CAST.game)), half = Math.ceil(cast.length / 2);
-      LINEUP = m.createLineup($('#glorb'), [...cast.slice(0, half), { slug: 'colin', colin: true, h: 1.9, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...cast.slice(half)], { onPick: slug => CHARPICK.show?.(slug),
+    lineupLoading = import('./lineup.js?v=69d8607f').then(m => {
+      /* COLIN IN THE MIDDLE, and the cast dealt out from him in their order -- one to his right, one to
+         his left, the next a step further out each side -- so the first ones listed (the originals, with
+         their own animations) stand round him and the borrowed-animation crowd fills the ends */
+      const cast = ASSETS.filter(a => a.from === CAST.game || a.also?.includes(CAST.game)), L = [], R = [];
+      cast.forEach((c, i) => (i % 2 ? L : R).push(c));
+      LINEUP = m.createLineup($('#glorb'), [...L.reverse(), { slug: 'colin', colin: true, h: 1.9, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...R], { onPick: slug => CHARPICK.show?.(slug),
         colin: { place: p => { SEAT = p; }, joined: v => { document.body.classList.toggle('colin-in-line', v); heroSync(); } } });
       LINEUP.game = CAST.game; LINEUP.fog(css('--bg') || '#0e0e0f'); backdrop(current()); });
   LINEUP?.visible(own === 'lineup');
