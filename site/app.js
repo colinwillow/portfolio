@@ -1024,18 +1024,21 @@ const music = {
 };
 $('#sound').onclick = () => music.toggle();
 let vizClock = null;
+/* IS THE SONG ACTUALLY GOING? Trust what is heard, not the flag: a phone can leave `paused`
+   false while the playhead has stopped (paused from the lock screen, an interruption...), and
+   anything listening then reads silence. A playhead that has not moved for 0.4 s is stopped.
+   The mandala and Glorb both ask this, so both fall back to their own dance together. */
+function audible() {
+  if (!music.playing || music.seeking) return false;
+  const now = performance.now(), ct = music.el.currentTime;
+  if (ct !== audible.ct) { audible.ct = ct; audible.at = now; }
+  return now - audible.at < 400;
+}
 function vizHook(md, clock) {
   vizClock = clock;
   md.drive(() => {
-    if (!music.playing || !music.an3 || music.seeking) return null;
-    // trust what is actually HEARD, not the flag: a phone can leave `paused` false while the
-    // playhead has stopped (paused from the lock screen, an interruption...), and the live ear
-    // then reads silence -- which is the idle pulse, i.e. "no reaction". A playhead that has not
-    // moved for 0.4 s, or a silent ear, hands the dance back to the bake.
-    const now = performance.now(), ct = music.el.currentTime;
-    if (ct !== vizHook.ct) { vizHook.ct = ct; vizHook.at = now; }
-    if (now - vizHook.at > 400) return null;
-    if (/Yoga_Pants/.test(music.el.src)) clock.set(ct);   // stop it and the bake carries on from here
+    if (!audible() || !music.an3) return null;
+    if (/Yoga_Pants/.test(music.el.src)) clock.set(music.el.currentTime);   // stop it and the bake carries on from here
     music.an3.getByteFrequencyData(music.f3);
     let sum = 0; for (let i = 6; i < 30; i++) sum += music.f3[i];
     return sum > 24 ? sum : null;
@@ -1047,7 +1050,7 @@ let lvl = 0;
   requestAnimationFrame(meter);
   // the real song to Glorb while he is on screen; he falls back to his ghost one when it stops
   // (on every page, not only home: the Audio page's whole point is that he is the visualiser)
-  if (GLORB.ready && music.playing && music.an2 && scrollY < innerHeight) {
+  if (GLORB.ready && audible() && music.an2 && scrollY < innerHeight) {
     music.an2.getByteFrequencyData(music.f2); music.an2.getFloatTimeDomainData(music.t2);
     GLORB.send({ glorb: 'audio', f: music.f2, t: music.t2 });
   }
