@@ -588,9 +588,12 @@ let gameBg = null;
 const reelOf = it => !it?.video ? [] : Array.isArray(it.video) ? it.video : [it.video];
 function warmClip(name) {   // (declarations, not consts: render() calls these before this line has run)
   const W = warmClip; W.p ||= new Map();
-  if (W.av1 === undefined) { try { W.av1 = !!document.createElement('video').canPlayType('video/mp4; codecs="av01.0.05M.08"'); } catch { W.av1 = false; } }
+  /* THE SHARPEST COPY THIS BROWSER PLAYS: AV1, else HEVC (every iPhone has it, and it holds the fine
+     neon lines at half H.264's size), else the small H.264 that plays anywhere */
+  if (W.ext === undefined) { try { const v = document.createElement('video');
+    W.ext = v.canPlayType('video/mp4; codecs="av01.0.05M.08"') ? '.av1' : v.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"') ? '.hevc' : ''; } catch { W.ext = ''; } }
   if (!W.p.has(name)) {
-    const url = `site/video/${name}${W.av1 ? '.av1' : ''}.mp4`;
+    const url = `site/video/${name}${W.ext}.mp4`;
     W.p.set(name, fetch(url).then(r => { if (!r.ok) throw r.status; return r.blob(); })
       .then(b => URL.createObjectURL(b)).catch(() => { W.p.delete(name); return url; }));
   }
