@@ -811,7 +811,7 @@ addEventListener('scroll', () => {
          to throw him; gravity brings him back. A phone's momentum scroll slows at about 2x its
          speed per second, so at K 2.5 a quick fling lifts him and a slow drag never does. */
       const A = HOMESTAGE._air ||= { gy: want.f, gv: 0, ga: 0, h: 0, w: 0, air: 0 };
-      const G = 1.4 * 9.8 * (px0 / 1.85), K = 1.4;   // a moon-ish gravity, and the inertia scaled with it so the same fling still throws him
+      const G = 1.4 * 9.8 * (px0 / 1.85), K = 3.4;   // a moon-ish gravity, and the inertia scaled with it so the same fling still throws him
       A.cool = Math.max(0, (A.cool || 0) - dt);
       if (dt > 0 && dt < 0.1) {
         const gv = -(want.f - A.gy) / dt;                       // the stage's speed UP the screen, px/s
