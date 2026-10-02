@@ -555,12 +555,29 @@ body.has-glorb #stage { display: none; }
 /* ---- a STAGE page (About): the first screen is the whole show ------------------
    The strip sits at the foot of the screen, Colin stands on it centre stage, and
    Glorb fills everything behind him. The page itself starts below the strip. */
-body.stage-page #deck { margin-top: calc(100svh - var(--deck)); }
+/* the strip lands about three-quarters down, not at the very foot: the page below peeks in,
+   so it is plain there is more to read */
+body.stage-page { --stage-h: 76svh; }
+body.stage-page #deck { margin-top: calc(var(--stage-h) - var(--deck)); }
 body.stage-page #about-hero { position: absolute; left: 0; right: 0; margin: 0; bottom: calc(100% + var(--deck));
-  height: calc(100svh - var(--deck)); overflow: visible; z-index: 13; pointer-events: none; }
+  height: calc(var(--stage-h) - var(--deck)); overflow: visible; z-index: 13; pointer-events: none; }
 body.stage-page .about-slot { transform: translateY(6px); }
 body.stage-page #mini.hero .mini-body { width: min(100%, 560px); }
-body.stage-page .about-talk { left: auto; right: var(--gut); bottom: 22px; transform: none; pointer-events: auto; }
+/* TALK TO ME is a speech bubble beside his head, following it (mountAbout places it each frame) */
+body.stage-page .about-talk { left: 0; top: 0; bottom: auto; right: auto; transform: none; pointer-events: auto; visibility: hidden; }
+.about-talk.bubble { all: unset; position: absolute; z-index: 4; cursor: pointer; padding: 10px 16px 11px; border-radius: 20px;
+  font: 650 15px/1 var(--ui); letter-spacing: .01em; color: var(--ink); white-space: nowrap;
+  background: var(--card); border: 2px solid var(--accent); box-shadow: 0 6px 0 -1px color-mix(in srgb, var(--accent) 45%, transparent), 0 14px 28px -12px rgb(0 0 0 / .5);
+  animation: talkbob 2.6s ease-in-out infinite; transform-origin: 0% 100%; }
+.about-talk.bubble::after { content: ''; position: absolute; left: 14px; bottom: -11px; width: 16px; height: 14px; background: var(--card);
+  border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: skewY(-35deg) rotate(-12deg); border-bottom-left-radius: 4px; }
+.about-talk.bubble.on { background: var(--accent); color: var(--on-accent, #fff); }
+.about-talk.bubble.on::after { background: var(--accent); }
+.about-talk.bubble.on::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: 1px;
+  background: currentColor; animation: talkdot 1s ease-in-out infinite; }
+.about-talk.bubble:active { scale: .94; }
+@keyframes talkbob { 0%, 100% { translate: 0 0; rotate: -2deg; } 50% { translate: 0 -5px; rotate: 1deg; } }
+@keyframes talkdot { 50% { opacity: .3; } }
 .tile.game:first-child { width: min(38vw, 180px); }
 
 /* ---- the weave: woven bands behind Glorb (site/weave.js) --------------------------
@@ -840,7 +857,10 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
    so he walks out through it; once the page has him, the stage rises to its place (app.js) */
 #intro.depth .intro-word { top: 50%; }
 #intro.depth .intro-role { top: calc(50% + min(15vw, 84px)); }
-#glorb, #home-stage, #deck, #view { translate: 0 var(--lift, 0px); }
+#glorb, #home-stage { translate: 0 var(--lift, 0px); }
+/* --rlift: the same elevator between pages, when the strip has a long way to go (into and out of
+   About); only the strip and the page ride it -- Glorb follows the strip on his own */
+#deck, #view { translate: 0 calc(var(--lift, 0px) + var(--rlift, 0px)); }
 /* a game's page: its wide art is the stage behind Colin; its icon sits beside its name */
 #glorb .game-bg { position: absolute; left: 0; right: 0; top: 0; height: 50%; overflow: hidden; opacity: 0; transition: opacity .6s; pointer-events: none; }
 #glorb .game-bg.on { opacity: 1; }

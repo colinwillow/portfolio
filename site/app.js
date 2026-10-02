@@ -387,7 +387,7 @@ const PAGES = {
       <div id="about-hero">
         <div class="about-floor" aria-hidden="true"><i class="plane"></i><i class="pool"></i><i class="shadow"></i></div>
         <div class="about-slot"></div>
-        <button class="btn accent about-talk">Talk to me</button></div>
+        <button class="about-talk bubble">Talk to me</button></div>
       <h2 class="title">Hi, I'm Colin.</h2>
       <p class="lede">${esc(ABOUT.lede)}</p><p class="about-more">${esc(ABOUT.more)}</p>
       <h3 class="sub">Thoughts</h3>
@@ -416,6 +416,22 @@ const missing = () => `<div class="wrap">${crumbs('Not found')}<h2 class="title"
   <p class="lede">That link points at something that has moved or does not exist yet.</p><div class="row">${link('./', 'Back to the globe', 'btn')}</div></div>`;
 
 // ---- render ---------------------------------------------------------------
+/* THE ELEVATOR BETWEEN PAGES: going into or out of About the strip has most of a screen to travel,
+   and a cut there is a jump. It starts where it was and glides to its new place; Glorb and Colin
+   ride it, since both are placed off where the strip is. */
+const RLIFT = { y: 0, id: 0 };
+function glide(from, dur = 900) {
+  const deck = $('#deck'); if (!deck) return;
+  const to = deck.getBoundingClientRect().top - RLIFT.y, y0 = from - to; if (Math.abs(y0) < 30) return;
+  const id = ++RLIFT.id, t0 = performance.now(), set = y => { RLIFT.y = y; document.documentElement.style.setProperty('--rlift', y.toFixed(1) + 'px'); };
+  set(y0);
+  (function step(now) {
+    if (id !== RLIFT.id) return;
+    const u = Math.min(1, (now - t0) / dur), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+    set(y0 * (1 - e));
+    if (u < 1) requestAnimationFrame(step); else document.documentElement.style.removeProperty('--rlift');
+  })(t0);
+}
 let globe = null, mounted = null, after = null, colin = null;
 const colinWait = [];
 const withColin = f => (colin ? f(colin) : colinWait.push(f));
@@ -429,7 +445,9 @@ function render() {
   const page = sec ? PAGES[sec] : PAGES.home;
   document.body.classList.toggle('at-home', !sec);
   document.body.dataset.sec = sec || 'home';
+  const wasStage = document.body.classList.contains('stage-page'), d0 = $('#deck')?.getBoundingClientRect().top - RLIFT.y;
   document.body.classList.toggle('stage-page', sec === 'about' && !slug);   // a full-screen stage above the strip
+  if (wasStage !== document.body.classList.contains('stage-page') && d0 > 0 && d0 < innerHeight) requestAnimationFrame(() => glide(d0));
   view.innerHTML = page ? page(slug) : missing();
   reveal(view);
   view.classList.remove('enter');
@@ -744,7 +762,7 @@ addEventListener('scroll', () => {
   // on a stage page he is the backdrop: bigger, and centred behind Colin's chest and head
   const stage = document.body.classList.contains('stage-page');
   HEAD.sk += ((stage ? 2.8 : 1) - HEAD.sk) * 0.08; api.setScale(HEAD.sk);
-  const R = api.centre.scale * 0.34, room = home ? headRest() : stage ? top * 0.76 : top;
+  const R = api.centre.scale * 0.34, room = home ? headRest() : stage ? top * 1.05 : top;   // (stage: centred on his face and shoulders)
   api.setFloor(top - 1);
   // as the strip rises it catches him low, so his underside visibly flattens on it before he goes
   api.setCentreY(Math.min(room * HEAD_AT, top - R * 0.5));
@@ -1073,7 +1091,17 @@ function mountAbout() {
   // the button IS the conversation's on/off: Talk to me, and while he is talking, Stop
   const talk = hero.querySelector('.about-talk'); let unwatch = null;
   talk.onclick = () => withColin(c => { if (c.awake) c.sleep(); else c.wake(); });
-  withColin(c => { if (!dead) unwatch = c.watch(on => { talk.textContent = on ? 'Stop talking' : 'Talk to me'; talk.classList.toggle('on', on); }); });
+  withColin(c => { if (!dead) unwatch = c.watch(on => { talk.textContent = on ? 'Stop' : 'Talk to me'; talk.classList.toggle('on', on); }); });
+  /* the bubble rides beside his head: up and to his left (our right), its tail at his mouth,
+     kept on screen. It waits until there is a head to sit by. */
+  (function bubble() {
+    if (dead || !talk.isConnected) return; requestAnimationFrame(bubble);
+    const h = colin?.headScreen?.(); if (!h) return;
+    const hr = hero.getBoundingClientRect(), bw = talk.offsetWidth, bh = talk.offsetHeight, s = h.h * 0.06;
+    let x = h.x - hr.left + s * 0.9, y = h.y - hr.top - s * 1.6 - bh;
+    x = Math.max(8, Math.min(hr.width - bw - 8, x)); y = Math.max(8, y);
+    talk.style.left = x.toFixed(1) + 'px'; talk.style.top = y.toFixed(1) + 'px'; talk.style.visibility = 'visible';
+  })();
   document.querySelectorAll('.listen').forEach(b => b.onclick = async () => {
     const w = WRITING.find(x => x.slug === b.dataset.slug);
     const { speakParts, hush } = await import('./speech.js?v=d7e94a3c');
