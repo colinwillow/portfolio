@@ -892,3 +892,16 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
 .sec-title b { display: grid; place-items: center; width: 100%; height: 100%; font: 700 clamp(24px, 6vw, 44px)/1 var(--ui);
   background: linear-gradient(100deg, var(--logo-c), var(--logo-o)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 body.stage-page .sec-title { display: none; }
+
+/* THE STAGE EQ (colin.js): bars along the floor at his feet, rising up behind him while he listens
+   or talks -- part of the stage rather than a label on it. The 'Listening' pill steps aside for it. */
+.mini-eq { display: none; }
+#mini.hero .mini-eq { display: flex; position: absolute; left: 50%; bottom: calc(9.7% + 2px); translate: -50% 0; z-index: 0;
+  width: min(88%, 400px); height: min(26%, 140px); align-items: flex-end; justify-content: space-between; pointer-events: none; }
+#mini.hero .mini-eq i { flex: 0 0 auto; width: 7px; height: 100%; border-radius: 3px 3px 1px 1px; transform: scaleY(0); transform-origin: 50% 100%;
+  background: linear-gradient(to top, var(--accent-ink), var(--accent)); box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent); }
+:root[data-theme="dark"] #mini.hero .mini-eq i { background: linear-gradient(to top, var(--accent), color-mix(in srgb, var(--accent) 55%, #fff)); }
+#mini.hero[data-state="speaking"] .mini-eq i, :root[data-theme="dark"] #mini.hero[data-state="speaking"] .mini-eq i { background: linear-gradient(to top, color-mix(in srgb, var(--logo-o) 70%, #000), var(--logo-o));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--logo-o) 55%, transparent); }
+#mini.hero .mini-body { position: relative; z-index: 1; }
+#mini.hero .mini-tag { display: none; }

@@ -109,6 +109,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
       <p>Hey. Want to talk? I can show you around.</p>
       <div><button class="mini-yes">Talk</button><button class="mini-no" aria-label="Dismiss">✕</button></div>
     </div>
+    <div class="mini-eq" aria-hidden="true">${'<i></i>'.repeat(23)}</div>
     <button class="mini-body" aria-label="Colin"><canvas></canvas><span class="mini-tag"></span></button>`;
   // he lives ON the strip now, which is part of the page, so he scrolls with it
   const perch = () => document.getElementById('deck') || document.body;
@@ -416,6 +417,28 @@ export function createMiniColin({ go, known, items, pageOf }) {
   // Every reply is spoken a sentence at a time, so he starts talking on the
   // first sentence instead of waiting for the whole answer. The sentences are
   // FETCHED in parallel and PLAYED in order.
+  /* THE STAGE EQ: a row of bars along the floor at his feet, standing in for the 'Listening' pill.
+     A browser's speech recogniser gives words but no sound levels (and a second mic stream for a
+     meter fights it on a phone), so the bars run off what IS known: each burst of your words kicks
+     them while he listens, and syllable-sized pulses drive them while he talks. Mirrored about the
+     middle, low behind him and swelling out either side, eased per bar so they read as a meter and not as noise. */
+  const eqBars = [...dock.querySelectorAll('.mini-eq i')], eqH = new Float32Array(eqBars.length);
+  let eqE = 0, eqNext = 0;
+  function eqKick(e) { eqE = Math.max(eqE, e); }
+  (function eqFrame(now) {
+    requestAnimationFrame(eqFrame);
+    if (state === 'off' || !dock.classList.contains('hero')) { if (eqE) { eqE = 0; eqBars.forEach(b => b.style.transform = 'scaleY(0)'); } return; }
+    if (state === 'speaking' && now > eqNext) { eqKick(0.45 + Math.random() * 0.55); eqNext = now + 70 + Math.random() * 120; }
+    const floor = state === 'listening' ? 0.24 : state === 'thinking' ? 0.16 + 0.1 * Math.sin(now / 180) : 0.1;
+    eqE = Math.max(floor, eqE * 0.93);
+    const n = eqBars.length, mid = (n - 1) / 2;
+    for (let i = 0; i < n; i++) {
+      const d = Math.abs(i - mid) / mid, shape = 0.3 + 0.7 * Math.sin(Math.min(1, d * 1.35) * Math.PI / 2) * (1 - 0.35 * Math.max(0, d - 0.75) / 0.25);   // low behind him, swelling out either side where they can be seen
+      const want = eqE * shape * (0.45 + 0.55 * Math.abs(Math.sin(now / 90 + i * 1.7) * Math.sin(now / 133 + i * 0.6)));
+      eqH[i] += (want - eqH[i]) * (want > eqH[i] ? 0.55 : 0.18);
+      eqBars[i].style.transform = `scaleY(${eqH[i].toFixed(3)})`;
+    }
+  })(performance.now());
   function speaker(myTurn) {
     const queue = []; let said = '', idx = 0, active = false, running = Promise.resolve();
     async function run() {
@@ -497,7 +520,8 @@ export function createMiniColin({ go, known, items, pageOf }) {
     heard = '';
     rec = new SR(); rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true;
     rec.onresult = ev => {
-      heard = [...ev.results].map(r => r[0].transcript).join(' ').trim();
+      const was = heard; heard = [...ev.results].map(r => r[0].transcript).join(' ').trim();
+      if (heard !== was) eqKick(0.55 + Math.min(0.45, (heard.length - was.length) * 0.06));   // the bars jump as your words come in
       if (cc) caption('“' + heard + '”');
       clearTimeout(gapT);
       gapT = setTimeout(() => { const h = heard; if (h) ask(h); }, 750);
