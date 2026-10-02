@@ -8,7 +8,8 @@
   --globe-ink: #8a8782;
   --ui: 'Inter Tight', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
-  --band: min(66.667vw, 72svh);   /* the stage above every section: a 3:2 screen (two thirds of the width), never more than 72svh tall */
+  --band: 54svh;   /* the stage above every section. On a phone held upright it is TALL (54svh), so Colin
+                     is big; footage fills it by cropping its sides. Wide screens: a 3:2 band (below). */
   --gut: clamp(16px, 4vw, 40px);
   --r: 14px;
 }
@@ -829,6 +830,7 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
 @media (hover: none) { .tile:hover .cover, .figure:hover img { transform: none; } }
 /* no vertical travel in a row of faces either: the picked one is marked by its underline and light, not a lift */
 .shelf-figures .figure.on img, .char-thumbs button.on img { transform: none; }
+@media (min-aspect-ratio: 1/1) { :root { --band: min(66.667vw, 72svh); } }
 /* intro, walking toward you: the name sits higher, over where he walks out from */
 #intro.depth .intro-word { top: 36%; }
 #intro.depth .intro-role { top: calc(36% + min(15vw, 84px)); }

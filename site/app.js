@@ -682,7 +682,7 @@ const svh = () => svhProbe.offsetHeight || innerHeight;
    it, with his feet on the ground, so this one number is also how big he is: higher centre, taller
    Colin. 0.5 was the middle; 0.4 makes him about a fifth bigger. */
 const HEAD_AT = 0.4;
-const headRest = () => Math.min(innerWidth * 2 / 3, svh() * 0.72);   // the 3:2 stage, as --band in the CSS
+const headRest = () => innerWidth > svh() ? Math.min(innerWidth * 2 / 3, svh() * 0.72) : svh() * 0.54;   // as --band in the CSS: tall on a phone, a 3:2 band on a wide screen
 const deckH = () => $('#deck')?.offsetHeight || 58;
 function headOffset() {
   if (HEAD.auto) return 0;
