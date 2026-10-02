@@ -16,6 +16,7 @@
 // Same API as the weave (set/theme/accent/kick/pause/visible/anchor/canvas), so it drops into
 // the same slot. It is drawn on a plain 2D canvas -- no three.js for a backdrop -- with the
 // 'lighter' composite standing in for the original's additive GL lines.
+import { oklchHex } from './palette.js?v=7fa72879';
 import { makeCarve } from './weave.js?v=339f448a';
 
 export const MANDALA = {
@@ -26,7 +27,19 @@ export const MANDALA = {
   alpha: 0.9,       // the original's line opacity
   carve: true,      // Glorb's particles cut the lines, the way they cut the weave
   bake: 'site/viz/yoga_pants.bin',
+  // LIGHT MODE'S INK. 'vivid' re-maps the original's blue/cyan/magenta onto a bright colour wheel
+  // (never darker than a mid tone, so no near-black lines on cream); 'ink' is the old darkened
+  // version. `?viz=ink` in the address flips it live.
+  light: new URLSearchParams(location.search).get('viz') === 'ink' ? 'ink' : 'vivid',
 };
+// the original's colours are blue + some cyan (g) + some magenta (r). On cream, plain blue-darkened
+// is navy, so: blue -> violet, cyan -> teal, magenta -> hot pink, all at a bright, saturated L/C
+const vivid = new Map();
+function vividOf(p) {
+  const k = p.r * 81 + p.g * 9; let c = vivid.get(k);
+  if (!c) { c = oklchHex({ l: 0.6 + 0.08 * Math.max(p.r, p.g), c: 0.2, h: (292 - p.g * 110 + p.r * 62 + 360) % 360 }); vivid.set(k, c); }
+  return c;
+}
 
 const NR = 40, SPK = 12, RLO = 6, RHI = 24, D2R = Math.PI / 180, DIST = 5, OVER = 50, BASE = 200, CS = 3, CAMZ = 4200;
 
@@ -114,12 +127,13 @@ export function createMandala(host, field = () => null) {
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
     ctx.globalCompositeOperation = S.dark ? 'lighter' : 'source-over';
-    ctx.lineWidth = dpr; ctx.globalAlpha = MANDALA.alpha * (S.dark ? 1 : 0.8);
+    ctx.lineWidth = dpr; ctx.globalAlpha = MANDALA.alpha * (S.dark ? 1 : 0.75);
     for (const p of paths.values()) {
       const pts = p.pts; if (!pts.length) continue;
       // light theme: the same hues laid down as INK -- darkened only a little, so they stay colourful on cream
-      const m = S.dark ? 255 : 215;
-      ctx.strokeStyle = `rgb(${Math.round(p.r * m)},${Math.round(p.g * m)},${Math.round(p.b * m)})`;
+      const m = S.dark ? 255 : 150;
+      ctx.strokeStyle = !S.dark && MANDALA.light === 'vivid' ? vividOf(p)
+        : `rgb(${Math.round(p.r * m)},${Math.round(p.g * m)},${Math.round(p.b * m)})`;
       ctx.beginPath();
       for (let j = 0; j < pts.length; j += 8) {
         ctx.moveTo(pts[j], pts[j + 1]); ctx.lineTo(pts[j + 2], pts[j + 3]); ctx.lineTo(pts[j + 4], pts[j + 5]); ctx.lineTo(pts[j + 6], pts[j + 7]); ctx.closePath();

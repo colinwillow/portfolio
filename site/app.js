@@ -699,7 +699,7 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=86d15747').then(m => {
   try { if (bgQ) localStorage.setItem('cw.bg', bgQ); } catch {}
   const BG = bgQ || (() => { try { return localStorage.getItem('cw.bg'); } catch { return null; } })() || 'mandala';
   (BG === 'weave' ? import('./weave.js?v=339f448a').then(w => w.createWeave($('#glorb'), () => GLORB.api))
-    : import('./mandala.js?v=e035f062').then(m => { const md = m.createMandala($('#glorb'), () => GLORB.api); vizHook(md, m.clock); return md; })).then(w => {
+    : import('./mandala.js?v=cb55971d').then(m => { const md = m.createMandala($('#glorb'), () => GLORB.api); vizHook(md, m.clock); return md; })).then(w => {
     WEAVE = w;   // Glorb's particles carve it, whichever it is
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent
@@ -986,10 +986,8 @@ function secTitle(sec) {
   }
   const M = secTitle.mask; if (M) api.setMask({ d: M.d, f: M.f, w: M.w, h: M.h, s: M.s, x: x - M.pad * M.s, y: y - M.pad * M.s });
 })();
-// each key carries its section's own colour (`--kh`, the same wheel the orb uses), which the
-// light theme letters it in -- grey lettering on cream was the "shades of grey" look
-deck.innerHTML = SECTIONS.map((s, i) => KEYART[s.key]
-  ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}" style="--kh:${sectionColours(i).rim}"><span class="gw"><i class="glyph" style="--art:url(${new URL(`site/keys/${s.key}.webp`, document.baseURI).href});--ar:${KEYART[s.key]}"></i></span></a>`
+deck.innerHTML = SECTIONS.map(s => KEYART[s.key]
+  ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}"><span class="gw"><i class="glyph" style="--art:url(${new URL(`site/keys/${s.key}.webp`, document.baseURI).href});--ar:${KEYART[s.key]}"></i></span></a>`
   : `<a class="key" href="${s.key}" data-key="${s.key}"><b>${esc(s.label)}</b></a>`).join('');
 let latched = null;
 let pressed = null;   // at home the backdrop follows a key you PRESS, never the scroll -- a nudge

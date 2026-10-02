@@ -640,13 +640,6 @@ html[data-vt="out"]::view-transition-new(view)   { animation-name: vt-return; }
 .key.art:hover .glyph { background: color-mix(in srgb, var(--ink) 85%, transparent); }
 .key.art.in .glyph { background: var(--accent); transform: scale(1.05); }
 .key.art.in .gw { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 70%, transparent)); }
-/* light theme: every key is lettered in its own section colour, and the latched one glows in it */
-:root:not([data-theme="dark"]) .key.art .glyph { background: color-mix(in srgb, var(--kh, var(--ink)) 82%, var(--ink)); }
-:root:not([data-theme="dark"]) .key.art:hover .glyph,
-:root:not([data-theme="dark"]) .key.art.in .glyph { background: var(--kh, var(--accent)); }
-:root:not([data-theme="dark"]) .key.art.in .gw { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--kh, var(--accent)) 70%, transparent)); }
-:root:not([data-theme="dark"]) .key.art.in { --kc: color-mix(in srgb, var(--card) 85%, var(--kh, var(--accent))); }
-:root:not([data-theme="dark"]) .key.art.in::after { background: var(--kh, var(--accent)); box-shadow: 0 0 6px var(--kh, var(--accent)); }
 /* assets: each card shows the character itself */
 .card .char-shot { display: block; width: 100%; aspect-ratio: 552 / 561; object-fit: contain; margin: -6px 0 8px;
   background: radial-gradient(ellipse at 50% 60%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%); border-radius: 12px; }
@@ -906,6 +899,12 @@ body:not(.stage-page) #home-stage { display: flex; justify-content: center; alig
 .sec-title b { display: grid; place-items: center; width: 100%; height: 100%; font: 700 clamp(24px, 6vw, 44px)/1 var(--ui);
   background: linear-gradient(100deg, var(--logo-c), var(--logo-o)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 body.stage-page .sec-title { display: none; }
+/* LIGHT MODE: the soft logo pair under a dark drop shadow read as muddy grey on cream. The title
+   takes the logo's FULL-strength violet and green, and sits on a cream halo with a coloured
+   under-shadow instead of a grey one, so it reads as colour, not as a smudge */
+:root:not([data-theme="dark"]) .sec-title { --logo-c: #8a2cf2; --logo-o: #22b14c; }
+:root:not([data-theme="dark"]) .sec-title i { background: linear-gradient(100deg, #8a2cf2, #d0329a 52%, #22b14c);
+  filter: drop-shadow(0 0 1.5px var(--bg)) drop-shadow(0 0 3px var(--bg)) drop-shadow(0 3px 5px color-mix(in srgb, #8a2cf2 40%, transparent)); }
 
 /* THE STAGE EQ (colin.js): bars along the floor at his feet, rising up behind him while he listens
    or talks -- part of the stage rather than a label on it. The 'Listening' pill steps aside for it. */
