@@ -237,11 +237,14 @@ const PAGES = {
           return cast.length ? `<h3 class="sub">Characters</h3><div class="shelf-figures char-page game-cast"><div class="rail figures">${cast.map(charFace).join('')}</div></div>` : ''; })()}
         <p class="soon">App Store and Google Play badges go here when it ships.</p>${foot()}</div>`;
     }
-    const card = it => link('play/' + it.slug, `${appIcon(it)}<div class="card-head"><h4>${esc(it.title)}</h4></div><p>${esc(it.blurb)}</p>
-      <div class="meta"><span class="pill ${it.status === 'live' ? 'hot' : ''}">${STATUS[it.status]}</span>${it.tags.map(t => `<span class="pill">${esc(t)}</span>`).join('')}</div>`, 'card media');
+    // the SAME tiles as the homepage's shelf -- icon, name, kind and status -- so the Games page
+    // and the Games row on the homepage are one look, whichever way you arrive
+    const tile = it => link('play/' + it.slug, `${appIcon(it)}
+      <div class="tile-meta"><b>${esc(it.title)}</b><span>${esc(it.kind)} · ${STATUS[it.status]}</span></div>`, 'tile game');
+    const row = list => `<div class="rail" tabindex="0">${list.map(tile).join('')}</div>`;
     return `<div class="wrap">${head(s)}
-      <h3 class="sub">Games</h3><div class="grid">${PLAY.filter(x => x.kind === 'Game').map(card).join('')}</div>
-      <h3 class="sub">Apps</h3><div class="grid">${PLAY.filter(x => x.kind !== 'Game').map(card).join('')}</div>${foot()}</div>`;
+      <h3 class="sub">Games</h3>${row(PLAY.filter(x => x.kind === 'Game'))}
+      <h3 class="sub">Apps</h3>${row(PLAY.filter(x => x.kind !== 'Game'))}${foot()}</div>`;
   },
 
   characters(slug) {
