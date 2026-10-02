@@ -668,12 +668,18 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=86d15747').then(m => {
   api.cfg.dot *= GLORB_DOT;
   Object.assign(GLORB, { api, ready: true, send: msg => api.post(msg) });
   queueMicrotask(() => glorbPalette());   // his colours for whichever page he wakes up on
-  import('./weave.js?v=68b8ebba').then(w => {
-    WEAVE = w.createWeave($('#glorb'), () => GLORB.api);   // Glorb's particles carve the cloth
+  // THE BACKDROP IS A SWITCH: the sound-reactive mandala (default) or the woven bands. `?bg=weave`
+  // (remembered) brings the weave back, `?bg=mandala` the mandala.
+  const bgQ = new URLSearchParams(location.search).get('bg');
+  try { if (bgQ) localStorage.setItem('cw.bg', bgQ); } catch {}
+  const BG = bgQ || (() => { try { return localStorage.getItem('cw.bg'); } catch { return null; } })() || 'mandala';
+  (BG === 'weave' ? import('./weave.js?v=68b8ebba').then(w => w.createWeave($('#glorb'), () => GLORB.api))
+    : import('./mandala.js?v=97c0d561').then(m => { const md = m.createMandala($('#glorb'), () => GLORB.api); vizHook(md, m.clock); return md; })).then(w => {
+    WEAVE = w;   // Glorb's particles carve it, whichever it is
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent
     backdrop(current());
-  }).catch(err => console.warn('weave', err));
+  }).catch(err => console.warn('backdrop', err));
   new MutationObserver(() => { api.post({ glorb: 'theme', theme: glorbTheme(), bg: css('--bg') }); WEAVE?.theme(glorbTheme() === 'dark'); glorbPalette(); })
     .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   return api;
@@ -992,13 +998,24 @@ const music = {
     // Glorb reads the song through his own analysis, which is built for a 2048 FFT
     this.an2 = this.ctx.createAnalyser(); this.an2.fftSize = 2048; this.an2.smoothingTimeConstant = 0.5; src.connect(this.an2);
     this.f2 = new Uint8Array(1024); this.t2 = new Float32Array(2048);
+    // the mandala's ear: Robits' own analyser settings, so live and baked read the same
+    this.an3 = this.ctx.createAnalyser(); this.an3.fftSize = 256; this.an3.smoothingTimeConstant = 0.55; src.connect(this.an3);
+    this.f3 = new Uint8Array(128);
     this.el.onended = () => this.play(this.i + 1);
     ['play', 'pause', 'timeupdate'].forEach(ev => this.el.addEventListener(ev, () => this.emit()));
   },
   async play(i = this.i) {
     this.init(); this.i = (i + SONGS.length) % SONGS.length;
     const src = new URL(SONGS[this.i].src, document.baseURI).href;
-    if (this.el.src !== src) this.el.src = src;
+    // the mandala has been dancing to Yoga Pants silently since the page opened: start the real
+    // song where the picture already is, so pressing the key turns the sound up on a dance in progress
+    if (this.el.src !== src) {
+      this.el.src = src;
+      // (a seek before the file has loaded is silently dropped, so it waits for the metadata, and the
+      // picture keeps its own time until then rather than being dragged back to 0)
+      if (/Yoga_Pants/.test(src) && vizClock) { this.seeking = true;
+        this.el.addEventListener('loadedmetadata', () => { this.el.currentTime = vizClock.t; this.seeking = false; }, { once: true }); }
+    }
     await this.ctx.resume(); this.el.play().catch(() => {}); this.emit();
   },
   toggle() { if (!this.el || this.el.paused) this.play(); else this.el.pause(); },
@@ -1006,6 +1023,18 @@ const music = {
   emit() { $('#sound').setAttribute('aria-pressed', String(this.playing)); colin?.groove?.(this.playing); this.subs.forEach(f => f()); },
 };
 $('#sound').onclick = () => music.toggle();
+let vizClock = null;
+function vizHook(md, clock) {
+  vizClock = clock;
+  md.drive(() => {
+    if (!music.playing || !music.an3) return null;
+    if (music.seeking) return null;
+    if (/Yoga_Pants/.test(music.el.src)) clock.set(music.el.currentTime);   // pause it and the bake carries on from here
+    music.an3.getByteFrequencyData(music.f3);
+    let sum = 0; for (let i = 6; i < 30; i++) sum += music.f3[i];
+    return sum;
+  });
+}
 const sound = { get el() { return music.el; }, get an() { return music.an; }, get buf() { return music.buf; } };
 let lvl = 0;
 (function meter() {
