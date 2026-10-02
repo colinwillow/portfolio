@@ -81,7 +81,8 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
        one. Whoever is picked walks out of that line into the foreground -- the line slides so they
        come out in the middle, and Colin steps aside with it. */
     slots.forEach((s, k) => { s.tx = (k - home - S.shift) * LINE.gap;
-      s.tz = S.sel === s.c.slug ? LINE.forward : s.c.colin ? 0 : -LINE.back - (k % 2 ? LINE.stagger : 0); });
+      // and when someone else is called out, Colin steps back into the line beside the rest
+      s.tz = S.sel === s.c.slug ? LINE.forward : s.c.colin && !S.sel ? 0 : -LINE.back - (!s.c.colin && k % 2 ? LINE.stagger : 0); });
   }
   layout();
 

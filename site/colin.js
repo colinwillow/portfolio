@@ -542,7 +542,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   $d('.mini-yes').onclick = () => { bubble.hidden = true; wake(); };
   $d('.mini-no').onclick = () => { bubble.hidden = true; };
   $d('.mini-body').onclick = () => {
-    if (state === 'off') { if (bubble.hidden) offer(); else bubble.hidden = true; }
+    if (state === 'off') { bubble.hidden = true; wake(); }   // a tap on him IS the ask: straight to talking (the mic prompt), no second bubble
     else if (state === 'speaking') { turn++; hush(); setState('listening'); listen(); }   // tap to interrupt him
   };
   $d('.mini-off').onclick = sleep;
