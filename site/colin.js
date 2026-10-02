@@ -237,7 +237,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
       if (waveT > 0) waveT -= dt;
       // in the air (the homepage throws him when you flick the page): up, down, then a roll out of the landing
       if (rollT > 0) rollT -= dt;
-      const airC = airMode === 'up' || airMode === 'down' ? airMode : rollT > 0 ? 'roll' : null;
+      const airC = rollT > 0 ? 'roll' : airMode === 'up' || airMode === 'down' ? airMode : null;   // the roll, once started, plays out
       LIFE.face = airC ? 0 : hd; lifeClip(airC || (hd ? 'walk' : waveT > 0 ? 'wave' : 'idle'));
       LIFE.faceNow += (hd - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
       // on a game's page he turns round to look at the game behind him (not while walking or talking)

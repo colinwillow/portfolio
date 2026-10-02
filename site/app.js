@@ -811,18 +811,19 @@ addEventListener('scroll', () => {
          to throw him; gravity brings him back. A phone's momentum scroll slows at about 2x its
          speed per second, so at K 2.5 a quick fling lifts him and a slow drag never does. */
       const A = HOMESTAGE._air ||= { gy: want.f, gv: 0, ga: 0, h: 0, w: 0, air: 0 };
-      const G = 2.5 * 9.8 * (px0 / 1.85), K = 2.5;
+      const G = 1.4 * 9.8 * (px0 / 1.85), K = 1.4;   // a moon-ish gravity, and the inertia scaled with it so the same fling still throws him
+      A.cool = Math.max(0, (A.cool || 0) - dt);
       if (dt > 0 && dt < 0.1) {
         const gv = -(want.f - A.gy) / dt;                       // the stage's speed UP the screen, px/s
         const ga = (gv - A.gv) / dt; A.gv = gv; A.gy = want.f;
         A.ga += (ga - A.ga) * (1 - Math.exp(-dt / 0.05));        // smoothed: a scroll's frames are lumpy
-        const lift = (A.air < 0.6 ? -K * A.ga : 0) - G;           // net upward push on him, in the stage's frame (a throw, then he falls -- the coast cannot hold him up)
+        const lift = (A.air < 0.6 && !A.cool ? -K * A.ga : 0) - G;   // (no lift for a beat after a landing: the stage is often still slowing, and it bounced him back into the air pose)           // net upward push on him, in the stage's frame (a throw, then he falls -- the coast cannot hold him up)
         if (A.h > 0 || lift > 0) {
-          A.w = Math.min(G * 0.34, A.w + lift * dt); A.h += A.w * dt; if (A.h > px0 * 0.8) { A.h = px0 * 0.8; A.w = Math.min(0, A.w); } A.air += dt;
+          A.w = Math.min(G * 0.45, A.w + lift * dt); A.h += A.w * dt; if (A.h > px0 * 0.8) { A.h = px0 * 0.8; A.w = Math.min(0, A.w); } A.air += dt;
           if (A.h <= 0) {
             if (A.air > 0.3 || -A.w > G * 0.18) colin?.heroAir?.('roll'); else colin?.heroAir?.(null);   // a real landing: he rolls out of it
-            A.h = 0; A.w = 0; A.air = 0;
-          } else if (A.h > 6) colin?.heroAir?.(A.w > 0 ? 'up' : 'down');
+            A.h = 0; A.w = 0; A.air = 0; A.cool = 0.8;
+          } else if (A.h > 14 && A.air > 0.08) colin?.heroAir?.(A.w > 0 ? 'up' : 'down');
         }
       } else { A.gy = want.f; A.gv = 0; A.ga = 0; A.h = 0; A.w = 0; A.air = 0; }
       P.f = want.f - A.h;
@@ -1266,5 +1267,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=df9b3e79').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=d945150e').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));
