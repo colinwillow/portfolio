@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=40d241d0';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=a3034d4b';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -537,22 +537,25 @@ let gameBg = null;
    when its page opens sits on its poster for seconds. The clip is fetched quietly ahead of time
    (on the homepage and the Games list, and the instant a game's card is touched), so by the time
    the page opens it is already in the cache. Whichever copy this browser will actually choose. */
-function warmVideo(it) {   // (declarations, not consts: render() calls this before this line has run)
-  /* Downloaded by the PAGE into memory, and the video is handed that copy (a blob URL). iPhone's
-     player does not reuse what fetch() put in the cache -- it goes back to the network with its own
-     range requests and holds a muted autoplay until it thinks it can play through -- so a clip it
-     has to stream itself sits on its poster for seconds. A clip that is already in memory starts
-     on the next frame. Promise per clip, so the warm-up and the page share one download. */
-  const W = warmVideo; W.p ||= new Map();
+/* A game's header reel is a list of short clips (a single name is a reel of one), played in order
+   and looped. Each clip is downloaded by the PAGE into memory and handed to the video as a blob URL:
+   iPhone's player does not reuse what fetch() cached -- it streams with its own range requests and
+   holds a muted autoplay until it thinks it can play through -- so a clip it has to stream sits on
+   its poster for seconds, while one already in memory starts on the next frame. One promise per
+   clip, so the warm-up and the player share a single download. */
+const reelOf = it => !it?.video ? [] : Array.isArray(it.video) ? it.video : [it.video];
+function warmClip(name) {   // (declarations, not consts: render() calls these before this line has run)
+  const W = warmClip; W.p ||= new Map();
   if (W.av1 === undefined) { try { W.av1 = !!document.createElement('video').canPlayType('video/mp4; codecs="av01.0.05M.08"'); } catch { W.av1 = false; } }
-  if (!it?.video) return null;
-  if (!W.p.has(it.video)) {
-    const url = `site/video/${it.video}${W.av1 ? '.av1' : ''}.mp4`;
-    W.p.set(it.video, fetch(url).then(r => { if (!r.ok) throw r.status; return r.blob(); })
-      .then(b => URL.createObjectURL(b)).catch(() => { W.p.delete(it.video); return url; }));
+  if (!W.p.has(name)) {
+    const url = `site/video/${name}${W.av1 ? '.av1' : ''}.mp4`;
+    W.p.set(name, fetch(url).then(r => { if (!r.ok) throw r.status; return r.blob(); })
+      .then(b => URL.createObjectURL(b)).catch(() => { W.p.delete(name); return url; }));
   }
-  return W.p.get(it.video);
+  return W.p.get(name);
 }
+// ahead of a game's page: its first two clips (the rest come while those play)
+function warmVideo(it) { reelOf(it).slice(0, 2).forEach(warmClip); }
 function warmAll() { const f = () => PLAY.forEach(warmVideo); window.requestIdleCallback ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 1500); }
 document.addEventListener('pointerdown', e => {
   const a = e.target.closest?.('a[href^="play/"]'); if (!a) return;
@@ -568,25 +571,47 @@ function gameBackdrop() {
       gameBg = document.createElement('div'); gameBg.className = 'game-bg';
       gameBg.innerHTML = '<i class="fill"></i>'; host.appendChild(gameBg);
     }
-    const key = it.video ? 'v:' + it.video : 'i:' + gameArt(it);
+    const key = it.video ? 'v:' + reelOf(it).join(',') : 'i:' + gameArt(it);
     if (gameBg.dataset.key !== key) {
       gameBg.dataset.key = key; gameBg.classList.remove('on');
-      gameBg.querySelector('video, img')?.remove();
-      const still = it.video ? `site/video/${it.video}.jpg` : `site/shots/${gameArt(it)}.webp`;
+      gameBg.querySelectorAll('video, img').forEach(e => e.remove());
+      const still = it.video ? `site/video/${reelOf(it)[0]}.jpg` : `site/shots/${gameArt(it)}.webp`;
       const show = () => { gameBg.querySelector('.fill').style.backgroundImage = `url("${still}")`; gameBg.classList.add('on'); };
       if (it.video) {
-        const v = document.createElement('video');
-        Object.assign(v, { muted: true, loop: true, autoplay: true, playsInline: true, poster: still, preload: 'auto' });
-        v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
-        gameBg.appendChild(v); show();
-        // the poster holds until the clip is in memory (see warmVideo), then it plays at once
-        warmVideo(it).then(src => { if (gameBg.dataset.key !== key || !src) return; v.src = src; v.play?.().catch(() => {}); });
+        /* THE REEL: two players stacked. One plays while the next clip loads paused on its first
+           frame underneath; when the clip ends, the other starts and THEN they swap -- a hard cut,
+           with the outgoing clip held on its last frame until the incoming one is really moving,
+           so there is never a gap or a black frame. Then the hidden one loads the clip after. */
+        const reel = reelOf(it), mk = () => {
+          const v = document.createElement('video');
+          Object.assign(v, { muted: true, playsInline: true, preload: 'auto', loop: reel.length === 1 });
+          v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); gameBg.appendChild(v); return v;
+        };
+        const A = mk(), B = mk(); A.poster = still; B.classList.add('off');
+        const live = () => gameBg.dataset.key === key;
+        const load = (v, n) => warmClip(reel[n % reel.length]).then(src => { if (live() && src) { v.src = src; v.load(); } });
+        let i = 0, cur = A, next = B;
+        load(A, 0).then(() => live() && A.play().catch(() => {}));
+        if (reel.length > 1) {
+          load(B, 1);
+          const cut = () => {
+            if (!live()) return;
+            next.currentTime = 0;
+            next.play().then(() => {
+              next.classList.remove('off'); cur.classList.add('off');
+              [cur, next] = [next, cur]; i++;
+              load(next, i + 1);
+            }).catch(() => {});
+          };
+          A.addEventListener('ended', cut); B.addEventListener('ended', cut);
+        }
+        show();
       } else {
         const im = new Image(); im.alt = ''; im.onload = show; im.src = still; gameBg.appendChild(im);
       }
     } else gameBg.classList.add('on');
-    gameBg.querySelector('video')?.play?.().catch(() => {});
-  } else { gameBg?.classList.remove('on'); gameBg?.querySelector('video')?.pause(); }
+    gameBg.querySelector('video:not(.off)')?.play?.().catch(() => {});
+  } else { gameBg?.classList.remove('on'); gameBg?.querySelectorAll('video').forEach(v => v.pause()); }
   withColin(c => c.lookBack?.(!!it));
   return !!it;
 }
