@@ -805,22 +805,27 @@ addEventListener('scroll', () => {
        comes down onto it. Gravity is a cartoon's (2.5x, scaled to his size) and the throw is
        capped, so a big fling is a good hop and never a trip off the screen. */
     if (home && !SEAT) {
-      const A = HOMESTAGE._air ||= { y: want.f, v: 0, gy: want.f, air: 0, peak: 0 };
-      const gpx = 2.5 * 9.8 * (px0 / 1.85), ground = want.f, gv = dt > 0 ? (ground - A.gy) / dt : 0;
-      A.gy = ground;
+      /* In the STAGE's frame: h is how high he is above it, w how fast he is going up. The stage
+         speeding up or slowing down shoves him the other way (inertia), exaggerated by K so an
+         ordinary phone fling -- which coasts and slows gently, never stopping dead -- is enough
+         to throw him; gravity brings him back. A phone's momentum scroll slows at about 2x its
+         speed per second, so at K 2.5 a quick fling lifts him and a slow drag never does. */
+      const A = HOMESTAGE._air ||= { gy: want.f, gv: 0, ga: 0, h: 0, w: 0, air: 0 };
+      const G = 2.5 * 9.8 * (px0 / 1.85), K = 2.5;
       if (dt > 0 && dt < 0.1) {
-        A.v += gpx * dt; A.y += A.v * dt;
-        if (A.y >= ground) {
-          const hit = A.v - gv;
-          if (A.air > 0.3 || (A.air > 0.12 && hit > gpx * 0.18)) colin?.heroAir?.('roll');   // a real landing: he rolls out of it
-          else if (A.air) colin?.heroAir?.(null);
-          A.y = ground; A.v = Math.max(-gpx * 0.36, Math.min(gpx * 0.5, gv)); A.air = 0;   // riding it (the throw it can give is capped)
-        } else {
-          A.air += dt;
-          if (ground - A.y > 6 && A.air > 0.06) colin?.heroAir?.(A.v < 0 ? 'up' : 'down');
+        const gv = -(want.f - A.gy) / dt;                       // the stage's speed UP the screen, px/s
+        const ga = (gv - A.gv) / dt; A.gv = gv; A.gy = want.f;
+        A.ga += (ga - A.ga) * (1 - Math.exp(-dt / 0.05));        // smoothed: a scroll's frames are lumpy
+        const lift = (A.air < 0.6 ? -K * A.ga : 0) - G;           // net upward push on him, in the stage's frame (a throw, then he falls -- the coast cannot hold him up)
+        if (A.h > 0 || lift > 0) {
+          A.w = Math.min(G * 0.34, A.w + lift * dt); A.h += A.w * dt; if (A.h > px0 * 0.8) { A.h = px0 * 0.8; A.w = Math.min(0, A.w); } A.air += dt;
+          if (A.h <= 0) {
+            if (A.air > 0.3 || -A.w > G * 0.18) colin?.heroAir?.('roll'); else colin?.heroAir?.(null);   // a real landing: he rolls out of it
+            A.h = 0; A.w = 0; A.air = 0;
+          } else if (A.h > 6) colin?.heroAir?.(A.w > 0 ? 'up' : 'down');
         }
-      } else { A.y = ground; A.v = 0; A.air = 0; }
-      P.f = A.y;
+      } else { A.gy = want.f; A.gv = 0; A.ga = 0; A.h = 0; A.w = 0; A.air = 0; }
+      P.f = want.f - A.h;
     } else if (HOMESTAGE._air) { HOMESTAGE._air = null; colin?.heroAir?.(null); }
     let walk = SEAT?.dir || 0;
     if (SEAT) P.x += (want.x - P.x) * e;
