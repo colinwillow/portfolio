@@ -13,7 +13,7 @@
 // particle is brighter than the weave, the particle wins. The tones are dim
 // earth colours, the complement of his violet and green: they fill the negative
 // space and never compete with him.
-import { oklchHex } from './palette.js?v=8afb0eea';
+import { oklchHex } from './palette.js?v=7fa72879';
 
 // ---- motifs -----------------------------------------------------------------
 // Each draws one PERIOD of a band into (0,0)-(w,h) and returns nothing; `per`
