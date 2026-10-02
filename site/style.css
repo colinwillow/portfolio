@@ -912,3 +912,16 @@ body.stage-page .sec-title { display: none; }
   box-shadow: 0 0 10px color-mix(in srgb, var(--logo-o) 55%, transparent); }
 #mini.hero .mini-body { position: relative; z-index: 1; }
 #mini.hero .mini-tag { display: none; }
+
+/* ON A STAGE, TALKING: one pill beside his head -- Stop, and typing tucked behind the keyboard key.
+   (The About page's Talk bubble steps aside while it is up: they would be two Stops.) */
+.mini-pill { display: none; }
+#mini.hero .mini-pill:not([hidden]) { display: flex; position: absolute; left: 0; top: 0; z-index: 6; pointer-events: auto; gap: 0;
+  border-radius: 20px; border: 2px solid var(--accent); background: var(--accent); overflow: hidden;
+  box-shadow: 0 6px 0 -1px color-mix(in srgb, var(--accent) 45%, transparent), 0 14px 28px -12px rgb(0 0 0 / .5); }
+#mini.hero .mini-pill button { all: unset; cursor: pointer; padding: 9px 14px 10px; font: 650 15px/1 var(--ui); color: var(--on-accent, #fff); }
+#mini.hero .mini-pill .mini-pk { background: var(--card); color: var(--ink); font-size: 14px; }
+#mini.hero .mini-pill .mini-pk[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 25%, var(--card)); }
+#mini.hero .mini-pill .mini-ps::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px;
+  background: currentColor; animation: talkdot 1s ease-in-out infinite; }
+body.stage-page .about-talk.on { display: none; }

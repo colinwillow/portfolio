@@ -109,6 +109,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
       <p>Hey. Want to talk? I can show you around.</p>
       <div><button class="mini-yes">Talk</button><button class="mini-no" aria-label="Dismiss">✕</button></div>
     </div>
+    <div class="mini-pill" hidden><button class="mini-pk" aria-pressed="false" aria-label="Type instead" title="Type instead">⌨</button><button class="mini-ps">Stop</button></div>
     <div class="mini-eq" aria-hidden="true">${'<i></i>'.repeat(23)}</div>
     <button class="mini-body" aria-label="Colin"><canvas></canvas><span class="mini-tag"></span></button>`;
   // he lives ON the strip now, which is part of the page, so he scrolls with it
@@ -425,18 +426,24 @@ export function createMiniColin({ go, known, items, pageOf }) {
      meter fights it on a phone), so the bars run off what IS known: each burst of your words kicks
      them while he listens, and syllable-sized pulses drive them while he talks. Mirrored about the
      middle, low behind him and swelling out either side, eased per bar so they read as a meter and not as noise. */
-  const eqBars = [...dock.querySelectorAll('.mini-eq i')], eqH = new Float32Array(eqBars.length);
+  const eqBars = [...dock.querySelectorAll('.mini-eq i')], eqH = new Float32Array(eqBars.length), pill = $d('.mini-pill');
   let eqE = 0, eqNext = 0;
   function eqKick(e) { eqE = Math.max(eqE, e); }
   (function eqFrame(now) {
     requestAnimationFrame(eqFrame);
-    if (state === 'off' || !dock.classList.contains('hero')) { if (eqE) { eqE = 0; eqBars.forEach(b => b.style.transform = 'scaleY(0)'); } return; }
-    // the caption bubble rides above his head (the Stop bubble is beside it), kept on screen
+    if (state === 'off' || !dock.classList.contains('hero')) { pill.hidden = true; if (eqE) { eqE = 0; eqBars.forEach(b => b.style.transform = 'scaleY(0)'); } return; }
+    // the Stop / ⌨ pill rides beside his head, up and to his left (our right), like the Talk bubble
+    pill.hidden = false;
+    { const h = headScreen(), par = pill.offsetParent;
+      if (h && par) { const pr = par.getBoundingClientRect(), bw = pill.offsetWidth, bh = pill.offsetHeight, k = h.h * 0.06;
+        pill.style.left = Math.max(8, Math.min(pr.width - bw - 8, h.x - pr.left + k * 0.9)).toFixed(1) + 'px';
+        pill.style.top = Math.max(64 - pr.top, h.y - pr.top - k * 1.6 - bh).toFixed(1) + 'px'; } }
+    // the caption bubble rides above his head (the pill is beside it), kept on screen
     if (!cap.hidden) { const h = headScreen(), par = cap.offsetParent;
       if (h && par) { const pr = par.getBoundingClientRect(), w = cap.offsetWidth, ht = cap.offsetHeight;
         cap.style.left = Math.max(8, Math.min(pr.width - w - 8, h.x - pr.left - w * 0.42)).toFixed(1) + 'px';
         let top = h.y - pr.top - h.h * 0.17 - ht;
-        const sb = document.querySelector('.about-talk')?.getBoundingClientRect();   // stack above the Stop bubble, never under it
+        const sb = pill.getBoundingClientRect();   // stack above the Stop pill, never under it
         if (sb?.height) top = Math.min(top, sb.top - pr.top - ht - 10);
         cap.style.top = Math.max(64 - pr.top, top).toFixed(1) + 'px'; } }   // (it may rise above the stage box, to just under the top bar)
     if (state === 'speaking' && now > eqNext) { eqKick(0.45 + Math.random() * 0.55); eqNext = now + 70 + Math.random() * 120; }
@@ -537,7 +544,10 @@ export function createMiniColin({ go, known, items, pageOf }) {
       clearTimeout(gapT);
       gapT = setTimeout(() => { const h = heard; if (h) ask(h); }, 750);
     };
-    rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { caption("I need the microphone to hear you. You can type instead.", true); openKeys(true); } };
+    rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      // no mic: say so, and leave typing BEHIND its toggle (on a stage) -- it used to open itself and could not be put away
+      if (dock.classList.contains('hero')) { stopListening(); caption("I need the microphone to hear you. Tap ⌨ to type, or Stop.", true); }
+      else { caption("I need the microphone to hear you. You can type instead.", true); openKeys(true); } } };
     rec.onend = () => { rec = null; if (state === 'listening') setTimeout(listen, 250); };  // Safari drops sessions; pick it back up
     try { rec.start(); } catch { rec = null; }
   }
@@ -555,7 +565,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
     brain.remember('assistant', hi); log('him', hi);
     setState('speaking');
     sp.add(hi);
-    if (!SR) openKeys(true);
+    if (!SR && !dock.classList.contains('hero')) openKeys(true);   // (on a stage, typing waits behind the ⌨ toggle)
     await sp.finished().catch(() => {});
     if (my === turn) { setState('listening'); listen(); }
   }
@@ -564,7 +574,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
     tools.hidden = true; panel.hidden = true; cap.hidden = true;
   }
   function openKeys(on) {
-    panel.hidden = !on; $d('.mini-kb').setAttribute('aria-pressed', String(on));
+    panel.hidden = !on; $d('.mini-kb').setAttribute('aria-pressed', String(on)); $d('.mini-pk').setAttribute('aria-pressed', String(on));
     if (on) setTimeout(() => input.focus({ preventScroll: true }), 50);
   }
 
@@ -584,6 +594,9 @@ export function createMiniColin({ go, known, items, pageOf }) {
     else if (state === 'speaking') { turn++; hush(); setState('listening'); listen(); }   // tap to interrupt him
   };
   $d('.mini-off').onclick = sleep;
+  // on a stage, the talking controls are one pill beside his head: Stop, and typing behind ⌨ (pill: declared with the EQ)
+  $d('.mini-ps').onclick = sleep;
+  $d('.mini-pk').onclick = () => openKeys(panel.hidden);
   $d('.mini-cc').onclick = function () { cc = !cc; this.setAttribute('aria-pressed', String(cc)); if (!cc) cap.hidden = true; };
   $d('.mini-kb').onclick = () => openKeys(panel.hidden);
   form.onsubmit = e => { e.preventDefault(); const t = input.value; input.value = ''; if (state === 'off') wake().then(() => ask(t)); else ask(t); };
