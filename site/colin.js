@@ -190,7 +190,9 @@ export function createMiniColin({ go, known, items, pageOf }) {
   function lifeClip(name) {
     if (name === 'idle' && groove && state === 'off' && LIFE.clips.dance) name = 'dance';
     const c = LIFE.clips[name]; if (!c || LIFE.cur === c) return; LIFE.cur = c; document.body.dataset.colinClip = name;   // (readable from outside: which clip he is in)
-    play(ch.mixer, c, { fade: 0.35 });
+    // the roll plays ONCE and holds its last frame: looped, the fade into idle ran past its end and
+    // wrapped to its first frame -- him in the air, falling into the roll -- for a beat after landing
+    play(ch.mixer, c, { fade: name === 'roll' ? 0.2 : 0.35, once: name === 'roll' });
   }
   function walkTo(x) { LIFE.to = x; LIFE.mode = 'walk'; LIFE.face = x > LIFE.x ? 1 : -1; lifeClip(LIFE.walk);
     if (LIFE.exit && bubble) bubble.hidden = true; }
