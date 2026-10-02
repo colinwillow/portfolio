@@ -1,4 +1,4 @@
-import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT } from './content.js?v=d3129d48';
+import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT, PRINTS } from './content.js?v=4d014507';
 import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
 
 const BASE = window.BASE || '/';
@@ -155,7 +155,7 @@ function charPicker(root, { home = false } = {}) {
     if (grp && panel.previousElementSibling !== grp) grp.after(panel);   // their details open right under their game's row
     viewer?.destroy(); viewer = null;
     panel.innerHTML = it || !home ? charDetail(it) : ''; panel.classList.toggle('on', !!it);
-    if (it) import('./viewer.js?v=97d84ef4').then(m => { if (CHARPICK.show === show && panel.querySelector('#char-viewer'))
+    if (it) import('./viewer.js?v=dc8edf5b').then(m => { if (CHARPICK.show === show && panel.querySelector('#char-viewer'))
       viewer = m.mountViewer(panel.querySelector('#char-viewer'), { url: it.glb, prefer: it.prefer, anim: it.anim }); });
     faces.forEach(b => b.classList.toggle('on', b.dataset.char === slug));
   };
@@ -253,22 +253,39 @@ const PAGES = {
   characters(slug) {
     const s = sectionOf('characters');
     if (slug) {
+      const pr = PRINTS.find(x => x.slug === slug);
+      if (pr) {
+        const ch = pr.char && ASSETS.find(x => x.slug === pr.char);
+        after = () => import('./viewer.js?v=dc8edf5b').then(m => { mounted = m.mountViewer($('#viewer'), { url: pr.glb, print: pr }); });
+        return `<div class="wrap">${crumbs(link('characters', 'Characters'), esc(pr.title))}
+          <h2 class="title">${esc(pr.title)}</h2>
+          <p class="lede">3D-print statue. ${esc(pr.blurb)}${ch ? ` The game version is ${link('characters/' + ch.slug, esc(ch.title))}.` : ''}</p>
+          <div id="viewer" class="viewer"></div>
+          <p class="soon">This is the print file itself, the same mesh that goes to the printer, previewed in your browser.</p>${foot()}</div>`;
+      }
       const it = ASSETS.find(x => x.slug === slug);
       if (!it) return missing();
-      after = () => import('./viewer.js?v=97d84ef4').then(m => { mounted = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer, anim: it.anim }); });
+      const pr2 = PRINTS.find(x => x.char === it.slug);
+      after = () => import('./viewer.js?v=dc8edf5b').then(m => {
+        const a = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer, anim: it.anim });
+        const b = pr2 && m.mountViewer($('#viewer-print'), { url: pr2.glb, print: pr2 });
+        mounted = { destroy() { a.destroy(); b?.destroy(); } };
+      });
       return `<div class="wrap">${crumbs(link('characters', 'Characters'), esc(it.title))}
         <h2 class="title">${esc(it.title)}</h2>
         <p class="lede">From ${esc(it.from)}. ${it.notes.map(esc).join(' · ')}.</p>
         <div id="viewer" class="viewer"></div>
         <div class="row">${buy(it)}</div>
         <p class="soon">Rigged to a Mixamo-style skeleton, faces +Z, draco-compressed geometry with WebP textures —
-          drops straight into three.js with GLTFLoader + DRACOLoader.</p>${foot()}</div>`;
+          drops straight into three.js with GLTFLoader + DRACOLoader.</p>
+        ${pr2 ? `<h3 class="sub">The 3D-print statue</h3><p class="lede">${esc(pr2.blurb)}</p><div id="viewer-print" class="viewer"></div>` : ''}${foot()}</div>`;
     }
     after = () => { mounted = charPicker(view); };
     return `<div class="wrap">${head(s, ' Every number is read off the file: triangles, joints, clips, size. Optimised, animated and running in real three.js games on phones.')}
       <div class="shelf-figures char-page">${charGroups(charFace)}</div>
       <div class="char-detail">${charDetail(null)}</div>
-      <h3 class="sub">Also coming</h3><ul class="soon"><li>3D-printable figures (STL)</li></ul>
+      <h3 class="sub">3D-print statues</h3><div class="grid">${PRINTS.map(p => link('characters/' + p.slug,
+        `<img class="cover" src="site/shots/print-${esc(p.slug)}.webp" alt="" loading="lazy" width="1200" height="750"><h4>${esc(p.title)}</h4><p>${esc(p.blurb)}</p>`, 'card media')).join('')}</div>
       ${GUMROAD ? `<div class="row">${ext(GUMROAD, 'Whole store on Gumroad ↗', 'btn ghost')}</div>` : ''}${foot()}</div>`;
   },
 

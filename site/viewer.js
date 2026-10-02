@@ -14,16 +14,18 @@ function facing(model) {
 
 const pretty = n => n.replace(/[_.]+/g, ' ').replace(/\s+/g, ' ').trim();
 
-export function mountViewer(host, { url, prefer = [], anim = null }) {
+// `print` is a STATUE rather than a rig: an STL brought in as a bare mesh (no normals, no
+// material, no clips), so it gets smooth normals, a resin finish, and its size in millimetres.
+export function mountViewer(host, { url, prefer = [], anim = null, print = null }) {
   host.innerHTML = `
     <div class="viewer-stage"><canvas></canvas>
       <div class="viewer-status">Loading…</div>
-      <div class="viewer-hint">drag to turn him · pinch or scroll to zoom</div>
+      <div class="viewer-hint">drag to turn ${print ? 'it' : 'him'} · pinch or scroll to zoom</div>
     </div>
     <div class="viewer-side">
       <dl class="specs live"></dl>
-      <h3 class="sub">Clips</h3>
-      <div class="clips" role="listbox" aria-label="Animations"></div>
+      ${print ? '' : `<h3 class="sub">Clips</h3>
+      <div class="clips" role="listbox" aria-label="Animations"></div>`}
     </div>`;
   const canvas = host.querySelector('canvas');
   const status = host.querySelector('.viewer-status');
@@ -105,6 +107,9 @@ export function mountViewer(host, { url, prefer = [], anim = null }) {
   loadCharacter(url, p => { status.textContent = `Loading… ${Math.round(p * 100)}%`; }, { anim }).then(c => {
     if (dead) return;
     ch = c; turn.add(c.model);
+    if (print) c.model.traverse(o => { if (!o.isMesh) return;
+      if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
+      o.material = new THREE.MeshStandardMaterial({ color: print.color || 0xd9d3c7, roughness: 0.48, metalness: 0 }); });
     const idle = pickClip(c.clips, ...prefer, 'idle_neutral', 'idle_01', 'standing_idle', 'drunk_idle', 'idle');
     play(c.mixer, idle, { fade: 0 }); c.mixer.update(0.01);
     const box = skinnedBounds(c.model), h = box.max.y - box.min.y;
@@ -122,6 +127,14 @@ export function mountViewer(host, { url, prefer = [], anim = null }) {
     status.remove();
 
     const bytes = performance.getEntriesByName(new URL(url, document.baseURI).href)[0]?.encodedBodySize;
+    if (print) {
+      host.querySelector('.specs.live').innerHTML = `
+        <dt>Triangles</dt><dd>${c.tris.toLocaleString()}</dd>
+        ${print.mm ? `<dt>Printed size</dt><dd>${print.mm.map(Math.round).join(' × ')} mm</dd>` : ''}
+        ${bytes ? `<dt>Preview file</dt><dd>${(bytes / 1e3).toFixed(0)} KB</dd>` : ''}
+        ${print.stl ? `<dt>Print file</dt><dd>${print.stl}</dd>` : ''}`;
+      return;
+    }
     host.querySelector('.specs.live').innerHTML = `
       <dt>Triangles</dt><dd>${c.tris.toLocaleString()}</dd>
       <dt>Joints</dt><dd>${c.joints}</dd>

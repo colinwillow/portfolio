@@ -95,6 +95,14 @@ export const PARKED = [
 // stays '' until decided; `gumroad` is the product link once it exists.
 /* Characters (the section is CHARACTERS; the export keeps its old name). `h` is how tall
    each one stands in the line-up, in metres, so Clancy is a dog and the warrior looms. */
+// 3D-PRINT STATUES. The preview is the print's own STL, welded and draco-compressed to a GLB
+// (3 MB of STL -> ~120 KB). `char` names an ASSETS slug when the statue has a game version:
+// that character's page then shows the print beside the rig.
+export const PRINTS = [
+  { slug: 'captain-spoodle', title: 'Captain Spoodle', glb: 'models/prints/captain_spoodle.glb',
+    mm: [97, 100, 60], tris: 61784, char: null, blurb: 'Octopus pirate captain. Resin statue, about 10 cm tall.' },
+];
+
 export const ASSETS = [
   { slug: 'zap', h: 1.75, title: 'Zap', from: "Zap 'n Clancy", glb: 'models/assets/zap.glb', mb: 4.1,
     tris: 11059, joints: 62, clips: 61, prefer: ['idle_01'],
