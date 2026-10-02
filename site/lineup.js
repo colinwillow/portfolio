@@ -15,7 +15,7 @@ import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=222cfe4
 
 // back: how far behind Colin the line stands (they read smaller, so more of them fit); forward: where the
 // picked one walks out to, in front of him
-export const LINE = { gap: 1.0, stagger: 0.22, back: 2.8, forward: 0.45, tall: 0.4, tex: 512, dim: 1, pop: 1.05, fov: 30 };
+export const LINE = { gap: 1.0, stagger: 0.22, back: 2.8, forward: 0.45, eye: 0.3, tall: 0.4, tex: 512, dim: 1, pop: 1.05, fov: 30 };
 
 function shrinkTextures(model) {
   const done = new Set();
@@ -121,8 +121,10 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
         shrinkTextures(ch.model);
         const has = re => ch.clips.find(c => re.test(c.name));
         s.clips = { idle: pickClip(ch.clips, ...(s.c.prefer || []), 'idle'),
-          run: has(/^run_fwd$|run_fwd|^running$|^run$|drunk_run_forward/i),
-          walk: has(/walk_fwd_neutral|^walk_fwd|^walking$|^walk$|walk/i),
+          // FORWARD gaits only: a rig with strafes and back-pedals (the warrior) otherwise gets whichever
+          // 'walk' comes first in the file -- a back-pedal, so he crabbed along -- and no run at all
+          run: has(/^run_fwd$|run_fwd|^running$|^run$|drunk_run_forward|standing_run_forward|run_forward/i),
+          walk: has(/walk_fwd_neutral|^walk_fwd|^walking$|^walk$|standing_walk_forward|walk_forward/i) || has(/^(?!.*(back|left|right|strafe)).*walk/i),
           air: has(/floating|in_air|falling_idle|jump_going_up|air|fall/i),
           land: has(/landing_soft|^landing$|landing|hard_landing/i) };
         // measured once the idle is FULLY in: the clip fades in over a quarter second, and at
@@ -211,8 +213,12 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
        so the Characters page is the same stage with the same-sized Colin as every other page,
        and everyone else is to scale beside him. Otherwise: a 1.8 m person is `tall` of the room. */
     const D = S.colinPx ? (H * 1.9) / (S.colinPx * 2 * t) : (H * 1.8) / (LINE.tall * (H - S.below) * 2 * t);
-    const ppm = H / (2 * D * t), y = 1.0 + (g - H / 2 - ppm) / ppm;
+    /* THE EYE IS LOW -- near their feet -- so the line behind him stands on (almost) the same line
+       he does: the horizon is just above the floor, and depth shrinks them without lifting them.
+       The picture is shifted down with a view offset so his floor still lands on the strip. */
+    const ppm = H / (2 * D * t), y = LINE.eye, W = cv.clientWidth || 1;
     camera.position.set(S.camX, y, D); camera.lookAt(S.camX, y, 0);
+    camera.setViewOffset(W, H, 0, (H / 2 + y * ppm) - g, W, H); camera.updateProjectionMatrix();
     scene.fog.near = D + LINE.back + 2; scene.fog.far = D + LINE.back + 9;   // the back line stays lit; only the far mist fades
     return ppm;
   }
