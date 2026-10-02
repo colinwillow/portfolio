@@ -46,6 +46,7 @@ function read() {
 }
 
 let cur = read();
+const curRaw = () => cur;
 const subs = new Set();
 export const accent = () => cur;
 export const onAccent = fn => (subs.add(fn), fn(cur));
@@ -64,9 +65,15 @@ export function randomAccent() {
   setAccent({ name: 'custom', l: 0.62 + Math.random() * 0.1, c: 0.06 + Math.random() * 0.04, h: Math.random() * 360 });
 }
 
+/* LIGHT MODE IS POPPIER: the presets were chosen for the dark page, where a quiet chroma glows;
+   on cream the same colour reads as grey. So light mode multiplies the chroma by `pop`.
+   `?pop=1` in the address shows the old, muted look; `?pop=2` pushes further. */
+export const LIGHT = { pop: +new URLSearchParams(location.search).get('pop') || 1.7 };
+
 function apply() {
   const r = document.documentElement.style;
   const dark = document.documentElement.dataset.theme === 'dark';
+  const cur = dark ? curRaw() : { ...curRaw(), c: curRaw().c * LIGHT.pop };
   r.setProperty('--accent', oklchHex(cur));
   r.setProperty('--accent-ink', oklchHex({ ...cur, l: dark ? cur.l + 0.1 : cur.l - 0.16 }));
   r.setProperty('--accent-soft', oklchHex({ ...cur, l: dark ? 0.3 : 0.93, c: cur.c * 0.35 }));

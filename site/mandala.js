@@ -16,7 +16,7 @@
 // Same API as the weave (set/theme/accent/kick/pause/visible/anchor/canvas), so it drops into
 // the same slot. It is drawn on a plain 2D canvas -- no three.js for a backdrop -- with the
 // 'lighter' composite standing in for the original's additive GL lines.
-import { makeCarve } from './weave.js?v=68b8ebba';
+import { makeCarve } from './weave.js?v=339f448a';
 
 export const MANDALA = {
   // world units -> px: `4000 * size` units = half the SHORTER side, so the whole spread fits.
@@ -114,11 +114,11 @@ export function createMandala(host, field = () => null) {
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
     ctx.globalCompositeOperation = S.dark ? 'lighter' : 'source-over';
-    ctx.lineWidth = dpr; ctx.globalAlpha = MANDALA.alpha * (S.dark ? 1 : 0.55);
+    ctx.lineWidth = dpr; ctx.globalAlpha = MANDALA.alpha * (S.dark ? 1 : 0.8);
     for (const p of paths.values()) {
       const pts = p.pts; if (!pts.length) continue;
-      // light theme: the same hues, darkened, laid down as ink rather than light
-      const m = S.dark ? 255 : 150;
+      // light theme: the same hues laid down as INK -- darkened only a little, so they stay colourful on cream
+      const m = S.dark ? 255 : 215;
       ctx.strokeStyle = `rgb(${Math.round(p.r * m)},${Math.round(p.g * m)},${Math.round(p.b * m)})`;
       ctx.beginPath();
       for (let j = 0; j < pts.length; j += 8) {

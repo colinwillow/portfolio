@@ -4,7 +4,7 @@
   --accent: #b07a8f; --accent-ink: #7d4b5f; --accent-soft: #f1e6ea; --accent-deep: #5a2c3c;
   /* light mode is CREAM, not white: a warm off-white page, a slightly lighter sheet, cards a breath
      lighter again, and the lines and muted text pulled warm to sit in it */
-  --bg: #efe8da; --sheet: #f5efe3; --ink: #2f2a24; --muted: #7d7466; --line: #ddd4c3; --card: #faf5ea;
+  --bg: #f3e4c6; --sheet: #f8ecd3; --ink: #2e251a; --muted: #7a684e; --line: #e2cfab; --card: #fdf4e0;
   --globe-ink: #8a8782;
   --ui: 'Inter Tight', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -640,6 +640,13 @@ html[data-vt="out"]::view-transition-new(view)   { animation-name: vt-return; }
 .key.art:hover .glyph { background: color-mix(in srgb, var(--ink) 85%, transparent); }
 .key.art.in .glyph { background: var(--accent); transform: scale(1.05); }
 .key.art.in .gw { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 70%, transparent)); }
+/* light theme: every key is lettered in its own section colour, and the latched one glows in it */
+:root:not([data-theme="dark"]) .key.art .glyph { background: color-mix(in srgb, var(--kh, var(--ink)) 82%, var(--ink)); }
+:root:not([data-theme="dark"]) .key.art:hover .glyph,
+:root:not([data-theme="dark"]) .key.art.in .glyph { background: var(--kh, var(--accent)); }
+:root:not([data-theme="dark"]) .key.art.in .gw { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--kh, var(--accent)) 70%, transparent)); }
+:root:not([data-theme="dark"]) .key.art.in { --kc: color-mix(in srgb, var(--card) 85%, var(--kh, var(--accent))); }
+:root:not([data-theme="dark"]) .key.art.in::after { background: var(--kh, var(--accent)); box-shadow: 0 0 6px var(--kh, var(--accent)); }
 /* assets: each card shows the character itself */
 .card .char-shot { display: block; width: 100%; aspect-ratio: 552 / 561; object-fit: contain; margin: -6px 0 8px;
   background: radial-gradient(ellipse at 50% 60%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%); border-radius: 12px; }

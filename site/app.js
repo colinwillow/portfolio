@@ -1,5 +1,5 @@
 import { SITE, SECTIONS, PLAY, ASSETS, SCRIPTS, TUTORIALS, SUPPORT, SOCIALS, WEB, STUDIOS, MOTION, WORKBENCH, WRITING, GUMROAD, SONGS, SFX, ABOUT, PRINTS } from './content.js?v=dfed5b22';
-import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=8afb0eea';
+import { onAccent, nextPreset, randomAccent, initTheme, setTheme, sectionColours } from './palette.js?v=7fa72879';
 
 const BASE = window.BASE || '/';
 // Which build this is (the content hash npm run bump stamped on app.js) -- in the footer, so a phone can say.
@@ -680,7 +680,7 @@ function backdrop(key) {
   LINEUP?.visible(own === 'lineup');
   if (own === 'lineup' && CHARPICK.want) LINEUP?.focus(CHARPICK.want);   // (visible() clears the pick; put it back)
   if (own === 'rain' && !RAIN && !rainLoading && GLORB.ready)
-    rainLoading = import('./coderain.js?v=42c9189c').then(m => { RAIN = m.createCodeRain($('#glorb'), () => GLORB.api); backdrop(current()); });
+    rainLoading = import('./coderain.js?v=a8e30b1c').then(m => { RAIN = m.createCodeRain($('#glorb'), () => GLORB.api); backdrop(current()); });
   RAIN?.visible(own === 'rain');
 }
 const current = () => route()[0] || (route().length ? latched : pressed) || 'home';   // only called after boot
@@ -698,8 +698,8 @@ const glorbReady = GLORB_ON ? import('./glorb/engine.js?v=86d15747').then(m => {
   const bgQ = new URLSearchParams(location.search).get('bg');
   try { if (bgQ) localStorage.setItem('cw.bg', bgQ); } catch {}
   const BG = bgQ || (() => { try { return localStorage.getItem('cw.bg'); } catch { return null; } })() || 'mandala';
-  (BG === 'weave' ? import('./weave.js?v=68b8ebba').then(w => w.createWeave($('#glorb'), () => GLORB.api))
-    : import('./mandala.js?v=4f21aad3').then(m => { const md = m.createMandala($('#glorb'), () => GLORB.api); vizHook(md, m.clock); return md; })).then(w => {
+  (BG === 'weave' ? import('./weave.js?v=339f448a').then(w => w.createWeave($('#glorb'), () => GLORB.api))
+    : import('./mandala.js?v=e035f062').then(m => { const md = m.createMandala($('#glorb'), () => GLORB.api); vizHook(md, m.clock); return md; })).then(w => {
     WEAVE = w;   // Glorb's particles carve it, whichever it is
     WEAVE.theme(glorbTheme() === 'dark');
     onAccent(a => WEAVE.accent(a));          // its yarns are dyed in the site's accent
@@ -986,8 +986,10 @@ function secTitle(sec) {
   }
   const M = secTitle.mask; if (M) api.setMask({ d: M.d, f: M.f, w: M.w, h: M.h, s: M.s, x: x - M.pad * M.s, y: y - M.pad * M.s });
 })();
-deck.innerHTML = SECTIONS.map(s => KEYART[s.key]
-  ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}"><span class="gw"><i class="glyph" style="--art:url(${new URL(`site/keys/${s.key}.webp`, document.baseURI).href});--ar:${KEYART[s.key]}"></i></span></a>`
+// each key carries its section's own colour (`--kh`, the same wheel the orb uses), which the
+// light theme letters it in -- grey lettering on cream was the "shades of grey" look
+deck.innerHTML = SECTIONS.map((s, i) => KEYART[s.key]
+  ? `<a class="key art" href="${s.key}" data-key="${s.key}" aria-label="${esc(s.label)}" style="--kh:${sectionColours(i).rim}"><span class="gw"><i class="glyph" style="--art:url(${new URL(`site/keys/${s.key}.webp`, document.baseURI).href});--ar:${KEYART[s.key]}"></i></span></a>`
   : `<a class="key" href="${s.key}" data-key="${s.key}"><b>${esc(s.label)}</b></a>`).join('');
 let latched = null;
 let pressed = null;   // at home the backdrop follows a key you PRESS, never the scroll -- a nudge
@@ -1247,7 +1249,7 @@ if (wantIntro && !/[?&]walk=side/.test(location.search)) {
   addEventListener('scroll', () => { if (!document.getElementById('intro')) rise(0, 500); }, { passive: true });   // never strand him low
 }
 const intro = wantIntro
-  ? import('./intro.js?v=51cfd3a3').then(m => m.playIntro({ build: BUILD, role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
+  ? import('./intro.js?v=7521f1e4').then(m => m.playIntro({ build: BUILD, role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
       .catch(err => console.warn('intro', err))
       .finally(() => { const t = setInterval(() => { if (!document.getElementById('intro')) { clearInterval(t); setTimeout(() => rise(), 2500); } }, 400); })   // (if the handoff never comes, rise anyway, once the intro has gone)
   : Promise.resolve();

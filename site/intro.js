@@ -17,7 +17,7 @@
 // in exactly the place the dots were, and it opens out into Glorb from there.
 // One field; nothing fades out while something else fades in somewhere else.
 
-export function playIntro({ build = '', role = '', bg = '#efe8da', rim = '#9a1cf0', core = '#72ec5c', glorb = null, dotK = 1 } = {}) {
+export function playIntro({ build = '', role = '', bg = '#f3e4c6', rim = '#9a1cf0', core = '#72ec5c', glorb = null, dotK = 1 } = {}) {
   return new Promise(resolve => {
     const el = document.createElement('div');
     el.id = 'intro';
@@ -36,7 +36,7 @@ export function playIntro({ build = '', role = '', bg = '#efe8da', rim = '#9a1cf
        head projected every frame, so an arm swing is what shoves them. */
     const me = { ok: false, on: false, cv: Object.assign(document.createElement('canvas'), { className: 'intro-me' }) };
     document.body.appendChild(me.cv);   // outside the intro: he keeps walking after it has faded
-    import('./intro-me.js?v=010df5c1').then(m => m.mountMe(me.cv, { bg, mode: DEPTH ? 'depth' : 'side' })).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
+    import('./intro-me.js?v=63d10145').then(m => m.mountMe(me.cv, { bg, mode: DEPTH ? 'depth' : 'side' })).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
     document.body.appendChild(el);
     const cv = el.querySelector('canvas'), g = cv.getContext('2d'), g0 = g;
     /* Depth: a third of the dots are drawn on a layer ABOVE him, so he walks
