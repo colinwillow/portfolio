@@ -3,7 +3,7 @@
 // That last part is the pitch -- a spec sheet you can check, not a claim.
 
 import * as THREE from '../vendor/three.module.min.js';
-import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=54637da4';
+import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=b66102e5';
 
 function facing(model) {
   const toes = [], v = new THREE.Vector3(), w = new THREE.Vector3(), sum = new THREE.Vector3();

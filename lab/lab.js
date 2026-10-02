@@ -8,7 +8,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { createSwarm } from '../site/swarm.js?v=a192b303';
 import { OBJECTS, fit, sampleSurface, sampleText, sampleSkinned } from '../site/shapes.js?v=aac1b012';
-import { loadCharacter, pickClip, play } from '../site/rig.js?v=54637da4';
+import { loadCharacter, pickClip, play } from '../site/rig.js?v=b66102e5';
 import { onAccent, oklchHex } from '../site/palette.js?v=7fa72879';
 
 const SLIDES = [

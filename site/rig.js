@@ -35,8 +35,29 @@ const BORROW = /^(idle|idle_01|walk_fwd|run_fwd|walking|running)$/i;
 // `root` above the hips, another bakes it into the hips themselves, and the borrowed hip
 // rotation then tips the wearer onto his back. q' = wearerRest * donorRest^-1 * q, on that
 // bone only -- doing it down the limbs compounds (Shredworld's c69 lesson).
+/* PRELOADING. A GLB's bytes can be fetched ahead of time (`prefetchGLB`), long before anything
+   shows it -- the Characters line-up warms its cast while you are still on another page. One
+   promise per URL, so a load that comes along while the prefetch is still in flight WAITS for it
+   rather than downloading the same file a second time beside it. */
+const BYTES = new Map();
+export function prefetchGLB(url) {
+  url = new URL(url, document.baseURI).href;
+  if (!BYTES.has(url)) BYTES.set(url, fetch(url).then(r => { if (!r.ok) throw new Error(r.status + ' ' + url); return r.arrayBuffer(); })
+    .catch(e => { BYTES.delete(url); throw e; }));
+  return BYTES.get(url);
+}
+// load through the prefetch when there is one (`keep`: leave the bytes for the next borrower)
+function loadGLTF(url, onProgress, keep = false) {
+  const abs = new URL(url, document.baseURI).href, pre = BYTES.get(abs);
+  if (pre) {
+    if (!keep) BYTES.delete(abs);
+    return pre.then(buf => new Promise((res, rej) => gltf().parse(keep ? buf.slice(0) : buf, abs.slice(0, abs.lastIndexOf('/') + 1), res, rej)),
+      () => loadGLTF(url, onProgress, keep));
+  }
+  return new Promise((res, rej) => gltf().load(url, res, e => { if (e.total) onProgress?.(e.loaded / e.total); }, rej));
+}
 async function borrowClips(model, url) {
-  if (!donors.has(url)) donors.set(url, new Promise((res, rej) => gltf().load(url, g => res(g), undefined, rej)));
+  if (!donors.has(url)) donors.set(url, loadGLTF(url, null, true));
   const g = await donors.get(url), names = new Set(); model.traverse(o => names.add(o.name));
   const hips = n => { let h = null; n.traverse(o => { if (!h && /Hips$/.test(o.name)) h = o; }); return h; };
   const hw = hips(model), hd = hips(g.scene);
@@ -76,8 +97,7 @@ function closeLoop(clip) {
 
 /** Load a character. `onProgress(0..1)` when the server sends a length. `anim`: a file to borrow clips from. */
 export async function loadCharacter(url, onProgress, { anim = null } = {}) {
-  const g = await new Promise((res, rej) => gltf().load(url, res,
-    e => { if (e.total) onProgress?.(e.loaded / e.total); }, rej));
+  const g = await loadGLTF(url, onProgress);
   const model = g.scene;
   let tris = 0, joints = 0;
   model.traverse(o => {

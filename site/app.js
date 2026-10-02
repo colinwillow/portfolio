@@ -155,7 +155,7 @@ function charPicker(root, { home = false } = {}) {
     if (grp && panel.previousElementSibling !== grp) grp.after(panel);   // their details open right under their game's row
     viewer?.destroy(); viewer = null;
     panel.innerHTML = it || !home ? charDetail(it) : ''; panel.classList.toggle('on', !!it);
-    if (it) import('./viewer.js?v=454abb53').then(m => { if (CHARPICK.show === show && panel.querySelector('#char-viewer'))
+    if (it) import('./viewer.js?v=a885c12c').then(m => { if (CHARPICK.show === show && panel.querySelector('#char-viewer'))
       viewer = m.mountViewer(panel.querySelector('#char-viewer'), { url: it.glb, prefer: it.prefer, anim: it.anim }); });
     faces.forEach(b => b.classList.toggle('on', b.dataset.char === slug));
   };
@@ -256,7 +256,7 @@ const PAGES = {
       const pr = PRINTS.find(x => x.slug === slug);
       if (pr) {
         const ch = pr.char && ASSETS.find(x => x.slug === pr.char);
-        after = () => import('./viewer.js?v=454abb53').then(m => { mounted = m.mountViewer($('#viewer'), { url: pr.glb, print: pr }); });
+        after = () => import('./viewer.js?v=a885c12c').then(m => { mounted = m.mountViewer($('#viewer'), { url: pr.glb, print: pr }); });
         return `<div class="wrap">${crumbs(link('characters', 'Characters'), esc(pr.title))}
           <h2 class="title">${esc(pr.title)}</h2>
           <p class="lede">3D-print statue. ${esc(pr.blurb)}${ch ? ` The game version is ${link('characters/' + ch.slug, esc(ch.title))}.` : ''}</p>
@@ -266,7 +266,7 @@ const PAGES = {
       const it = ASSETS.find(x => x.slug === slug);
       if (!it) return missing();
       const pr2 = PRINTS.find(x => x.char === it.slug);
-      after = () => import('./viewer.js?v=454abb53').then(m => {
+      after = () => import('./viewer.js?v=a885c12c').then(m => {
         const a = m.mountViewer($('#viewer'), { url: it.glb, prefer: it.prefer, anim: it.anim });
         const b = pr2 && m.mountViewer($('#viewer-print'), { url: pr2.glb, print: pr2 });
         mounted = { destroy() { a.destroy(); b?.destroy(); } };
@@ -601,6 +601,30 @@ function warmClip(name) {   // (declarations, not consts: render() calls these b
 }
 // ahead of a game's page: its first two clips (the rest come while those play)
 function warmVideo(it) { reelOf(it).slice(0, 2).forEach(warmClip); }
+/* THE LINE-UP, WARMED AHEAD. Its cast is ~20 GLBs, and fetched only when the Characters page
+   opened they arrived one by one for seconds. So: the code and the four who stand next to Colin
+   are fetched quietly once a page has settled, and the whole cast the moment anyone shows
+   intent -- a finger on the Characters key, or the characters shelf scrolling into view. */
+function castSides() {
+  const cast = ASSETS.filter(a => a.from === CAST.game || a.also?.includes(CAST.game)), L = [], R = [];
+  cast.forEach((c, i) => (i % 2 ? L : R).push(c));
+  return { L, R, near: cast };   // `cast` is already nearest-Colin-first: R0, L0, R1, L1...
+}
+const CASTWARM = { n: 0 };
+function warmCast(n = Infinity) {
+  if (CASTWARM.n >= n) return; const from = CASTWARM.n; CASTWARM.n = n;
+  import('./lineup.js?v=5d7238a1').catch(() => {});
+  import('./rig.js?v=b66102e5').then(({ prefetchGLB }) => {
+    for (const c of castSides().near.slice(from, n)) { prefetchGLB(c.glb).catch(() => {}); if (c.anim) prefetchGLB(c.anim).catch(() => {}); }
+  }).catch(() => {});
+}
+document.addEventListener('pointerover', e => { if (e.target.closest?.('a[data-key="characters"], a[href="characters"]')) warmCast(); }, { passive: true });
+document.addEventListener('pointerdown', e => { if (e.target.closest?.('a[data-key="characters"], a[href="characters"], .shelf-figures')) warmCast(); }, { passive: true });
+addEventListener('scroll', function near() {
+  const r = document.querySelector('.shelf-figures')?.getBoundingClientRect();
+  if (r && r.top < innerHeight * 1.6) { warmCast(); removeEventListener('scroll', near); }
+}, { passive: true });
+setTimeout(() => { const f = () => warmCast(4); window.requestIdleCallback ? requestIdleCallback(f, { timeout: 4000 }) : f(); }, 5000);
 function warmAll() { const f = () => PLAY.forEach(warmVideo); window.requestIdleCallback ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 1500); }
 document.addEventListener('pointerdown', e => {
   const a = e.target.closest?.('a[href^="play/"]'); if (!a) return;
@@ -668,12 +692,11 @@ function backdrop(key) {
   WEAVE?.visible(!own || own === 'lineup');                         // the line-up stands in front of a dimmed weave
   WEAVE?.canvas.classList.toggle('dim', own === 'lineup');
   if (own === 'lineup' && !LINEUP && !lineupLoading && GLORB.ready)
-    lineupLoading = import('./lineup.js?v=5052d356').then(m => {
+    lineupLoading = import('./lineup.js?v=5d7238a1').then(m => {
       /* COLIN IN THE MIDDLE, and the cast dealt out from him in their order -- one to his right, one to
          his left, the next a step further out each side -- so the first ones listed (the originals, with
          their own animations) stand round him and the borrowed-animation crowd fills the ends */
-      const cast = ASSETS.filter(a => a.from === CAST.game || a.also?.includes(CAST.game)), L = [], R = [];
-      cast.forEach((c, i) => (i % 2 ? L : R).push(c));
+      const { L, R } = castSides();
       LINEUP = m.createLineup($('#glorb'), [...L.reverse(), { slug: 'colin', colin: true, h: 1.9, title: 'Colin', glb: 'models/colin.glb', prefer: ['idle_neutral'] }, ...R], { onPick: slug => CHARPICK.show?.(slug),
         colin: { place: p => { SEAT = p; }, joined: v => { document.body.classList.toggle('colin-in-line', v); heroSync(); } } });
       LINEUP.game = CAST.game; LINEUP.fog(css('--bg') || '#0e0e0f'); backdrop(current()); });
@@ -1247,7 +1270,7 @@ if (wantIntro && !/[?&]walk=side/.test(location.search)) {
   addEventListener('scroll', () => { if (!document.getElementById('intro')) rise(0, 500); }, { passive: true });   // never strand him low
 }
 const intro = wantIntro
-  ? import('./intro.js?v=7521f1e4').then(m => m.playIntro({ build: BUILD, role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
+  ? import('./intro.js?v=e060d2ff').then(m => m.playIntro({ build: BUILD, role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
       .catch(err => console.warn('intro', err))
       .finally(() => { const t = setInterval(() => { if (!document.getElementById('intro')) { clearInterval(t); setTimeout(() => rise(), 2500); } }, 400); })   // (if the handoff never comes, rise anyway, once the intro has gone)
   : Promise.resolve();
@@ -1267,5 +1290,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=c39021da').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=b2dee6ab').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));

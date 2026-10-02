@@ -11,11 +11,11 @@
 //     each, and from where the camera stands nobody can tell;
 //   * it only renders while the Characters page is showing and on screen.
 import * as THREE from '../vendor/three.module.min.js';
-import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=54637da4';
+import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=b66102e5';
 
 // back: how far behind Colin the line stands (they read smaller, so more of them fit); forward: where the
 // picked one walks out to, in front of him
-export const LINE = { gap: 1.0, stagger: 0.22, back: 2.8, forward: 0.45, eye: 0.3, tall: 0.4, tex: 512, dim: 1, pop: 1.05, fov: 30 };
+export const LINE = { par: 4, edge: 0.6, gap: 1.0, stagger: 0.22, back: 2.8, forward: 0.45, eye: 0.3, tall: 0.4, tex: 512, dim: 1, pop: 1.05, fov: 30 };
 
 function shrinkTextures(model) {
   const done = new Set();
@@ -91,7 +91,15 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     const c = s.clips[name] || s.clips.idle; if (!c || s.cur === c) return; s.cur = c;
     play(s.mixer, c, { fade: 0.25 });
   }
-  const off = s => (s.how === 'left' ? -1 : 1) * (span() + 3);       // just past the edge of the frame, on their side
+  /* JUST PAST THE EDGE OF THE FRAME, on their side, at their own depth -- not past the far end of
+     the whole line. That was `span() + 3`: with twenty in the cast, the one sitting next to Colin
+     started thirteen metres out and spent three seconds running in from nowhere anyone could see.
+     Someone whose seat is off screen anyway starts a step beyond the seat. */
+  const off = s => {
+    const side = s.how === 'left' ? -1 : 1, half = (S.D || 8) * Math.tan(LINE.fov * Math.PI / 360) * (cv.clientWidth / (cv.clientHeight || 1));
+    const edge = (S.D || 8) > 0 ? half * ((S.D || 8) - (s.tz || 0)) / (S.D || 8) : half;
+    return side * Math.max(edge + LINE.edge, Math.abs(s.tx) + 1.2);
+  };
   // offstage, waiting for their turn (`delay` seconds)
   function stageLeft(s, delay) {
     s.delay = delay; s.y = 0; s.z = s.tz; s.state = s.how === 'here' ? 'idle' : 'wait';
@@ -107,9 +115,16 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     // the middle of the line first, then outward, so the screen fills from the centre
     const mid = (slots.length - 1) / 2;
     const seq = [...slots].sort((a, b) => Math.abs(a.i - mid) - Math.abs(b.i - mid));
-    for (const s of seq) {
+    // FOUR AT ONCE, not one after another: in sequence the twentieth waited on nineteen downloads
+    // and parses before its own even started. Each still appears the moment it is ready, and the
+    // queue is centre-out, so the ones next to Colin are still the first to arrive.
+    let next = 0;
+    await Promise.all(Array.from({ length: LINE.par }, async () => { while (next < seq.length) await loadOne(seq[next++]); }));
+  }
+  async function loadOne(s) {
+    {
       if (S.dead) return;
-      if (s.c.colin) { s.ghost = true; s.loaded = true; s.mixer = { update() {} }; stageLeft(s, 0); continue; }
+      if (s.c.colin) { s.ghost = true; s.loaded = true; s.mixer = { update() {} }; stageLeft(s, 0); return; }
       try {
         const ch = await loadCharacter(new URL('../' + s.c.glb, import.meta.url).href, null, { anim: s.c.anim && new URL('../' + s.c.anim, import.meta.url).href });
         if (s.c.colin) {                                           // Colin's own file: donor heads out, his face shape on
@@ -140,7 +155,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
         s.group.add(ch.model); s.loaded = true;
         // a soft contact shadow, so a step toward the camera reads as depth rather than as sinking
         const sh = new THREE.Mesh(new THREE.CircleGeometry(0.34 * (s.c.h || 1.75) / 1.75, 32), SHADOW); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.004; s.group.add(sh);
-        stageLeft(s, 0.1);
+        stageLeft(s, 0.05);
       } catch (e) { console.warn('line-up', s.c.slug, e); }
     }
   }
@@ -217,7 +232,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     /* THE EYE IS LOW -- near their feet -- so the line behind him stands on (almost) the same line
        he does: the horizon is just above the floor, and depth shrinks them without lifting them.
        The picture is shifted down with a view offset so his floor still lands on the strip. */
-    const ppm = H / (2 * D * t), y = LINE.eye, W = cv.clientWidth || 1;
+    const ppm = H / (2 * D * t), y = LINE.eye, W = cv.clientWidth || 1; S.D = D;
     camera.position.set(S.camX, y, D); camera.lookAt(S.camX, y, 0);
     camera.setViewOffset(W, H, 0, (H / 2 + y * ppm) - g, W, H); camera.updateProjectionMatrix();
     scene.fog.near = D + LINE.back + 2; scene.fog.far = D + LINE.back + 9;   // the back line stays lit; only the far mist fades
@@ -313,7 +328,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
         // back again: everyone offstage first, then in, nearest Colin first -- and draw that
         // empty stage NOW, so the canvas never shows the last frame of them running out
         S.sel = null; S.shift = 0; S.camX = S.wantX = 0; S.fling = 0; resize(); layout();
-        for (const s of slots) if (s.loaded) stageLeft(s, 0.12 + s.rank * 0.16);
+        for (const s of slots) if (s.loaded) stageLeft(s, 0.05 + s.rank * 0.1);
         for (const s of slots) if (s.loaded) s.group.position.set(s.x, s.y, s.z);
         renderer.render(scene, camera);
         if (!S.started) { S.started = true; loadAll(); }
