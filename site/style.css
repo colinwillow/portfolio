@@ -19,8 +19,10 @@
 }
 
 * { box-sizing: border-box; }
-html { background: var(--bg); color: var(--ink); -webkit-text-size-adjust: 100%; }
-body { margin: 0; font: 400 16px/1.5 var(--ui); background: var(--bg); overflow-x: hidden; }
+/* `clip`, not just `hidden`: iOS still lets a thumb pan a body that is merely `hidden`, and the
+   stage floor runs 40px past both edges on purpose -- clip makes the page exactly screen-wide. */
+html { background: var(--bg); color: var(--ink); -webkit-text-size-adjust: 100%; overflow-x: hidden; overflow-x: clip; }
+body { margin: 0; font: 400 16px/1.5 var(--ui); background: var(--bg); overflow-x: hidden; overflow-x: clip; }
 a { color: inherit; }
 img, video { display: block; max-width: 100%; }
 button { font: inherit; color: inherit; }
