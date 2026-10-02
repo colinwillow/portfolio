@@ -1175,7 +1175,9 @@ function rise(delay = 350, dur = 1700) {
   })(performance.now());
 }
 if (wantIntro && !/[?&]walk=side/.test(location.search)) {
-  setLift(Math.max(0, innerHeight * 0.5 - headRest() * HEAD_AT));
+  // his WHOLE BODY centred on the screen (head on Glorb's centre, feet on the strip): the middle of the two
+  { const rest = headRest(), feet = rest - (parseFloat(css('--ledge')) || 26) * 0.5, top = rest * HEAD_AT - rest * 0.05;
+    setLift(Math.max(0, innerHeight * 0.5 - (top + feet) / 2)); }
   addEventListener('cw:handoff', () => rise());
   addEventListener('scroll', () => { if (!document.getElementById('intro')) rise(0, 500); }, { passive: true });   // never strand him low
 }
