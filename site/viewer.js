@@ -3,7 +3,7 @@
 // That last part is the pitch -- a spec sheet you can check, not a claim.
 
 import * as THREE from '../vendor/three.module.min.js';
-import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=b66102e5';
+import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=6f672394';
 
 function facing(model) {
   const toes = [], v = new THREE.Vector3(), w = new THREE.Vector3(), sum = new THREE.Vector3();
@@ -16,7 +16,7 @@ const pretty = n => n.replace(/[_.]+/g, ' ').replace(/\s+/g, ' ').trim();
 
 // `print` is a STATUE rather than a rig: an STL brought in as a bare mesh (no normals, no
 // material, no clips), so it gets smooth normals, a resin finish, and its size in millimetres.
-export function mountViewer(host, { url, prefer = [], anim = null, print = null }) {
+export function mountViewer(host, { url, prefer = [], anim = null, borrow = null, print = null }) {
   host.innerHTML = `
     <div class="viewer-stage"><canvas></canvas>
       <div class="viewer-status">Loading…</div>
@@ -104,7 +104,7 @@ export function mountViewer(host, { url, prefer = [], anim = null, print = null 
     renderer.dispose();
   }
 
-  loadCharacter(url, p => { status.textContent = `Loading… ${Math.round(p * 100)}%`; }, { anim }).then(c => {
+  loadCharacter(url, p => { status.textContent = `Loading… ${Math.round(p * 100)}%`; }, { anim, borrow }).then(c => {
     if (dead) return;
     ch = c; turn.add(c.model);
     if (print) c.model.traverse(o => { if (!o.isMesh) return;

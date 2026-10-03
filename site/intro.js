@@ -36,7 +36,7 @@ export function playIntro({ build = '', role = '', bg = '#f3e4c6', rim = '#9a1cf
        head projected every frame, so an arm swing is what shoves them. */
     const me = { ok: false, on: false, cv: Object.assign(document.createElement('canvas'), { className: 'intro-me' }) };
     document.body.appendChild(me.cv);   // outside the intro: he keeps walking after it has faded
-    import('./intro-me.js?v=b69b3e01').then(m => m.mountMe(me.cv, { bg, mode: DEPTH ? 'depth' : 'side' })).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
+    import('./intro-me.js?v=ce3a9fcf').then(m => m.mountMe(me.cv, { bg, mode: DEPTH ? 'depth' : 'side' })).then(api => { if (api) { me.api = api; me.ok = true; } }).catch(() => {});
     document.body.appendChild(el);
     const cv = el.querySelector('canvas'), g = cv.getContext('2d'), g0 = g;
     /* Depth: a third of the dots are drawn on a layer ABOVE him, so he walks

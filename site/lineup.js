@@ -11,7 +11,7 @@
 //     each, and from where the camera stands nobody can tell;
 //   * it only renders while the Characters page is showing and on screen.
 import * as THREE from '../vendor/three.module.min.js';
-import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=b66102e5';
+import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=6f672394';
 
 // back: how far behind Colin the line stands (they read smaller, so more of them fit); forward: where the
 // picked one walks out to, in front of him
@@ -126,7 +126,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
       if (S.dead) return;
       if (s.c.colin) { s.ghost = true; s.loaded = true; s.mixer = { update() {} }; stageLeft(s, 0); return; }
       try {
-        const ch = await loadCharacter(new URL('../' + s.c.glb, import.meta.url).href, null, { anim: s.c.anim && new URL('../' + s.c.anim, import.meta.url).href });
+        const ch = await loadCharacter(new URL('../' + s.c.glb, import.meta.url).href, null, { anim: s.c.anim && new URL('../' + s.c.anim, import.meta.url).href, borrow: s.c.borrow });
         if (s.c.colin) {                                           // Colin's own file: donor heads out, his face shape on
           const loose = []; let sk = 0; ch.model.traverse(o => { if (o.isSkinnedMesh) sk++; else if (o.isMesh) loose.push(o); });
           if (sk) loose.forEach(o => o.removeFromParent());

@@ -56,14 +56,14 @@ function loadGLTF(url, onProgress, keep = false) {
   }
   return new Promise((res, rej) => gltf().load(url, res, e => { if (e.total) onProgress?.(e.loaded / e.total); }, rej));
 }
-async function borrowClips(model, url) {
+async function borrowClips(model, url, pick = null) {
   if (!donors.has(url)) donors.set(url, loadGLTF(url, null, true));
   const g = await donors.get(url), names = new Set(); model.traverse(o => names.add(o.name));
   const hips = n => { let h = null; n.traverse(o => { if (!h && /Hips$/.test(o.name)) h = o; }); return h; };
   const hw = hips(model), hd = hips(g.scene);
   const fix = hw && hd ? hw.quaternion.clone().multiply(hd.quaternion.clone().invert()) : null;
   const q = new THREE.Quaternion();
-  return g.animations.filter(c => BORROW.test(c.name)).map(c => {
+  return g.animations.filter(c => pick ? pick.includes(c.name) : BORROW.test(c.name)).map(c => {
     const k = c.clone(); k.tracks = k.tracks.filter(t => t.name.endsWith('.quaternion') && names.has(t.name.split('.')[0]));
     for (const t of k.tracks) if (fix && /Hips$/.test(t.name.split('.')[0]) && fix.angleTo(new THREE.Quaternion()) > 0.05) {
       const v = t.values = Float32Array.from(t.values);
@@ -96,7 +96,8 @@ function closeLoop(clip) {
 }
 
 /** Load a character. `onProgress(0..1)` when the server sends a length. `anim`: a file to borrow clips from. */
-export async function loadCharacter(url, onProgress, { anim = null } = {}) {
+/** `borrow`: the exact clip names to take from `anim` (default: just an idle, a walk and a run) */
+export async function loadCharacter(url, onProgress, { anim = null, borrow = null } = {}) {
   const g = await loadGLTF(url, onProgress);
   const model = g.scene;
   let tris = 0, joints = 0;
@@ -113,7 +114,7 @@ export async function loadCharacter(url, onProgress, { anim = null } = {}) {
     }
   });
   let clips = g.animations.filter(c => !RESIDUE.test(c.name) && c.tracks.length);
-  if (anim && !clips.some(c => /idle/i.test(c.name))) clips = [...await borrowClips(model, anim).catch(() => []), ...clips];
+  if (anim && !clips.some(c => /idle/i.test(c.name))) clips = [...await borrowClips(model, anim, borrow).catch(() => []), ...clips];
   clips = clips.map(closeLoop);
   const mixer = new THREE.AnimationMixer(model);
   return { model, clips, mixer, tris: Math.round(tris), joints };
