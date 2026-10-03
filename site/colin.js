@@ -195,7 +195,30 @@ export function createMiniColin({ go, known, items, pageOf }) {
     // wrapped to its first frame -- him in the air, falling into the roll -- for a beat after landing
     play(ch.mixer, c, { fade: name === 'roll' ? 0.2 : 0.35, once: name === 'roll' });
   }
-  function walkTo(x) { LIFE.to = x; LIFE.mode = 'walk'; LIFE.face = x > LIFE.x ? 1 : -1; lifeClip(LIFE.walk);
+  /* TURN, THEN WALK. His file has `turn_left` / `turn_right`: IN-PLACE stepping turns -- the legs
+     step round and the hips never yaw (measured: a constant 6 degrees across the whole clip), so the
+     ROTATION is ours to do, in time with the feet. A quarter turn is one cycle of the clip played
+     over `TURN.dur`; he does not move while it runs, and walks (or stands) when it is done. Without
+     this he spun on the spot with his walk cycle already running, which read as a glide.
+     +rotation is toward screen right, which for a man facing the camera is HIS LEFT. */
+  const TURN = { dur: 0.7 };
+  function turnTo(face, after) {
+    const d = face - LIFE.faceNow; LIFE.face = face;
+    if (Math.abs(d) < 0.3 || !LIFE.clips.tl || !LIFE.clips.tr) { LIFE.turn = null; lifeClip(after); return; }
+    if (LIFE.turn && LIFE.turn.to === face) { LIFE.turn.after = after; return; }
+    LIFE.turn = { from: LIFE.faceNow, to: face, t: 0, dur: TURN.dur * Math.min(2, Math.abs(d)), after };
+    const k = d > 0 ? 'tl' : 'tr'; lifeClip(k);
+    ch.mixer.clipAction(LIFE.clips[k]).setEffectiveTimeScale(LIFE.clips[k].duration / TURN.dur);
+  }
+  // while a turn runs: the body comes round on an ease, and true is returned (hold still)
+  function turnStep(dt) {
+    const T = LIFE.turn; if (!T) return false;
+    T.t += dt; const u = Math.min(1, T.t / T.dur), e = u * u * (3 - 2 * u);
+    LIFE.faceNow = T.from + (T.to - T.from) * e;
+    if (u < 1) return true;
+    LIFE.turn = null; LIFE.faceNow = T.to; lifeClip(T.after); return false;
+  }
+  function walkTo(x) { LIFE.to = x; LIFE.mode = 'walk'; turnTo(x > LIFE.x ? 1 : -1, LIFE.walk);
     if (LIFE.exit && bubble) bubble.hidden = true; }
   function lifeDecide() {
     const [lo, hi] = lane(), r = Math.random();
@@ -241,8 +264,12 @@ export function createMiniColin({ go, known, items, pageOf }) {
       // in the air (the homepage throws him when you flick the page): up, down, then a roll out of the landing
       if (rollT > 0) rollT -= dt;
       const airC = rollT > 0 ? 'roll' : airMode === 'up' || airMode === 'down' ? airMode : null;   // the roll, once started, plays out
-      LIFE.face = airC ? 0 : hd; lifeClip(airC || (hd ? 'walk' : waveT > 0 ? 'wave' : 'idle'));
-      LIFE.faceNow += (hd - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
+      if (airC) { LIFE.turn = null; LIFE.hdWas = null; }
+      else if (hd !== LIFE.hdWas) { LIFE.hdWas = hd; turnTo(hd, hd ? 'walk' : 'idle'); }   // turn, then walk
+      if (!turnStep(dt)) {
+        LIFE.face = airC ? 0 : hd; lifeClip(airC || (hd ? 'walk' : waveT > 0 ? 'wave' : 'idle'));
+        LIFE.faceNow += (LIFE.face - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
+      }
       // on a game's page he turns round to look at the game behind him (not while walking or talking)
       const back = lookBackOn && !hd && state === 'off' ? 1 : 0;
       LIFE.back = (LIFE.back || 0) + (back - (LIFE.back || 0)) * (1 - Math.exp(-4 * dt));
@@ -255,7 +282,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
       LIFE.x += (LIFE.to - LIFE.x) * (1 - Math.exp(-3 * dt));
       ch.model.rotation.y = LIFE.faceNow * Math.PI / 2;
       dock.style.transform = `translateX(${LIFE.x}px)`;
-      if (LIFE.tread <= 0) { LIFE.mode = 'idle'; LIFE.face = 0; LIFE.t = 2 + Math.random() * 3; lifeClip('idle'); }
+      if (LIFE.tread <= 0) { LIFE.mode = 'idle'; LIFE.t = 2 + Math.random() * 3; turnTo(0, 'idle'); }
       else return;
     }
     if (state !== 'off') {
@@ -263,12 +290,13 @@ export function createMiniColin({ go, known, items, pageOf }) {
       const hi = lane()[1];
       if (LIFE.gone || LIFE.x === null) { LIFE.x = innerWidth + 10; LIFE.gone = false; LIFE.exit = false; dock.classList.remove('away'); }
       if (Math.abs(LIFE.x - hi) > 1) { if (LIFE.mode !== 'walk' || LIFE.to !== hi) { LIFE.walk = 'walk'; walkTo(hi); } }
-      else if (LIFE.mode === 'walk') { LIFE.mode = 'idle'; LIFE.face = 0; lifeClip('idle'); }
-      if (LIFE.mode === 'walk') {
+      else if (LIFE.mode === 'walk') { LIFE.mode = 'idle'; turnTo(0, 'idle'); }
+      const turning = turnStep(dt);
+      if (LIFE.mode === 'walk' && !turning) {
         const v = LIFE.speed * pxPerM() * (camera.userData.h || 1), d = LIFE.to - LIFE.x;
-        if (Math.abs(LIFE.faceNow - LIFE.face) < 0.35) LIFE.x += Math.sign(d) * Math.min(Math.abs(d), v * 1.4 * dt);
+        LIFE.x += Math.sign(d) * Math.min(Math.abs(d), v * 1.4 * dt);
       }
-      LIFE.faceNow += (LIFE.face - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
+      if (!turning) LIFE.faceNow += (LIFE.face - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
       ch.model.rotation.y = LIFE.faceNow * Math.PI / 2;
       dock.style.transform = `translateX(${LIFE.x}px)`; dock.classList.add('rside');
       return;
@@ -281,19 +309,19 @@ export function createMiniColin({ go, known, items, pageOf }) {
       const v = LIFE.speed * (LIFE.walk === 'swagger' ? 0.85 : 1) * pxPerM() * (camera.userData.h || 1);
       const d = LIFE.to - LIFE.x, step = Math.sign(d) * Math.min(Math.abs(d), v * dt);
       // only move once he has actually turned, or he glides sideways while facing out
-      if (Math.abs(LIFE.faceNow - LIFE.face) < 0.35) LIFE.x += step;
+      if (!LIFE.turn && Math.abs(LIFE.faceNow - LIFE.face) < 0.35) LIFE.x += step;
       if (Math.abs(LIFE.to - LIFE.x) < 0.5) {
         if (LIFE.exit) { LIFE.exit = false; LIFE.gone = true; LIFE.mode = 'gone'; dock.classList.add('away');
           LIFE.t = reading ? 1e9 : 5 + Math.random() * 12; lifeClip('idle'); }
-        else { LIFE.mode = 'idle'; LIFE.face = 0; LIFE.t = 2.5 + Math.random() * 5; lifeClip('idle'); }
+        else { LIFE.mode = 'idle'; LIFE.t = 2.5 + Math.random() * 5; turnTo(0, 'idle'); }
       }
     } else {
       if (LIFE.gone && reading) LIFE.t = Math.max(LIFE.t, 1.2);
       else if (LIFE.gone && LIFE.t > 1.2) LIFE.t = Math.min(LIFE.t, 1.2 + Math.random() * 6);
       LIFE.t -= dt; if (LIFE.t <= 0) lifeDecide();
     }
-    // turning is a turn, not a snap: profile to walk, back to the viewer to stand
-    LIFE.faceNow += (LIFE.face - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
+    // turning is a turn, not a snap: the stepping turn when there is one, else an ease
+    if (!turnStep(dt)) LIFE.faceNow += (LIFE.face - LIFE.faceNow) * (1 - Math.exp(-9 * dt));
     ch.model.rotation.y = LIFE.faceNow * Math.PI / 2;
     dock.style.transform = `translateX(${LIFE.x}px)`;
     dock.classList.toggle('rside', LIFE.x > innerWidth / 2);
@@ -379,7 +407,8 @@ export function createMiniColin({ go, known, items, pageOf }) {
     idle = pickClip(c.clips, 'idle_neutral', 'neutral_idle');
     Object.assign(LIFE.clips, { dance: c.clips.find(x => x.name === DANCE) || c.clips.find(x => x.name === DANCE0) || null, up: c.clips.find(x => x.name === 'jump_going_up') || null, down: c.clips.find(x => x.name === 'jump_coming_down') || null, roll: c.clips.find(x => x.name === 'landing_roll') || null, idle, walk: pickClip(c.clips, 'walk_fwd_neutral'), swagger: pickClip(c.clips, 'walk_fwd_swagger'),
       kick: pickClip(c.clips, 'idle_sad_kick'), wave: pickClip(c.clips, 'waving'), moon: pickClip(c.clips, 'dance_moonwalk'),
-      tired: pickClip(c.clips, 'idle_exhausted') });
+      tired: pickClip(c.clips, 'idle_exhausted'),
+      tl: c.clips.find(x => x.name === 'turn_left') || null, tr: c.clips.find(x => x.name === 'turn_right') || null });
     LIFE.walk = 'walk'; LIFE.cur = idle;
     play(c.mixer, idle, { fade: 0 }); c.mixer.update(0.01);
     const box = skinnedBounds(c.model), h = box.max.y - box.min.y;
@@ -645,7 +674,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   function standAt(cx) {
     if (!ch) return;
     LIFE.gone = false; LIFE.exit = false; dock.classList.remove('away');
-    LIFE.x = cx - bodyW() / 2; LIFE.mode = 'idle'; LIFE.face = 0; LIFE.faceNow = 0; LIFE.t = 3 + Math.random() * 4; lifeClip('idle');
+    LIFE.x = cx - bodyW() / 2; LIFE.mode = 'idle'; LIFE.face = 0; LIFE.faceNow = 0; LIFE.turn = null; LIFE.t = 3 + Math.random() * 4; lifeClip('idle');
   }
   const present = v => { presWant = v ? 1 : 0; };
   const heroWalk = d => { heroDir = d || 0; };
@@ -658,5 +687,5 @@ export function createMiniColin({ go, known, items, pageOf }) {
   const grooveSet = on => { on = !!on; if (on === groove) return; groove = on;
     if (ch && (LIFE.cur === LIFE.clips.idle || LIFE.cur === LIFE.clips.dance)) lifeClip('idle'); };
   const watch = f => { watchers.add(f); f(state !== 'off'); return () => watchers.delete(f); };
-  return { _mixer: () => ch?.mixer, act, ask, wake, sleep, adopt, release, present, heroWalk, heroAir, lookBack: v => { lookBackOn = !!v; }, wave: () => { waveWant = true; }, watch, groove: grooveSet, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; } };
+  return { _mixer: () => ch?.mixer, act, ask, wake, sleep, adopt, release, present, heroWalk, heroAir, lookBack: v => { lookBackOn = !!v; }, wave: () => { waveWant = true; }, watch, groove: grooveSet, headScreen, stroll, body, standAt, get awake() { return state !== 'off'; }, get turning() { return !!LIFE.turn; } };
 }

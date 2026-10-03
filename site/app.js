@@ -852,7 +852,9 @@ addEventListener('scroll', () => {
       P.f = want.f - A.h;
     } else if (HOMESTAGE._air) { HOMESTAGE._air = null; colin?.heroAir?.(null); }
     let walk = SEAT?.dir || 0;
-    if (SEAT) P.x += (want.x - P.x) * e;
+    const hold = colin?.turning;   // he turns on the spot first (his stepping turn), then sets off
+    if (hold) { if (!SEAT) { const d = want.x - P.x; walk = Math.abs(d) > 2 ? Math.sign(d) : 0; } }
+    else if (SEAT) P.x += (want.x - P.x) * e;
     else {   // a walk, at a walking pace for a man his size on screen -- not a slide
       const d = want.x - P.x, v = 1.5 * (px0 * P.k / 1.85);
       if (Math.abs(d) > 2) { walk = Math.sign(d); P.x += walk * Math.min(Math.abs(d), v * dt); } else P.x = want.x;
@@ -1290,5 +1292,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=b2dee6ab').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=1ca591b8').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));
