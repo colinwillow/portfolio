@@ -96,8 +96,40 @@ function closeLoop(clip) {
 }
 
 /** Load a character. `onProgress(0..1)` when the server sends a length. `anim`: a file to borrow clips from. */
+/* ARMS OUT, for a body wearing another body's clips. Jack wears Colin's, and Colin's shoulders sit
+   further out than Jack's -- so the same arm rotations hang Jack's arms straight down and a little
+   behind him, into his own sides. `out` swings both upper arms away from the body (degrees, about
+   the body's own forward axis), `fwd` brings them forward (about its left-right axis), and the
+   forearms take back `bend` of the outward swing so the hands still come in toward the hips.
+   Everything is measured off the posed shoulders each frame -- no axis is assumed for the rig. */
+export function armsOut(model, { out = 0, fwd = 0, bend = 0.5 } = {}) {
+  const find = re => { let b = null; model.traverse(o => { if (!b && re.test(o.name)) b = o; }); return b; };
+  const L = find(/LeftArm$/), R = find(/RightArm$/), LF = find(/LeftForeArm$/), RF = find(/RightForeArm$/);
+  const bones = [L, R, LF, RF].filter(Boolean), saved = bones.map(b => b.quaternion.clone());
+  const pl = new THREE.Vector3(), pr = new THREE.Vector3(), left = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), f = new THREE.Vector3();
+  const qa = new THREE.Quaternion(), qb = new THREE.Quaternion(), P = new THREE.Quaternion(), rot = new THREE.Quaternion();
+  const turn = (b, axis, deg, axis2, deg2) => {   // world rotation applied to a bone, written back in its parent's frame
+    b.parent.getWorldQuaternion(P);
+    rot.setFromAxisAngle(axis, deg * Math.PI / 180); if (axis2) rot.multiply(qb.setFromAxisAngle(axis2, deg2 * Math.PI / 180));
+    b.quaternion.premultiply(qa.copy(P).invert().multiply(rot).multiply(P));   // local' = P^-1 R P local
+  };
+  return {
+    apply() {
+      if (!L || !R) return;
+      bones.forEach((b, i) => saved[i].copy(b.quaternion));
+      model.updateMatrixWorld(true);
+      L.getWorldPosition(pl); R.getWorldPosition(pr); left.subVectors(pl, pr).normalize();
+      f.crossVectors(left, up).normalize();                  // the way he faces: left x up
+      turn(L, f, out, left, -fwd); turn(R, f, -out, left, -fwd);
+      model.updateMatrixWorld(true);
+      if (LF) turn(LF, f, -out * bend); if (RF) turn(RF, f, out * bend);
+    },
+    undo() { bones.forEach((b, i) => b.quaternion.copy(saved[i])); },
+  };
+}
+
 /** `borrow`: the exact clip names to take from `anim` (default: just an idle, a walk and a run) */
-export async function loadCharacter(url, onProgress, { anim = null, borrow = null } = {}) {
+export async function loadCharacter(url, onProgress, { anim = null, borrow = null, arms = null } = {}) {
   const g = await loadGLTF(url, onProgress);
   const model = g.scene;
   let tris = 0, joints = 0;
@@ -117,6 +149,10 @@ export async function loadCharacter(url, onProgress, { anim = null, borrow = nul
   if (anim && !clips.some(c => /idle/i.test(c.name))) clips = [...await borrowClips(model, anim, borrow).catch(() => []), ...clips];
   clips = clips.map(closeLoop);
   const mixer = new THREE.AnimationMixer(model);
+  if (arms) {   // a pose correction laid over every clip: taken off before the mixer runs, put back after
+    const fix = armsOut(model, arms), up = mixer.update.bind(mixer);
+    mixer.update = dt => { fix.undo(); up(dt); fix.apply(); return mixer; };
+  }
   return { model, clips, mixer, tris: Math.round(tris), joints };
 }
 

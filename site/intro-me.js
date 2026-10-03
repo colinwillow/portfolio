@@ -4,7 +4,7 @@
 // particles can be shoved out of his way. When he has walked off the right he
 // takes his canvas with him.
 import * as THREE from '../vendor/three.module.min.js';
-import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=6f672394';
+import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=e9487a7b';
 
 export async function mountMe(cv, { bg = '#f3e4c6', mode = 'depth' } = {}) {
   const c = await loadCharacter(new URL('../models/colin.glb', import.meta.url).href);

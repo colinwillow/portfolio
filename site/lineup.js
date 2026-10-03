@@ -11,7 +11,7 @@
 //     each, and from where the camera stands nobody can tell;
 //   * it only renders while the Characters page is showing and on screen.
 import * as THREE from '../vendor/three.module.min.js';
-import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=6f672394';
+import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=e9487a7b';
 
 // back: how far behind Colin the line stands (they read smaller, so more of them fit); forward: where the
 // picked one walks out to, in front of him
@@ -126,7 +126,7 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
       if (S.dead) return;
       if (s.c.colin) { s.ghost = true; s.loaded = true; s.mixer = { update() {} }; stageLeft(s, 0); return; }
       try {
-        const ch = await loadCharacter(new URL('../' + s.c.glb, import.meta.url).href, null, { anim: s.c.anim && new URL('../' + s.c.anim, import.meta.url).href, borrow: s.c.borrow });
+        const ch = await loadCharacter(new URL('../' + s.c.glb, import.meta.url).href, null, { anim: s.c.anim && new URL('../' + s.c.anim, import.meta.url).href, borrow: s.c.borrow, arms: s.c.arms });
         if (s.c.colin) {                                           // Colin's own file: donor heads out, his face shape on
           const loose = []; let sk = 0; ch.model.traverse(o => { if (o.isSkinnedMesh) sk++; else if (o.isMesh) loose.push(o); });
           if (sk) loose.forEach(o => o.removeFromParent());
@@ -142,7 +142,8 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
           run: has(/^run_fwd$|run_fwd|^running$|^run$|drunk_run_forward|standing_run_forward|run_forward/i),
           walk: has(/walk_fwd_neutral|^walk_fwd|^walking$|^walk$|standing_walk_forward|walk_forward/i) || has(/^(?!.*(back|left|right|strafe)).*walk/i),
           air: has(/floating|in_air|falling_idle|jump_going_up|air|fall/i),
-          land: has(/landing_soft|^landing$|landing|hard_landing/i) };
+          land: has(/landing_soft|^landing$|landing|hard_landing/i),
+          wave: has(/^waving$|wave|greet|salute/i) };
         // measured once the idle is FULLY in: the clip fades in over a quarter second, and at
         // 0.01s he is still in his bind pose -- which for Zorp sits 0.66 m lower than his idle,
         // so he was set on the floor by a pose he never stands in, and floated
@@ -180,8 +181,15 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
     } else if (s.state === 'land') {
       s.landT -= dt; if (s.landT <= 0) s.state = 'idle';
     } else {
-      const dx = s.tx - s.x, dz = s.tz - s.z, d = Math.hypot(dx, dz);
+      /* ONE AXIS AT A TIME, so a step out reads as taking centre stage: someone called forward
+         walks along the line to the middle FIRST and only then steps out toward us; someone going
+         back steps back into the line first and then walks along it. (Both at once was a diagonal
+         that started out of the line before they had got anywhere near the middle.) */
+      let dx = s.tx - s.x, dz = s.tz - s.z;
+      if (Math.abs(dx) > 0.06 && Math.abs(dz) > 0.06) { if (dz > 0) dz = 0; else dx = 0; }
+      const d = Math.hypot(dx, dz);
       if (d > 0.06) {
+        s.waved = false; s.waveT = 0;
         if (s.state !== 'walk') { s.state = 'walk'; clip(s, 'walk'); }
         const v = Math.min(d * 3, d > 1.6 && s.clips.run ? 2.6 : 1.4);   // one pace for everyone, so the line moves as a line
         if (d > 1.6 && s.clips.run && s.cur !== s.clips.run) clip(s, 'run'); else if (d <= 1.6 && s.cur === s.clips.run) clip(s, 'walk');
@@ -189,6 +197,14 @@ export function createLineup(host, chars, { onPick = () => {}, colin = null } = 
         s.wantYaw = Math.atan2(dx, dz);
       } else {
         if (s.state !== 'idle') { s.state = 'idle'; clip(s, 'idle'); }
+        // ...and once out front, a wave: they have just taken centre stage
+        if (S.sel === s.c.slug && !s.waved && !s.ghost && s.state === 'idle') {
+          s.waved = true;
+          if (s.clips.wave) { s.cur = s.clips.wave; play(s.mixer, s.clips.wave, { once: true, fade: 0.25 }); s.waveT = s.clips.wave.duration * 0.92; }
+        }
+        // timed here rather than on the clip's 'finished' event, so a wave cut short by a walk cannot
+        // fire a late switch back to idle on top of the walk
+        if (s.waveT > 0 && (s.waveT -= dt) <= 0) clip(s, 'idle');
         s.wantYaw = s.rest;                                          // back to (nearly) facing us
       }
       let dy = (s.wantYaw ?? 0) - s.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));

@@ -158,6 +158,7 @@ export const ASSETS = [
   // stripped copy of Colin (bones + clips, no mesh: models/assets/donors, from Zap 'n Clancy's `npm run donor`)
   { slug: 'jack', h: 1.78, title: 'Jack', from: "Zap 'n Clancy", glb: 'models/assets/jack.glb', anim: 'models/assets/donors/colin_anims.glb', mb: 0.3,
     borrow: ['idle_neutral', 'walk_fwd_neutral', 'run_fwd', 'walk_fwd_swagger', 'waving', 'idle_sad_kick', 'dance_moonwalk', 'dance_hiphop_01', 'dance_wiggle_feet', 'jump_going_up', 'landing_roll'],
+    arms: { out: 9, fwd: 6, bend: 0.4 },   // Colin's shoulders are wider: his clips hang Jack's arms into his sides
     tris: 12468, joints: 66, clips: 0, prefer: ['idle_neutral'], notes: ['Modelled on a friend', 'Wears Colin\'s animations, retargeted at load', 'Draco + WebP'] },
   // Plutopia
   { slug: 'zorp', h: 1.45, title: 'Zorp', from: 'Plutopia', also: ['Shredworld'], glb: 'models/assets/alien_orange.glb', mb: 2.3,
