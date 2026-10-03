@@ -201,7 +201,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
      over `TURN.dur`; he does not move while it runs, and walks (or stands) when it is done. Without
      this he spun on the spot with his walk cycle already running, which read as a glide.
      +rotation is toward screen right, which for a man facing the camera is HIS LEFT. */
-  const TURN = { dur: 0.7 };
+  const TURN = { dur: 0.45 };
   function turnTo(face, after) {
     const d = face - LIFE.faceNow; LIFE.face = face;
     if (Math.abs(d) < 0.3 || !LIFE.clips.tl || !LIFE.clips.tr) { LIFE.turn = null; lifeClip(after); return; }
