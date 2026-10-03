@@ -201,20 +201,31 @@ export function createMiniColin({ go, known, items, pageOf }) {
      over `TURN.dur`; he does not move while it runs, and walks (or stands) when it is done. Without
      this he spun on the spot with his walk cycle already running, which read as a glide.
      +rotation is toward screen right, which for a man facing the camera is HIS LEFT. */
-  const TURN = { dur: 0.45 };
+  /* The body does NOT turn at a steady rate in these clips: it comes round while one foot is planted,
+     pauses while the weight shifts, then comes round again. MEASURED off the planted foot (tools:
+     scratchpad feet.mjs -- a foot on the floor seems to counter-rotate in a body that is really
+     turning): fraction of one cycle's rotation at 0, 1/16 .. 16/16 of the clip. One cycle is ~75
+     degrees of feet, stretched to the quarter turn. Driving the body on a smooth ease instead ran
+     it through the pauses, so the feet looked like a shuffle that had nothing to do with the turn. */
+  const TURN = { dur: 0.6, fade: 0.1,
+    curve: [0, 0.044, 0.089, 0.158, 0.23, 0.294, 0.359, 0.407, 0.454, 0.466, 0.489, 0.501, 0.533, 0.633, 0.633, 0.812, 1] };
+  const turnCurve = u => { const c = TURN.curve, x = Math.min(1, Math.max(0, u)) * (c.length - 1), i = Math.min(c.length - 2, Math.floor(x)); return c[i] + (c[i + 1] - c[i]) * (x - i); };
   function turnTo(face, after) {
     const d = face - LIFE.faceNow; LIFE.face = face;
     if (Math.abs(d) < 0.3 || !LIFE.clips.tl || !LIFE.clips.tr) { LIFE.turn = null; lifeClip(after); return; }
     if (LIFE.turn && LIFE.turn.to === face) { LIFE.turn.after = after; return; }
-    LIFE.turn = { from: LIFE.faceNow, to: face, t: 0, dur: TURN.dur * Math.min(2, Math.abs(d)), after };
-    const k = d > 0 ? 'tl' : 'tr'; lifeClip(k);
-    ch.mixer.clipAction(LIFE.clips[k]).setEffectiveTimeScale(LIFE.clips[k].duration / TURN.dur);
+    const n = Math.max(1, Math.round(Math.abs(d)));     // one cycle of the clip per quarter turn
+    LIFE.turn = { from: LIFE.faceNow, to: face, t: 0, n, dur: TURN.dur * n, after };
+    const k = d > 0 ? 'tl' : 'tr', c = LIFE.clips[k];
+    LIFE.cur = c; document.body.dataset.colinClip = k;
+    const a = play(ch.mixer, c, { fade: TURN.fade });   // a quick blend in, or the fade eats the first step
+    a.time = 0; a.setEffectiveTimeScale(c.duration / TURN.dur);   // and always from its first frame, in step with the body
   }
-  // while a turn runs: the body comes round on an ease, and true is returned (hold still)
+  // while a turn runs: the body comes round as the planted foot says, and true is returned (hold still)
   function turnStep(dt) {
     const T = LIFE.turn; if (!T) return false;
-    T.t += dt; const u = Math.min(1, T.t / T.dur), e = u * u * (3 - 2 * u);
-    LIFE.faceNow = T.from + (T.to - T.from) * e;
+    T.t += dt; const u = Math.min(1, T.t / T.dur), cyc = u * T.n, whole = Math.min(T.n - 1, Math.floor(cyc));
+    LIFE.faceNow = T.from + (T.to - T.from) * (whole + turnCurve(cyc - whole)) / T.n;
     if (u < 1) return true;
     LIFE.turn = null; LIFE.faceNow = T.to; lifeClip(T.after); return false;
   }
