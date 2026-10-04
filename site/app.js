@@ -1272,7 +1272,7 @@ if (wantIntro && !/[?&]walk=side/.test(location.search)) {
   addEventListener('scroll', () => { if (!document.getElementById('intro')) rise(0, 500); }, { passive: true });   // never strand him low
 }
 const intro = wantIntro
-  ? import('./intro.js?v=175536db').then(m => m.playIntro({ build: BUILD, role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
+  ? import('./intro.js?v=302ab66c').then(m => m.playIntro({ build: BUILD, role: SITE.role, bg: css('--bg'), glorb: () => GLORB.api, dotK: GLORB_DOT }))
       .catch(err => console.warn('intro', err))
       .finally(() => { const t = setInterval(() => { if (!document.getElementById('intro')) { clearInterval(t); setTimeout(() => rise(), 2500); } }, 400); })   // (if the handoff never comes, rise anyway, once the intro has gone)
   : Promise.resolve();

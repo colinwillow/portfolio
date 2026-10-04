@@ -26,7 +26,7 @@ export function playIntro({ build = '', role = '', bg = '#f3e4c6', rim = '#9a1cf
     const logo = document.querySelector('#hud .logo');
     el.innerHTML = `<canvas></canvas><div class="intro-word">${logo ? logo.outerHTML : '<b>COLIN</b> WILLOW'}</div>
       ${role ? `<p class="intro-role">${role.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}</p>` : ''}
-      <button class="intro-enter">Enter</button>
+      <button class="intro-enter" aria-label="Enter"><span class="ie-body"><span class="ie-ring"></span><span class="ie-face"><span class="ie-label">${[...'Enter'].map((c, i) => `<b style="--i:${i}">${c}</b>`).join('')}</span><svg class="ie-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h12M12 6l6 6-6 6"/></svg></span></span><i class="ie-shard" style="--a:-45deg"></i><i class="ie-shard" style="--a:45deg"></i><i class="ie-shard" style="--a:135deg"></i><i class="ie-shard" style="--a:-135deg"></i><span class="ie-wave"></span></button>
       ${build ? `<span class="intro-build">build ${String(build).replace(/[^\w.-]/g, '')}</span>` : ''}`;
     /* HIM. While the portal runs, his rig loads in the background; on Enter he
        walks in from the left, straight through the particles -- they part
@@ -453,6 +453,7 @@ export function playIntro({ build = '', role = '', bg = '#f3e4c6', rim = '#9a1cf
     }
     function enter() {
       if (blown || walking) return;
+      el.querySelector('.intro-enter')?.classList.add('go');   // the button transforms on the way out
       if (me.ok) {                         // he walks through first
         walking = true; me.on = true; me.api.start(W, H); walkT0 = performance.now();
         if (me.api.depth) { front.fill(1); curtainAt(); }   // he starts BEHIND the field: every dot is in front of him
