@@ -109,7 +109,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
       <p>Hey. Want to talk? I can show you around.</p>
       <div><button class="mini-yes">Talk</button><button class="mini-no" aria-label="Dismiss">✕</button></div>
     </div>
-    <div class="mini-pill" hidden><button class="mini-pk" aria-pressed="false" aria-label="Type instead" title="Type instead">⌨</button><button class="mini-ps">Stop</button></div>
+    <div class="mini-pill" hidden><button class="mini-pc" aria-pressed="false" aria-label="Captions" title="Captions">CC</button><button class="mini-pk" aria-pressed="false" aria-label="Type instead" title="Type instead">⌨</button><button class="mini-ps">Stop</button></div>
     <div class="mini-eq" aria-hidden="true">${'<i></i>'.repeat(23)}</div>
     <button class="mini-body" aria-label="Colin"><canvas></canvas><span class="mini-tag"></span></button>`;
   // he lives ON the strip now, which is part of the page, so he scrolls with it
@@ -443,7 +443,16 @@ export function createMiniColin({ go, known, items, pageOf }) {
   // for when talking isn't an option (the keyboard button).
   const brain = createBrain(known);
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let ctx = null, state = 'off', rec = null, heard = '', gapT = 0, cc = false, turn = 0;
+  /* HE IS A VOICE, NOT A TRANSCRIPT. Captions -- his words and yours -- are off unless you ask for them
+     (CC, remembered), on the stage as well as the strip. Two things stand in for the text instead:
+     on an iPhone the ring switch silences Web Audio, so while he is awake the page asks iOS for a
+     'playback' audio session, which plays through the switch (iOS 17+); and where that is not
+     available he says, once, that the phone may be on silent and CC is there. A page cannot read the
+     switch or the volume, so that hint is the most that can honestly be said. */
+  let ctx = null, state = 'off', rec = null, heard = '', gapT = 0, turn = 0, hinted = false;
+  let cc = (() => { try { return localStorage.getItem('cw.cc') === '1'; } catch { return false; } })();
+  const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const session = t => { try { if (navigator.audioSession) navigator.audioSession.type = t; } catch {} };
   const watchers = new Set();
   const setState = s2 => { state = s2; dock.dataset.state = s2; watchers.forEach(f => f(s2 !== 'off'));
     tag.textContent = { off: '', listening: 'Listening', thinking: 'Thinking', speaking: 'Talking' }[s2];
@@ -453,7 +462,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   let capT = 0;
   // on the stage the captions ARE his speech bubble (always on, no CC toggle there); on the strip, CC as before
   const caption = (text, force = false, you = false) => {
-    if (!cc && !force && !dock.classList.contains('hero')) return;
+    if (!cc && !force) return;
     cap.textContent = text; cap.hidden = !text; cap.classList.toggle('you', you); clearTimeout(capT);
     if (text) capT = setTimeout(() => { if (state !== 'speaking') cap.hidden = true; }, 6000);
   };
@@ -580,7 +589,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
     rec.onresult = ev => {
       const was = heard; heard = [...ev.results].map(r => r[0].transcript).join(' ').trim();
       if (heard !== was) eqKick(0.55 + Math.min(0.45, (heard.length - was.length) * 0.06));   // the bars jump as your words come in
-      if (cc || dock.classList.contains('hero')) caption('“' + heard + '”', false, true);
+      if (cc) caption('“' + heard + '”', false, true);
       clearTimeout(gapT);
       gapT = setTimeout(() => { const h = heard; if (h) ask(h); }, 750);
     };
@@ -595,6 +604,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
 
   async function wake() {
     // Everything that must happen INSIDE the tap happens here, first.
+    session('playback');   // before the context: it decides what the silent switch does to him
     ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
     await ctx.resume();
     const blip = ctx.createBufferSource(); blip.buffer = ctx.createBuffer(1, 1, 22050); blip.connect(ctx.destination); blip.start();
@@ -604,6 +614,8 @@ export function createMiniColin({ go, known, items, pageOf }) {
                   : "Hey, I'm Colin. Type to me down here, or tell me where you want to go.";
     brain.remember('assistant', hi); log('him', hi);
     setState('speaking');
+    // no way round the silent switch on this phone: say so once, as he starts, and point at CC
+    if (IOS && !navigator.audioSession && !cc && !hinted) { hinted = true; caption('🔇 Phone on silent? Turn the sound up, or tap CC for subtitles.', true); }
     sp.add(hi);
     if (!SR && !dock.classList.contains('hero')) openKeys(true);   // (on a stage, typing waits behind the ⌨ toggle)
     await sp.finished().catch(() => {});
@@ -612,6 +624,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
   function sleep() {
     turn++; stopListening(); hush(); setState('off'); dock.classList.remove('on');
     tools.hidden = true; panel.hidden = true; cap.hidden = true;
+    session('auto');   // hand the phone's audio back (music the visitor was playing can resume)
   }
   function openKeys(on) {
     panel.hidden = !on; $d('.mini-kb').setAttribute('aria-pressed', String(on)); $d('.mini-pk').setAttribute('aria-pressed', String(on));
@@ -637,7 +650,11 @@ export function createMiniColin({ go, known, items, pageOf }) {
   // on a stage, the talking controls are one pill beside his head: Stop, and typing behind ⌨ (pill: declared with the EQ)
   $d('.mini-ps').onclick = sleep;
   $d('.mini-pk').onclick = () => openKeys(panel.hidden);
-  $d('.mini-cc').onclick = function () { cc = !cc; this.setAttribute('aria-pressed', String(cc)); if (!cc) cap.hidden = true; };
+  const setCC = on => { cc = on; try { localStorage.setItem('cw.cc', on ? '1' : '0'); } catch {}
+    for (const b of dock.querySelectorAll('.mini-cc, .mini-pc')) b.setAttribute('aria-pressed', String(on)); if (!on) cap.hidden = true; };
+  setCC(cc);
+  $d('.mini-cc').onclick = () => setCC(!cc);
+  $d('.mini-pc').onclick = () => setCC(!cc);
   $d('.mini-kb').onclick = () => openKeys(panel.hidden);
   form.onsubmit = e => { e.preventDefault(); const t = input.value; input.value = ''; if (state === 'off') wake().then(() => ask(t)); else ask(t); };
   setState('off');
