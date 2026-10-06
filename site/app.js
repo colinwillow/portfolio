@@ -230,6 +230,10 @@ const PAGES = {
         <div class="row">${ext(it.url, 'Open ' + esc(it.title) + ' ↗', 'btn accent')}
           <span class="pill ${it.status === 'live' ? 'hot' : ''}">${STATUS[it.status]}</span>
           ${it.tags.map(t => `<span class="pill">${esc(t)}</span>`).join('')}</div>
+        ${it.url ? `<div class="play-phone">   <!-- on a laptop: watch the footage above, then scan this and play it on a phone, the way it is meant to be played -->
+          <img class="qr" src="site/qr/${esc(it.slug)}.svg" alt="QR code: open ${esc(it.title)} on your phone" width="132" height="132">
+          <div><b>Made for a phone</b><span>Point your phone's camera here and play it with two thumbs, the way it's meant to be played.</span>
+            <a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.url.replace(/^https?:\/\//, '').replace(/\/$/, ''))}</a></div></div>` : ''}
         ${(() => {   // its app icon first, then whatever current art it has (never the throwaways)
           const pics = (it.gallery || (it.shot ? [it.shot] : [])).filter(g => g !== wide).map(g => `<img src="site/shots/${esc(g)}.webp" alt="${esc(it.title)}" loading="lazy">`);
           return pics.length ? `<div class="gallery">${pics.join('')}</div>` : ''; })()}

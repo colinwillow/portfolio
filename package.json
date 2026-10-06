@@ -6,6 +6,7 @@
     "bump": "node tools/bump.mjs",
     "glorb": "node tools/port-glorb.mjs",
     "check": "for f in site/*.js site/glorb/*.js lab/*.js; do node --check $f || exit 1; done && echo syntax ok",
-    "print": "node tools/stl.mjs"
+    "print": "node tools/stl.mjs",
+    "qr": "node tools/qr.mjs"
   }
 }
