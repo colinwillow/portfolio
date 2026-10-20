@@ -109,7 +109,11 @@ export function createMiniColin({ go, known, items, pageOf }) {
       <p>Hey. Want to talk? I can show you around.</p>
       <div><button class="mini-yes">Talk</button><button class="mini-no" aria-label="Dismiss">✕</button></div>
     </div>
-    <div class="mini-pill" hidden><button class="mini-pc" aria-pressed="false" aria-label="Captions" title="Captions">CC</button><button class="mini-pk" aria-pressed="false" aria-label="Type instead" title="Type instead">⌨</button><button class="mini-ps">Stop</button></div>
+    <div class="mini-floor">
+      <button class="mini-hint" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>tap me to talk</button>
+      <div class="mf mf-l" hidden><button class="mini-pc" aria-pressed="false" aria-label="Captions" title="Captions">CC</button><button class="mini-pk" aria-pressed="false" aria-label="Type instead" title="Type instead">⌨</button></div>
+      <div class="mf mf-r" hidden><button class="mini-ps">Stop</button></div>
+    </div>
     <div class="mini-eq" aria-hidden="true">${'<i></i>'.repeat(23)}</div>
     <button class="mini-body" aria-label="Colin"><canvas></canvas><span class="mini-tag"></span></button>`;
   // he lives ON the strip now, which is part of the page, so he scrolls with it
@@ -475,25 +479,31 @@ export function createMiniColin({ go, known, items, pageOf }) {
      meter fights it on a phone), so the bars run off what IS known: each burst of your words kicks
      them while he listens, and syllable-sized pulses drive them while he talks. Mirrored about the
      middle, low behind him and swelling out either side, eased per bar so they read as a meter and not as noise. */
-  const eqBars = [...dock.querySelectorAll('.mini-eq i')], eqH = new Float32Array(eqBars.length), pill = $d('.mini-pill');
+  const eqBars = [...dock.querySelectorAll('.mini-eq i')], eqH = new Float32Array(eqBars.length);
+  /* ON A STAGE, THE CONTROLS ARE PART OF THE STAGE (no pill floating by his head):
+     off, a 'tap me to talk' marking on the front of the ledge he stands on -- so a first-time visitor
+     on the homepage knows he is someone to talk to; on, two little floor wedges either side of his feet,
+     CC and the keyboard on one, Stop on the other, with the EQ rising behind them. */
+  const hint = $d('.mini-hint'), wedgeL = $d('.mf-l'), wedgeR = $d('.mf-r');
   let eqE = 0, eqNext = 0;
   function eqKick(e) { eqE = Math.max(eqE, e); }
   (function eqFrame(now) {
     requestAnimationFrame(eqFrame);
-    if (state === 'off' || !dock.classList.contains('hero')) { pill.hidden = true; if (eqE) { eqE = 0; eqBars.forEach(b => b.style.transform = 'scaleY(0)'); } return; }
-    // the Stop / ⌨ pill rides beside his head, up and to his left (our right), like the Talk bubble
-    pill.hidden = false;
-    { const h = headScreen(), par = pill.offsetParent;
-      if (h && par) { const pr = par.getBoundingClientRect(), bw = pill.offsetWidth, bh = pill.offsetHeight, k = h.h * 0.06;
-        pill.style.left = Math.max(8, Math.min(pr.width - bw - 8, h.x - pr.left + k * 0.9)).toFixed(1) + 'px';
-        pill.style.top = Math.max(64 - pr.top, h.y - pr.top - k * 1.6 - bh).toFixed(1) + 'px'; } }
-    // the caption bubble rides above his head (the pill is beside it), kept on screen
+    const stage = dock.classList.contains('hero');
+    // the marking: on a stage, while he is off -- not in the Characters line-up, where he is one of a crowd
+    hint.hidden = !(stage && state === 'off' && !document.body.classList.contains('colin-in-line'));
+    if (state === 'off' || !stage) { wedgeL.hidden = wedgeR.hidden = true; if (eqE) { eqE = 0; eqBars.forEach(b => b.style.transform = 'scaleY(0)'); } return; }
+    wedgeL.hidden = wedgeR.hidden = false;
+    { const r = canvas.getBoundingClientRect(), par = dock.getBoundingClientRect(), cx = r.left + r.width / 2 - par.left, gap = r.height * 0.15;
+      // either side of his feet, but never off the edge of the screen (a bigger Colin pushes them out)
+      const wl = wedgeL.offsetWidth, wr = wedgeR.offsetWidth;
+      wedgeL.style.right = Math.min(par.width - wl - 8, Math.max(8, par.width - (cx - gap))).toFixed(1) + 'px';
+      wedgeR.style.left = Math.min(par.width - wr - 8, Math.max(8, cx + gap)).toFixed(1) + 'px'; }
+    // the caption bubble rides above his head, kept on screen
     if (!cap.hidden) { const h = headScreen(), par = cap.offsetParent;
       if (h && par) { const pr = par.getBoundingClientRect(), w = cap.offsetWidth, ht = cap.offsetHeight;
         cap.style.left = Math.max(8, Math.min(pr.width - w - 8, h.x - pr.left - w * 0.42)).toFixed(1) + 'px';
-        let top = h.y - pr.top - h.h * 0.17 - ht;
-        const sb = pill.getBoundingClientRect();   // stack above the Stop pill, never under it
-        if (sb?.height) top = Math.min(top, sb.top - pr.top - ht - 10);
+        const top = h.y - pr.top - h.h * 0.17 - ht;
         cap.style.top = Math.max(64 - pr.top, top).toFixed(1) + 'px'; } }   // (it may rise above the stage box, to just under the top bar)
     if (state === 'speaking' && now > eqNext) { eqKick(0.45 + Math.random() * 0.55); eqNext = now + 70 + Math.random() * 120; }
     const floor = state === 'listening' ? 0.24 : state === 'thinking' ? 0.16 + 0.1 * Math.sin(now / 180) : 0.1;
@@ -647,7 +657,8 @@ export function createMiniColin({ go, known, items, pageOf }) {
     else if (state === 'speaking') { turn++; hush(); setState('listening'); listen(); }   // tap to interrupt him
   };
   $d('.mini-off').onclick = sleep;
-  // on a stage, the talking controls are one pill beside his head: Stop, and typing behind ⌨ (pill: declared with the EQ)
+  // on a stage: the floor marking wakes him, the wedges hold Stop and typing behind ⌨ (declared with the EQ)
+  hint.onclick = () => { if (state === 'off') { bubble.hidden = true; wake(); } };
   $d('.mini-ps').onclick = sleep;
   $d('.mini-pk').onclick = () => openKeys(panel.hidden);
   const setCC = on => { cc = on; try { localStorage.setItem('cw.cc', on ? '1' : '0'); } catch {}
