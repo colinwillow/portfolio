@@ -112,9 +112,12 @@ export function speakParts(parts, { who = 'reading', onTick, onEnd } = {}) {
  * inside the tap stays unlocked for the whole session.
  * Returns a controller whose `done` resolves when it finishes or is stopped.
  */
-export function speakBuffer(ctx, buffer, marks, text, { who = 'colin' } = {}) {
+/* `rate` plays it faster or slower than it was generated, and the mouth's timeline runs at the same
+   rate so the lip sync stays on the syllable. It raises the pitch along with the speed (a few per cent
+   is not heard as a different voice; 15%+ starts to be). Used because Eleven v4 has no speed control. */
+export function speakBuffer(ctx, buffer, marks, text, { who = 'colin', rate = 1 } = {}) {
   hush();
-  const src = ctx.createBufferSource(); src.buffer = buffer; src.connect(ctx.destination);
+  const src = ctx.createBufferSource(); src.buffer = buffer; src.connect(ctx.destination); src.playbackRate.value = rate;
   const spans = marks ? timelineFromMarks(marks) : timelineFromText(text, buffer.duration);
   const t0 = ctx.currentTime + 0.03; src.start(t0);
   let stopped = false, raf = 0, resolve;
@@ -128,7 +131,7 @@ export function speakBuffer(ctx, buffer, marks, text, { who = 'colin' } = {}) {
     },
   };
   src.onended = () => ctl.stop();
-  const loop = () => { if (stopped) return; raf = requestAnimationFrame(loop); mouth.shape = shapeAt(spans, ctx.currentTime - t0); };
+  const loop = () => { if (stopped) return; raf = requestAnimationFrame(loop); mouth.shape = shapeAt(spans, (ctx.currentTime - t0) * rate); };
   current = ctl; mouth.talking = true; mouth.who = who; emit('start', { who }); loop();
   return ctl;
 }

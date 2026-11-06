@@ -14,9 +14,12 @@
 
 import * as THREE from '../vendor/three.module.min.js';
 import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=e9487a7b';
-import { mouth, speakBuffer, hush, VISEME, JAW } from './speech.js?v=d7e94a3c';
+import { mouth, speakBuffer, hush, VISEME, JAW } from './speech.js?v=a2f662d8';
 
 export const BRAIN = 'https://orb-brain.colinwillowtree.workers.dev';
+/* HOW FAST HE TALKS, set here because Eleven v4 ignores the API's speed setting: his audio is played
+   this much faster (the mouth keeps pace). `?talkrate=1.15` in the address tries another live. */
+const TALKRATE = Math.min(1.4, Math.max(0.7, +new URLSearchParams(location.search).get('talkrate') || 1.08));
 const canon = n => n.toLowerCase().replace(/[^a-z]/g, '').replace(/mix$/, '');
 
 // --- where things are, for "take me to ..." ----------------------------------
@@ -528,7 +531,7 @@ export function createMiniColin({ go, known, items, pageOf }) {
         const buf = await ctx.decodeAudioData(v.bytes.slice(0));
         if (myTurn !== turn) break;
         setState('speaking'); caption(v.text);
-        await speakBuffer(ctx, buf, v.marks, v.text).done;
+        await speakBuffer(ctx, buf, v.marks, v.text, { rate: TALKRATE }).done;
       }
       active = false;
     }

@@ -345,7 +345,7 @@ const PAGES = {
     if (slug) {
       const it = WRITING.find(x => x.slug === slug);
       if (!it) return missing();
-      after = () => import('./reader.js?v=d5e74f37').then(async m => { mounted = await m.mountReader($('#essay'), it); });
+      after = () => import('./reader.js?v=62866d72').then(async m => { mounted = await m.mountReader($('#essay'), it); });
       return `<div class="wrap narrow">${crumbs(link('writing', 'Thoughts'), esc(it.title))}
         <h2 class="title">${esc(it.title)}</h2>${it.note ? `<p class="lede">${esc(it.note)}</p>` : ''}
         <div id="essay"><p class="soon">Loading…</p></div>${foot()}</div>`;
@@ -1170,7 +1170,7 @@ function mountAbout() {
   })();
   document.querySelectorAll('.listen').forEach(b => b.onclick = async () => {
     const w = WRITING.find(x => x.slug === b.dataset.slug);
-    const { speakParts, hush } = await import('./speech.js?v=d7e94a3c');
+    const { speakParts, hush } = await import('./speech.js?v=a2f662d8');
     if (b.dataset.on) { hush(); b.textContent = '▶ Listen'; delete b.dataset.on; return; }
     const j = await fetch(w.reading).then(r => r.json()), base = new URL(w.reading, document.baseURI);
     b.dataset.on = 1; b.textContent = '❚❚ Stop';
@@ -1296,5 +1296,5 @@ const ITEMS = [
   ...WRITING.map(w => ({ title: w.title, path: 'writing/' + w.slug })),
 ];
 if (!q.has('nocolin')) intro.then(() => new Promise(r => setTimeout(r, 900))).then(() =>
-  import('./colin.js?v=b2bf9f4a').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
+  import('./colin.js?v=1a85cb83').then(m => { colin = m.createMiniColin({ go, known: KNOWN, items: ITEMS, pageOf: () => '/' + route().join('/') }); colinWait.forEach(f => f(colin)); }))
   .catch(err => console.warn('mini colin unavailable', err));
