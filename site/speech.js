@@ -104,6 +104,40 @@ export function speakParts(parts, { who = 'reading', onTick, onEnd } = {}) {
   return ctl;
 }
 
+/* FASTER WITHOUT HIGHER: time-stretch by WSOLA. Playing audio faster raises its pitch with it (a
+   tape on fast-forward), and that made Colin sound like a small cartoon version of himself. This
+   cuts the sound into overlapping ~25 ms slices, takes them from further along the original than
+   it lays them down (that is the speed-up), and nudges each one within a few ms to where its
+   waveform lines up best with what is already there (that is what keeps the voice from warbling),
+   then crossfades them together. Pitch untouched, duration / rate. Pure: channels in, channels out,
+   so it can be measured in node. The search correlates every 4th sample over the overlap only --
+   cheap enough for a sentence in a few ms on a phone. */
+export function wsola(chans, sr, rate) {
+  if (!(rate > 0) || Math.abs(rate - 1) < 0.005) return chans;
+  const N = Math.max(256, Math.round(sr * 0.025) & ~1), Hs = N >> 1, Ha = Hs * rate, tol = Math.round(sr * 0.006);
+  const len = chans[0].length, outLen = Math.max(1, Math.floor(len / rate)), win = new Float32Array(N);
+  for (let i = 0; i < N; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / N);
+  const out = chans.map(() => new Float32Array(outLen + N)), norm = new Float32Array(outLen + N), x = chans[0];
+  let prev = 0;                                   // where the last slice was taken from
+  for (let k = 0, o = 0; o < outLen; k++, o += Hs) {
+    const want = Math.round(k * Ha);
+    let best = want;
+    if (k > 0) {                                  // the slice that would naturally follow the last one
+      const nat = prev + Hs; let bestC = -Infinity;
+      for (let d = -tol; d <= tol; d += 2) {
+        const p = want + d; if (p < 0 || p + N > len) continue;
+        let c = 0; for (let i = 0; i < Hs; i += 4) c += x[p + i] * x[nat + i];
+        if (c > bestC) { bestC = c; best = p; }
+      }
+    }
+    best = Math.max(0, Math.min(len - N, best)); prev = best;
+    for (let ch = 0; ch < chans.length; ch++) { const src = chans[ch], dst = out[ch];
+      for (let i = 0; i < N && o + i < dst.length; i++) dst[o + i] += src[best + i] * win[i]; }
+    for (let i = 0; i < N && o + i < norm.length; i++) norm[o + i] += win[i];
+  }
+  return out.map(a => { const r = a.subarray(0, outLen); for (let i = 0; i < outLen; i++) if (norm[i] > 1e-3) r[i] /= norm[i]; return r; });
+}
+
 /**
  * Play a decoded AudioBuffer through an AudioContext that was unlocked by a tap.
  * This is how anything that arrives AFTER a network round trip has to play on
@@ -112,13 +146,18 @@ export function speakParts(parts, { who = 'reading', onTick, onEnd } = {}) {
  * inside the tap stays unlocked for the whole session.
  * Returns a controller whose `done` resolves when it finishes or is stopped.
  */
-/* `rate` plays it faster or slower than it was generated, and the mouth's timeline runs at the same
-   rate so the lip sync stays on the syllable. It raises the pitch along with the speed (a few per cent
-   is not heard as a different voice; 15%+ starts to be). Used because Eleven v4 has no speed control. */
+/* `rate` plays it faster or slower than it was generated -- time-stretched, so the pitch stays his --
+   and the mouth's timeline runs at the same rate so the lip sync stays on the syllable. Used because
+   Eleven v4 has no speed control. */
 export function speakBuffer(ctx, buffer, marks, text, { who = 'colin', rate = 1 } = {}) {
   hush();
-  const src = ctx.createBufferSource(); src.buffer = buffer; src.connect(ctx.destination); src.playbackRate.value = rate;
-  const spans = marks ? timelineFromMarks(marks) : timelineFromText(text, buffer.duration);
+  const spans = marks ? timelineFromMarks(marks) : timelineFromText(text, buffer.duration);   // in the ORIGINAL clip's time
+  if (Math.abs(rate - 1) > 0.005 && buffer.length > 4096) {   // faster at the SAME pitch (wsola above)
+    const ch = Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i));
+    const st = wsola(ch, buffer.sampleRate, rate), nb = ctx.createBuffer(st.length, st[0].length, buffer.sampleRate);
+    st.forEach((d, i) => nb.copyToChannel(d, i)); buffer = nb;
+  } else rate = 1;
+  const src = ctx.createBufferSource(); src.buffer = buffer; src.connect(ctx.destination);
   const t0 = ctx.currentTime + 0.03; src.start(t0);
   let stopped = false, raf = 0, resolve;
   const ctl = {
