@@ -14,7 +14,7 @@
 
 import * as THREE from '../vendor/three.module.min.js';
 import { loadCharacter, skinnedBounds, pickClip, play } from './rig.js?v=e9487a7b';
-import { mouth, speakBuffer, hush, VISEME, JAW } from './speech.js?v=3a52087b';
+import { mouth, speakBuffer, hush, VISEME, JAW } from './speech.js?v=86e3fd1c';
 
 export const BRAIN = 'https://orb-brain.colinwillowtree.workers.dev';
 /* HOW FAST HE TALKS, set here because Eleven v4 ignores the API's speed setting: his audio is played

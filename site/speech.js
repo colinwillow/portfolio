@@ -13,7 +13,9 @@ const HOLD = { AI: 2.2, E: 2.0, O: 2.2, U: 2.0, WQ: 1.6, L: 1.2, FV: 1.2, MBP: 1
 
 /** Shape -> morph targets on colin.glb (names matched loosely, `_MIX` dropped). */
 export const VISEME = {
-  MBP: { V_Explosive: 1, Mouth_Close: 0.55, Mouth_Press_L: 0.35, Mouth_Press_R: 0.35 },
+  // no Mouth_Close: it closes the lips AGAINST AN OPEN JAW, and with the jaw shut (MBP is jaw 0) it
+  // rolled his lower lip up over the top one until the mouth vanished. V_Explosive already closes them.
+  MBP: { V_Explosive: 1, Mouth_Press_L: 0.35, Mouth_Press_R: 0.35 },
   FV: { V_Dental_Lip: 1 }, E: { V_Wide: 0.88 }, AI: { V_Open: 0.9, V_Lip_Open: 0.35 },
   O: { V_Tight_O: 0.92, Mouth_Funnel: 0.25 }, U: { V_Tight_O: 0.55, V_Tight: 0.6, Mouth_Pucker: 0.25 },
   WQ: { V_Tight: 0.95, Mouth_Pucker: 0.35 }, L: { V_Lip_Open: 0.6 }, etc: { V_Affricate: 0.8 }, rest: {},
